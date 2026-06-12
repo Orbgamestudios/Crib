@@ -10,6 +10,7 @@ const P2P_LOBBY_BROKERS = [
   'wss://broker.hivemq.com:8884/mqtt',
   'wss://broker.emqx.io:8084/mqtt',
 ];
+const P2P_ROOM_TOPIC_PREFIX = 'orbcrib-room-v1';
 const TOUCH = 'ontouchstart' in window;
 
 // GitHub Pages (or any static host) has no WebSocket server: use P2P rooms.
@@ -21,6 +22,7 @@ let wsOpen = false;
 let hostSession = null;   // P2P: I am the host (game runs in this tab)
 let guestConn = null;     // P2P: I am a guest
 let guestPeer = null;
+let mqttGuest = null;
 let p2pLobbyClients = [];
 const p2pRooms = new Map();
 let myRoomId = null;
@@ -61,6 +63,7 @@ function connectWs() {
 function sendMsg(msg) {
   if (hostSession) hostSession.handleLocal(msg);
   else if (guestConn && guestConn.open) guestConn.send(msg);
+  else if (mqttGuest && mqttGuest.open) mqttGuest.send(msg);
   else if (wsOpen) ws.send(JSON.stringify(msg));
 }
 
@@ -80,43 +83,140 @@ async function hostTable() {
 function joinByCode(code) {
   code = code.trim().toUpperCase();
   if (!/^[A-Z0-9]{5}$/.test(code)) return toast('Codes are 5 letters/digits.');
-  if (guestPeer) { try { guestPeer.destroy(); } catch { /* gone */ } guestPeer = null; guestConn = null; }
+  clearGuestTransports();
   sessionStorage.setItem('crib_code', code);
   guestPeer = new Peer({ debug: 1 });
   toast('Connecting…');
   let failTimer = null;
+  let fallingBack = false;
+  const useRelay = () => {
+    if (fallingBack) return;
+    fallingBack = true;
+    clearTimeout(failTimer);
+    clearGuestPeer();
+    joinByMqttCode(code);
+  };
   guestPeer.on('open', () => {
     guestConn = guestPeer.connect(PEER_PREFIX + code, { reliable: true, serialization: 'json' });
     failTimer = setTimeout(() => {
-      if (!guestConn || !guestConn.open) dropGuest('No table found with that code. Make sure the host tab is open.');
+      if (!guestConn || !guestConn.open) useRelay();
     }, 12000);
     guestConn.on('open', () => {
       clearTimeout(failTimer);
       guestConn.send({ t: 'joinRoom', playerName: myName() });
     });
     guestConn.on('data', msg => handle(msg));
-    guestConn.on('close', () => { clearTimeout(failTimer); dropGuest('Connection to the host was lost.'); });
-    guestConn.on('error', e => { clearTimeout(failTimer); dropGuest('Could not reach the host: ' + (e.type || e)); });
+    guestConn.on('close', () => { clearTimeout(failTimer); if (!fallingBack) dropGuest('Connection to the host was lost.'); });
+    guestConn.on('error', () => useRelay());
   });
   guestPeer.on('error', err => {
     clearTimeout(failTimer);
-    if (err.type === 'peer-unavailable') dropGuest('No table found with that code. Make sure the host tab is open and the code is correct.');
-    else if (err.type === 'network') dropGuest('Network error — check your connection and try again.');
+    if (err.type === 'peer-unavailable' || err.type === 'network') useRelay();
     else dropGuest('Connection error: ' + err.type);
   });
 }
 
 function dropGuest(reason) {
-  if (!guestPeer) return;
-  try { guestPeer.destroy(); } catch { /* gone */ }
-  guestPeer = null; guestConn = null;
+  if (!guestPeer && !mqttGuest) return;
+  clearGuestTransports();
   toast(reason);
   showView('lobby');
 }
 
+function joinByMqttCode(code) {
+  if (!window.mqtt) {
+    toast('Connecting through lobby relay…');
+    setTimeout(() => joinByMqttCode(code), 500);
+    return;
+  }
+  clearMqttGuest();
+  toast('Connecting through lobby relay…');
+  const guestId = 'g-' + Math.random().toString(36).slice(2);
+  const hostTopic = `${P2P_ROOM_TOPIC_PREFIX}/${code}/host`;
+  const guestTopic = `${P2P_ROOM_TOPIC_PREFIX}/${code}/guest/${guestId}`;
+  const seen = new Set();
+  let joined = false;
+  const clients = [];
+  const joinEnvelope = JSON.stringify({
+    id: makeMsgId(),
+    guestId,
+    msg: { t: 'joinRoom', playerName: myName() },
+  });
+  const sendEnvelope = msg => {
+    const envelope = JSON.stringify({ id: makeMsgId(), guestId, msg });
+    for (const client of clients) {
+      if (client.connected) client.publish(hostTopic, envelope);
+    }
+  };
+  const sendJoin = () => {
+    for (const client of clients) {
+      if (client.connected) client.publish(hostTopic, joinEnvelope);
+    }
+  };
+  mqttGuest = {
+    open: true,
+    send: sendEnvelope,
+    destroy() {
+      this.open = false;
+      for (const client of clients) client.end(true);
+    },
+  };
+  const failTimer = setTimeout(() => {
+    if (!joined) dropGuest('No table found with that code. Make sure the host tab is open.');
+  }, 12000);
+  const onMessage = (topic, payload) => {
+    if (topic !== guestTopic) return;
+    let envelope;
+    try { envelope = JSON.parse(payload.toString()); } catch { return; }
+    if (!envelope || envelope.guestId !== guestId || seen.has(envelope.id)) return;
+    seen.add(envelope.id);
+    if (envelope.msg && envelope.msg.t === 'joined') {
+      joined = true;
+      clearTimeout(failTimer);
+    }
+    if (envelope.msg) handle(envelope.msg);
+  };
+  for (let i = 0; i < P2P_LOBBY_BROKERS.length; i++) {
+    const client = window.mqtt.connect(P2P_LOBBY_BROKERS[i], {
+      clientId: `orbcrib-guest-${i}-${guestId}`,
+      clean: true,
+      connectTimeout: 8000,
+      reconnectPeriod: 3000,
+    });
+    clients.push(client);
+    client.on('connect', () => {
+      client.subscribe(guestTopic, sendJoin);
+    });
+    client.on('message', onMessage);
+    client.on('error', err => console.warn('Lobby relay error:', err && err.message || err));
+  }
+}
+
+function clearGuestPeer() {
+  const peer = guestPeer;
+  guestPeer = null;
+  guestConn = null;
+  if (peer) { try { peer.destroy(); } catch { /* gone */ } }
+}
+
+function clearMqttGuest() {
+  const relay = mqttGuest;
+  mqttGuest = null;
+  if (relay) relay.destroy();
+}
+
+function clearGuestTransports() {
+  clearGuestPeer();
+  clearMqttGuest();
+}
+
+function makeMsgId() {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2);
+}
+
 function leaveP2p() {
   if (hostSession) { hostSession.destroy('Host closed the table.'); hostSession = null; }
-  else if (guestPeer) { try { guestPeer.destroy(); } catch { /* gone */ } guestPeer = null; guestConn = null; }
+  else clearGuestTransports();
   showView('lobby');
 }
 
@@ -159,7 +259,7 @@ function handle(msg) {
       myRoomId = null;
       sessionStorage.removeItem('crib_room');
       hostSession = null;
-      if (guestPeer) { try { guestPeer.destroy(); } catch { /* gone */ } guestPeer = null; guestConn = null; }
+      clearGuestTransports();
       showView('lobby');
       if (!P2P_MODE) renderRoomList(msg.rooms || []);
       break;
@@ -274,7 +374,7 @@ function renderRoomList(rooms) {
     btn.textContent = 'Join';
     btn.onclick = () => {
       if (!myName()) return toast('Enter a name first.');
-      if (P2P_MODE) joinByCode(r.id);
+      if (P2P_MODE) joinByMqttCode(r.id);
       else sendMsg({ t: 'joinRoom', roomId: r.id, playerName: myName() });
     };
     div.appendChild(btn);

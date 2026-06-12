@@ -11,6 +11,7 @@ const P2P_LOBBY_BROKERS = [
   'wss://broker.hivemq.com:8884/mqtt',
   'wss://broker.emqx.io:8084/mqtt',
 ];
+const P2P_ROOM_TOPIC_PREFIX = 'orbcrib-room-v1';
 
 export function makeCode() {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -31,6 +32,8 @@ export class HostSession {
     this.game = null;
     this.logs = [];
     this.destroyed = false;
+    this.mqttConns = new Map();
+    this.seenMqtt = new Set();
     // dropped-message insurance: clients always converge within a heartbeat
     this.heartbeat = setInterval(() => { if (!this.destroyed) this.broadcastRoom(); }, 2500);
 
@@ -77,6 +80,37 @@ export class HostSession {
   }
 
   byConn(conn) { return this.players.find(p => p.conn === conn); }
+
+  mqttConn(guestId) {
+    let conn = this.mqttConns.get(guestId);
+    if (conn) return conn;
+    conn = {
+      open: true,
+      send: msg => this.sendMqtt(guestId, msg),
+      close: () => { conn.open = false; },
+    };
+    this.mqttConns.set(guestId, conn);
+    return conn;
+  }
+
+  sendMqtt(guestId, msg) {
+    if (!this.mqttClients) return;
+    const topic = `${P2P_ROOM_TOPIC_PREFIX}/${this.code}/guest/${guestId}`;
+    const envelope = JSON.stringify({ id: makeMsgId(), guestId, msg });
+    for (const client of this.mqttClients) {
+      if (client.connected) client.publish(topic, envelope);
+    }
+  }
+
+  handleMqtt(topic, payload) {
+    if (topic !== `${P2P_ROOM_TOPIC_PREFIX}/${this.code}/host`) return;
+    let envelope;
+    try { envelope = JSON.parse(payload.toString()); } catch { return; }
+    if (!envelope || !envelope.id || !envelope.guestId || this.seenMqtt.has(envelope.id)) return;
+    this.seenMqtt.add(envelope.id);
+    if (this.seenMqtt.size > 500) this.seenMqtt.clear();
+    this.handle(this.mqttConn(envelope.guestId), envelope.msg || {});
+  }
 
   log(text) {
     this.logs.push(text);
@@ -239,6 +273,7 @@ export class HostSession {
       });
       client.publish(P2P_LOBBY_TOPIC, payload);
     };
+    const hostTopic = `${P2P_ROOM_TOPIC_PREFIX}/${this.code}/host`;
     this.mqttClients = P2P_LOBBY_BROKERS.map((url, idx) => {
       const client = window.mqtt.connect(url, {
         clientId: `orbcrib-host-${idx}-${this.code}-` + Math.random().toString(36).slice(2),
@@ -246,7 +281,11 @@ export class HostSession {
         connectTimeout: 8000,
         reconnectPeriod: 3000,
       });
-      client.on('connect', () => publish(client));
+      client.on('connect', () => {
+        client.subscribe(hostTopic);
+        publish(client);
+      });
+      client.on('message', (topic, payload) => this.handleMqtt(topic, payload));
       client.on('error', err => console.warn('Lobby broadcast error:', url, err && err.message || err));
       return client;
     });
@@ -260,5 +299,11 @@ export class HostSession {
       for (const client of this.mqttClients) client.end(true);
       this.mqttClients = null;
     }
+    for (const conn of this.mqttConns.values()) conn.close();
+    this.mqttConns.clear();
   }
+}
+
+function makeMsgId() {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2);
 }
