@@ -29,11 +29,6 @@ let deckOpen = false;     // deck viewer overlay
 // Joker drag state
 let dragJokerIdx = -1;
 
-// MQTT Lobby Discovery for P2P mode
-let mqttClient = null;
-let activeLobbies = new Map();
-let lobbyTimer = null;
-
 // ---- transport ----
 
 function connectWs() {
@@ -77,22 +72,28 @@ async function hostTable() {
 function joinByCode(code) {
   code = code.trim().toUpperCase();
   if (!/^[A-Z0-9]{5}$/.test(code)) return toast('Codes are 5 letters/digits.');
+  if (guestPeer) { try { guestPeer.destroy(); } catch { /* gone */ } guestPeer = null; guestConn = null; }
   sessionStorage.setItem('crib_code', code);
   guestPeer = new Peer({ debug: 1 });
   toast('Connecting…');
+  let failTimer = null;
   guestPeer.on('open', () => {
     guestConn = guestPeer.connect(PEER_PREFIX + code, { reliable: true, serialization: 'json' });
-    const failTimer = setTimeout(() => { if (!guestConn.open) dropGuest('No table found with that code.'); }, 8000);
+    failTimer = setTimeout(() => {
+      if (!guestConn || !guestConn.open) dropGuest('No table found with that code. Make sure the host tab is open.');
+    }, 12000);
     guestConn.on('open', () => {
       clearTimeout(failTimer);
       guestConn.send({ t: 'joinRoom', playerName: myName() });
     });
     guestConn.on('data', msg => handle(msg));
-    guestConn.on('close', () => dropGuest('Connection to the host was lost.'));
-    guestConn.on('error', () => dropGuest('Could not reach the host.'));
+    guestConn.on('close', () => { clearTimeout(failTimer); dropGuest('Connection to the host was lost.'); });
+    guestConn.on('error', e => { clearTimeout(failTimer); dropGuest('Could not reach the host: ' + (e.type || e)); });
   });
   guestPeer.on('error', err => {
-    if (err.type === 'peer-unavailable') dropGuest('No table found with that code.');
+    clearTimeout(failTimer);
+    if (err.type === 'peer-unavailable') dropGuest('No table found with that code. Make sure the host tab is open and the code is correct.');
+    else if (err.type === 'network') dropGuest('Network error — check your connection and try again.');
     else dropGuest('Connection error: ' + err.type);
   });
 }
@@ -169,10 +170,6 @@ function showView(v) {
     lastState = prevState = null;
     document.body.classList.remove('my-turn');
   }
-  if (P2P_MODE && typeof startMqttDiscovery === 'function') {
-    if (v === 'lobby') startMqttDiscovery();
-    else stopMqttDiscovery();
-  }
 }
 
 function toast(text) {
@@ -202,60 +199,6 @@ function myName() {
 $('nameInput').value = localStorage.getItem('crib_name') || '';
 $('nameInput').addEventListener('input', () => localStorage.setItem('crib_name', myName()));
 
-function startMqttDiscovery() {
-  if (mqttClient) return;
-  if (!window.mqtt) return setTimeout(startMqttDiscovery, 500);
-  mqttClient = mqtt.connect('wss://broker.hivemq.com:8884/mqtt');
-  mqttClient.on('connect', () => mqttClient.subscribe('orbcrib-lobbies-v1'));
-  mqttClient.on('message', (topic, payload) => {
-    try {
-      const msg = JSON.parse(payload.toString());
-      if (msg.t === 'lobbyUpdate') {
-        activeLobbies.set(msg.code, { ...msg, lastSeen: Date.now() });
-        renderP2pLobbies();
-      }
-    } catch (e) {}
-  });
-  lobbyTimer = setInterval(() => {
-    const now = Date.now();
-    let changed = false;
-    for (const [code, lobby] of activeLobbies.entries()) {
-      if (now - lobby.lastSeen > 30000) { activeLobbies.delete(code); changed = true; }
-    }
-    if (changed) renderP2pLobbies();
-  }, 3000);
-}
-
-function stopMqttDiscovery() {
-  if (mqttClient) { mqttClient.end(); mqttClient = null; }
-  clearInterval(lobbyTimer);
-  activeLobbies.clear();
-}
-
-function renderP2pLobbies() {
-  const el = $('p2pRoomList');
-  if (!el) return;
-  el.innerHTML = '';
-  if (activeLobbies.size === 0) {
-    el.innerHTML = '<div class="empty">No public tables open. Host one!</div>';
-    return;
-  }
-  for (const lobby of activeLobbies.values()) {
-    const div = document.createElement('div');
-    div.className = 'room-item';
-    div.innerHTML = `<div><b>${esc(lobby.name)}</b><div class="meta">${lobby.count}/6 players</div></div>`;
-    const btn = document.createElement('button');
-    btn.className = 'btn small primary';
-    btn.textContent = 'Join';
-    btn.onclick = () => {
-      $('codeInput').value = lobby.code;
-      $('joinCodeBtn').click();
-    };
-    div.appendChild(btn);
-    el.appendChild(div);
-  }
-}
-
 if (P2P_MODE) {
   $('wsPanel').classList.add('hidden');
   $('roomsPanel').classList.add('hidden');
@@ -269,7 +212,6 @@ if (P2P_MODE) {
     if (!myName()) return toast('Enter a name first.');
     joinByCode($('codeInput').value);
   };
-  startMqttDiscovery();
 } else {
   $('createBtn').onclick = () => {
     if (!myName()) return toast('Enter a name first.');

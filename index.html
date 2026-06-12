@@ -14,7 +14,6 @@
 <meta name="apple-mobile-web-app-title" content="Crib">
 <link rel="stylesheet" href="style.css?v=12">
 <script src="https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js" defer></script>
-<script src="https://unpkg.com/mqtt/dist/mqtt.min.js" defer></script>
 </head>
 <body>
 
@@ -37,11 +36,8 @@
         <input id="codeInput" maxlength="5" placeholder="Table code" autocapitalize="characters" autocomplete="off" style="width:100px;">
         <button id="joinCodeBtn" class="btn primary">Join</button>
       </div>
-      <div id="p2pRoomList" style="margin-top:15px;max-height:150px;overflow-y:auto;font-size:13px;">
-        <!-- P2P lobbies injected here via MQTT -->
-      </div>
       <div style="margin-top:10px;font-size:12px;opacity:0.6;line-height:1.4">
-        <b>Note:</b> Lobbies do not appear in a list. One player must <b>Create Table</b> and share their 5-letter code with the other players.
+        One player clicks <b>Host a Table</b> and shares the 5-letter code. Others enter the code and click <b>Join</b>.
       </div>
     </div>
     <button id="soloBtn" class="btn wide" style="margin-top:10px">🤖 Play Solo vs The House</button>
