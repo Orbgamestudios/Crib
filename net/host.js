@@ -222,7 +222,7 @@ export class HostSession {
       this.players.map(p => ({ id: p.id, name: p.name, connected: p.connected, isBot: p.isBot })),
       { onUpdate: () => this.broadcastRoom(), log: text => this.log(text) }
     );
-    this.stopMqttBroadcast();
+    this.stopLobbyAdvertising();
     this.broadcastRoom();
   }
 
@@ -293,14 +293,20 @@ export class HostSession {
   }
 
   stopMqttBroadcast() {
-    if (this.mqttRetry) clearTimeout(this.mqttRetry);
-    if (this.mqttTimer) clearInterval(this.mqttTimer);
+    this.stopLobbyAdvertising();
     if (this.mqttClients) {
       for (const client of this.mqttClients) client.end(true);
       this.mqttClients = null;
     }
     for (const conn of this.mqttConns.values()) conn.close();
     this.mqttConns.clear();
+  }
+
+  stopLobbyAdvertising() {
+    if (this.mqttRetry) clearTimeout(this.mqttRetry);
+    if (this.mqttTimer) clearInterval(this.mqttTimer);
+    this.mqttRetry = null;
+    this.mqttTimer = null;
   }
 }
 
