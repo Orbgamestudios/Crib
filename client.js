@@ -63,6 +63,10 @@ async function hostTable() {
     if (status === 'code-taken') { hostSession = null; toast('Code collision — try again.'); }
     else if (status === 'error') { hostSession = null; toast('Connection service error: ' + detail); showView('lobby'); }
   });
+  hostSession.peer.on('error', err => {
+    console.warn('Host PeerJS error:', err.type);
+    toast('Connection service error: ' + err.type);
+  });
 }
 
 function joinByCode(code) {
@@ -84,6 +88,7 @@ function joinByCode(code) {
   });
   guestPeer.on('error', err => {
     if (err.type === 'peer-unavailable') dropGuest('No table found with that code.');
+    else dropGuest('Connection error: ' + err.type);
   });
 }
 
