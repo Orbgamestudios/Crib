@@ -6,12 +6,6 @@ import { Game } from '../lib/game.js';
 // CDN script tag.
 
 export const PEER_PREFIX = 'orbcrib-v1-';
-const P2P_LOBBY_TOPIC = 'orbcrib-lobbies-v1';
-const P2P_LOBBY_BROKERS = [
-  'wss://broker.hivemq.com:8884/mqtt',
-  'wss://broker.emqx.io:8084/mqtt',
-];
-const P2P_ROOM_TOPIC_PREFIX = 'orbcrib-room-v1';
 
 export function makeCode() {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -32,8 +26,6 @@ export class HostSession {
     this.game = null;
     this.logs = [];
     this.destroyed = false;
-    this.mqttConns = new Map();
-    this.seenMqtt = new Set();
     // dropped-message insurance: clients always converge within a heartbeat
     this.heartbeat = setInterval(() => { if (!this.destroyed) this.broadcastRoom(); }, 2500);
 
@@ -53,7 +45,6 @@ export class HostSession {
       this.onStatus('open');
       this.onLocal({ t: 'joined', roomId: code, logs: this.logs });
       this.broadcastRoom();
-      this.startMqttBroadcast();
     });
     this.peer.on('error', err => {
       if (err.type === 'unavailable-id') this.onStatus('code-taken');
@@ -80,37 +71,6 @@ export class HostSession {
   }
 
   byConn(conn) { return this.players.find(p => p.conn === conn); }
-
-  mqttConn(guestId) {
-    let conn = this.mqttConns.get(guestId);
-    if (conn) return conn;
-    conn = {
-      open: true,
-      send: msg => this.sendMqtt(guestId, msg),
-      close: () => { conn.open = false; },
-    };
-    this.mqttConns.set(guestId, conn);
-    return conn;
-  }
-
-  sendMqtt(guestId, msg) {
-    if (!this.mqttClients) return;
-    const topic = `${P2P_ROOM_TOPIC_PREFIX}/${this.code}/guest/${guestId}`;
-    const envelope = JSON.stringify({ id: makeMsgId(), guestId, msg });
-    for (const client of this.mqttClients) {
-      if (client.connected) client.publish(topic, envelope, { qos: 1 });
-    }
-  }
-
-  handleMqtt(topic, payload) {
-    if (topic !== `${P2P_ROOM_TOPIC_PREFIX}/${this.code}/host`) return;
-    let envelope;
-    try { envelope = JSON.parse(payload.toString()); } catch { return; }
-    if (!envelope || !envelope.id || !envelope.guestId || this.seenMqtt.has(envelope.id)) return;
-    this.seenMqtt.add(envelope.id);
-    if (this.seenMqtt.size > 500) this.seenMqtt.clear();
-    this.handle(this.mqttConn(envelope.guestId), envelope.msg || {});
-  }
 
   log(text) {
     this.logs.push(text);
@@ -222,7 +182,6 @@ export class HostSession {
       this.players.map(p => ({ id: p.id, name: p.name, connected: p.connected, isBot: p.isBot })),
       { onUpdate: () => this.broadcastRoom(), log: text => this.log(text) }
     );
-    this.stopLobbyAdvertising();
     this.broadcastRoom();
   }
 
@@ -244,7 +203,6 @@ export class HostSession {
   destroy(reason) {
     if (this.destroyed) return;
     this.destroyed = true;
-    this.stopMqttBroadcast();
     clearInterval(this.heartbeat);
     for (const p of this.players.slice(1)) {
       if (p.connected) this.sendTo(p.conn, { t: 'hostLeft', text: reason });
@@ -254,62 +212,4 @@ export class HostSession {
     this.onLocal({ t: 'left' });
   }
 
-  startMqttBroadcast() {
-    if (this.solo || this.destroyed) return;
-    if (!window.mqtt) {
-      this.mqttRetry = setTimeout(() => this.startMqttBroadcast(), 500);
-      return;
-    }
-    const publish = client => {
-      if (this.game || this.destroyed || !client || !client.connected) return;
-      const connectedCount = this.players.filter(p => p.connected).length;
-      if (connectedCount >= 6) return; // Full
-      const payload = JSON.stringify({
-        t: 'lobbyUpdate',
-        code: this.code,
-        name: this.roomName,
-        count: connectedCount,
-        players: this.players.filter(p => p.connected).map(p => p.name),
-      });
-      client.publish(P2P_LOBBY_TOPIC, payload);
-    };
-    const hostTopic = `${P2P_ROOM_TOPIC_PREFIX}/${this.code}/host`;
-    this.mqttClients = P2P_LOBBY_BROKERS.map((url, idx) => {
-      const client = window.mqtt.connect(url, {
-        clientId: `orbcrib-host-${idx}-${this.code}-` + Math.random().toString(36).slice(2),
-        clean: true,
-        connectTimeout: 8000,
-        reconnectPeriod: 3000,
-      });
-      client.on('connect', () => {
-        client.subscribe(hostTopic, { qos: 1 });
-        publish(client);
-      });
-      client.on('message', (topic, payload) => this.handleMqtt(topic, payload));
-      client.on('error', err => console.warn('Lobby broadcast error:', url, err && err.message || err));
-      return client;
-    });
-    this.mqttTimer = setInterval(() => this.mqttClients.forEach(publish), 5000);
-  }
-
-  stopMqttBroadcast() {
-    this.stopLobbyAdvertising();
-    if (this.mqttClients) {
-      for (const client of this.mqttClients) client.end(true);
-      this.mqttClients = null;
-    }
-    for (const conn of this.mqttConns.values()) conn.close();
-    this.mqttConns.clear();
-  }
-
-  stopLobbyAdvertising() {
-    if (this.mqttRetry) clearTimeout(this.mqttRetry);
-    if (this.mqttTimer) clearInterval(this.mqttTimer);
-    this.mqttRetry = null;
-    this.mqttTimer = null;
-  }
-}
-
-function makeMsgId() {
-  return Date.now().toString(36) + Math.random().toString(36).slice(2);
 }

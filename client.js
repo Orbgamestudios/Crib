@@ -23,6 +23,7 @@ let hostSession = null;   // P2P: I am the host (game runs in this tab)
 let guestConn = null;     // P2P: I am a guest
 let guestPeer = null;
 let mqttGuest = null;
+let mqttSyncTimer = null;
 let p2pLobbyClients = [];
 const p2pRooms = new Map();
 let myRoomId = null;
@@ -63,7 +64,7 @@ function connectWs() {
 function sendMsg(msg) {
   if (hostSession) hostSession.handleLocal(msg);
   else if (guestConn && guestConn.open) guestConn.send(msg);
-  else if (mqttGuest && mqttGuest.open) mqttGuest.send(msg);
+  else if (mqttGuest && mqttGuest.open) mqttGuest.send(msg, { qos: 1 });
   else if (wsOpen) ws.send(JSON.stringify(msg));
 }
 
@@ -142,15 +143,15 @@ function joinByMqttCode(code) {
     guestId,
     msg: { t: 'joinRoom', playerName: myName() },
   });
-  const sendEnvelope = msg => {
+  const sendEnvelope = (msg, opts = {}) => {
     const envelope = JSON.stringify({ id: makeMsgId(), guestId, msg });
     for (const client of clients) {
-      if (client.connected) client.publish(hostTopic, envelope);
+      if (client.connected) client.publish(hostTopic, envelope, opts);
     }
   };
   const sendJoin = () => {
     for (const client of clients) {
-      if (client.connected) client.publish(hostTopic, joinEnvelope);
+      if (client.connected) client.publish(hostTopic, joinEnvelope, { qos: 1 });
     }
   };
   mqttGuest = {
@@ -185,7 +186,7 @@ function joinByMqttCode(code) {
     });
     clients.push(client);
     client.on('connect', () => {
-      client.subscribe(guestTopic, sendJoin);
+      client.subscribe(guestTopic, { qos: 1 }, sendJoin);
     });
     client.on('message', onMessage);
     client.on('error', err => console.warn('Lobby relay error:', err && err.message || err));
@@ -210,6 +211,18 @@ function clearGuestTransports() {
   clearMqttGuest();
 }
 
+function startMqttSync() {
+  stopMqttSync();
+  mqttSyncTimer = setInterval(() => {
+    if (mqttGuest && mqttGuest.open && view === 'waiting') mqttGuest.send({ t: 'sync' }, { qos: 1 });
+  }, 2000);
+}
+
+function stopMqttSync() {
+  if (mqttSyncTimer) clearInterval(mqttSyncTimer);
+  mqttSyncTimer = null;
+}
+
 function makeMsgId() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2);
 }
@@ -232,6 +245,7 @@ function handle(msg) {
     case 'joined':
       myRoomId = msg.roomId;
       if (!P2P_MODE) sessionStorage.setItem('crib_room', msg.roomId);
+      if (mqttGuest) startMqttSync();
       $('log').innerHTML = '';
       (msg.logs || []).forEach(addLog);
       break;
@@ -240,6 +254,7 @@ function handle(msg) {
       renderWaiting(msg);
       break;
     case 'state':
+      stopMqttSync();
       showView('game');
       prevState = lastState;
       lastState = msg.state;
@@ -259,6 +274,7 @@ function handle(msg) {
       myRoomId = null;
       sessionStorage.removeItem('crib_room');
       hostSession = null;
+      stopMqttSync();
       clearGuestTransports();
       showView('lobby');
       if (!P2P_MODE) renderRoomList(msg.rooms || []);
