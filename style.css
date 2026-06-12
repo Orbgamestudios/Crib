@@ -354,7 +354,7 @@ body.my-turn #bgRush { opacity: 0.55; animation-play-state: running; }
 }
 #hand .card { width: 56px; height: 78px; font-size: 18px; }
 #hand .card .suit { font-size: 21px; }
-#actionRow { height: 36px; display: flex; justify-content: center; gap: 10px; align-items: center; flex-wrap: wrap; flex-shrink: 0; }
+#actionRow { min-height: 36px; margin-bottom: 6px; display: flex; justify-content: center; gap: 10px; align-items: center; flex-wrap: wrap; flex-shrink: 0; }
 #prompt { font-size: 14px; opacity: 0.85; }
 
 #myStuff { width: 200px; font-size: 12px; display: flex; flex-direction: column; justify-content: center; flex-shrink: 0; overflow: hidden; }
