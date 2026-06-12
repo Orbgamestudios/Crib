@@ -1,62 +1,91 @@
 # Crib
 
-Online multiplayer cribbage (2–6 players) with Balatro-style jokers and tarot cards.
-Node.js + WebSocket server, vanilla JS client, no build step.
+Online multiplayer cribbage (2–6 players) with Balatro-style jokers, tarot
+cards, and escalating blinds. Vanilla JS, no build step. Playable two ways:
 
-## Run
+- **Node server** (`npm start`) — lobby with open-table listing over WebSockets.
+- **GitHub Pages / any static host** — fully peer-to-peer (WebRTC via PeerJS):
+  one player hosts and shares a 5-letter code, the game engine runs in the
+  host's browser tab. Live at https://orbgamestudios.github.io/Crib/
+
+Installable as a PWA on iPhone/Android (Add to Home Screen).
+
+## Run locally
 
 ```
 npm install
 npm start          # http://localhost:3000
 ```
 
-Set `PORT` to change the port. Everyone joins from a browser, picks a name,
-and either creates a table or joins an open one from the lobby list.
+`npm test` runs a headless smoke test: bots play full matches (2/3/5 players)
+to game over through the real server.
 
 ## How a match works
 
-- **Match length** is measured in dealer rotations, Balatro-ante style:
-  the deal goes fully around the table **3× with 2 players, 2× with 3–4,
-  1× with 5–6**. When the last crib is counted, highest total score wins —
-  there is no race to 121.
-- **Deal sizes:** 2p — 6 cards, discard 2; 3p — 5 cards, discard 1 plus one
-  deck card to the crib; 4p — 5 cards, discard 1; 5–6p — 5 cards, discard 1
-  (the crib runs oversized, a nice dealer bonus).
-- Standard cribbage otherwise: cut a starter (His Heels for the dealer on a
-  Jack), peg to 31 with fifteens/pairs/runs/go, then count hands and crib.
+- Play happens in **rounds**. Each round the deal goes around the table —
+  every active player deals (and gets the crib) **once with 3+ players,
+  twice with 2 players** (4 deals).
+- Each deal: discard to the crib, cut the starter, peg to 31, then hands are
+  counted **one at a time** — left of the dealer first, dealer last, then the
+  crib — with the full breakdown (and joker effects) shown to everyone.
+- At the end of the round comes the **blind check**: anyone whose points for
+  that round are below the blind is **eliminated** and spectates. If nobody
+  beats the blind, the top scorer survives. Last player standing wins.
+- **Blinds scale** with player count and deals per round, and grow
+  **exponentially** by round: ~50% of an average round's score in round 1,
+  ~90% by round 3, ~2× by round 6, ~4.5× by round 9. Build a joker engine or
+  die.
+
+### Deal sizes
+
+2 players — 6 cards, discard 2; 3 — 5 cards, discard 1 plus a deck card to
+the crib; 4 — 5 cards, discard 1; 5–6 — 5 cards, discard 1 (oversized crib).
 
 ## Jokers & tarots
 
-- After each deal everyone earns **coins** (3 + 1 per 5 points scored that
-  deal) and a personal **shop** opens: 2 jokers + 2 tarots, reroll for 2.
-- **Jokers** (max 5) are passive and warp your scoring — fifteens worth 3,
-  doubled pegging, a fattened crib, coins on every cut, etc.
+- After each deal everyone earns **coins** (3 + 1 per 5 points that deal) and
+  a personal **shop** opens: 2 jokers + 2 tarots, reroll for 2.
+- **Jokers** (max 5, each with its own hand-drawn icon) are passive and warp
+  your scoring — fifteens worth 3, doubled pegging, a fattened crib, coins on
+  every cut…
 - **Tarots** (max 3) are one-shot consumables, used **during the discard
-  phase before you discard**: bump a card's rank, copy one card onto
-  another, change suits for a flush, redraw your whole hand…
+  phase before you discard**: bump a card's rank, copy one card onto another,
+  change suits for a flush, redraw your whole hand…
 
 ## Table rules of the UI
 
-- You sit at the bottom; opponents are arranged around the table and you
-  only ever see the backs of their cards (played pegging cards are face up,
-  as in real cribbage).
-- Your jokers and tarots live on your own screen; opponents see only counts
-  (hover a player to see which jokers they own — they're public, like
-  Balatro's joker row).
-- Disconnected players are auto-played after a short grace period and can
-  rejoin from the lobby with the same name to reclaim their seat.
+- You sit at the bottom; opponents arc around the table and you only ever see
+  the backs of their cards (played pegging cards are face up).
+- Your jokers and tarots live on your screen; opponents' joker lists are
+  public on hover/tap, like Balatro's joker row.
+- Cards lift and wobble on hover (or tap-select on phones), deals are
+  shuffled and flown out of the deck, and every score pops off the seat that
+  earned it.
+- Disconnected players are auto-played after a grace period and can rejoin
+  with the same name to reclaim their seat. In P2P mode the game lives in the
+  host's tab — if the host leaves, the table closes.
 
 ## Layout
 
 ```
-server.js        HTTP static server + WebSocket rooms/lobby
-lib/cards.js     deck + card helpers
+server.js        Node entry: HTTP static + WebSocket rooms/lobby
+index.html       app shell (PWA meta, manifest, PeerJS CDN)
+client.js        UI, rendering, animations, dual transport (ws / p2p)
+icons.js         hand-drawn SVG icons for every joker and tarot
+net/host.js      in-browser authoritative host for P2P (GitHub Pages) mode
+lib/cards.js     deck + card helpers (shared Node/browser ES modules)
 lib/scoring.js   hand scoring breakdown + pegging events
 lib/jokers.js    joker/tarot definitions, modifier aggregation, shop offers
-lib/game.js      server-authoritative game state machine
-public/          vanilla JS client (index.html, client.js, style.css)
-test/smoke.js    headless bot game over real websockets
+lib/game.js      game state machine: deals, rounds, blinds, elimination
+sw.js            service worker (offline app shell for the PWA)
+manifest.webmanifest, icons/   PWA assets
+test/smoke.js    headless bot matches over real websockets
 ```
 
-`npm test` runs the smoke test: bots create a room, join, and play full
-matches (2 and 5 players) to game over.
+## GitHub Pages notes
+
+Pages serves this repo's root statically. There is no server, so there is no
+global room list — tables are joined by the host's 5-letter code. The host's
+browser is authoritative; everyone else connects to it over WebRTC (PeerJS's
+free public broker handles signalling). The exact same client served by
+`server.js` auto-detects which transport to use.

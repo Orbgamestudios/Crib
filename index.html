@@ -2,24 +2,42 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
 <title>Crib — Roguelike Cribbage</title>
-<link rel="stylesheet" href="style.css?v=2">
+<meta name="theme-color" content="#14422a">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Crib">
+<link rel="stylesheet" href="style.css?v=3">
+<script src="https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js" defer></script>
 </head>
 <body>
 
 <div id="lobby" class="view">
   <h1>♠ CRIB ♥</h1>
-  <p class="tagline">Online cribbage with jokers &amp; tarot cards</p>
+  <p class="tagline">Roguelike cribbage — beat the blind or bust out</p>
   <div class="panel">
     <label>Your name</label>
-    <input id="nameInput" maxlength="16" placeholder="e.g. Slinde">
-    <div class="row">
+    <input id="nameInput" maxlength="16" placeholder="e.g. Slinde" autocomplete="off">
+    <div class="row" id="wsPanel">
       <input id="roomNameInput" maxlength="30" placeholder="New table name">
       <button id="createBtn" class="btn primary">Create Table</button>
     </div>
+    <div id="p2pPanel" class="hidden">
+      <button id="hostBtn" class="btn primary wide">Host a Table</button>
+      <div class="or">— or —</div>
+      <div class="row">
+        <input id="codeInput" maxlength="5" placeholder="Table code" autocapitalize="characters" autocomplete="off">
+        <button id="joinCodeBtn" class="btn primary">Join</button>
+      </div>
+      <p class="hint">Hosting gives you a 5-letter code to share. The game runs peer-to-peer — keep the host's tab open.</p>
+    </div>
   </div>
-  <div class="panel">
+  <div class="panel" id="roomsPanel">
     <div class="row spread">
       <h2>Open Tables</h2>
       <button id="refreshBtn" class="btn small">Refresh</button>
@@ -31,6 +49,7 @@
 <div id="waiting" class="view hidden">
   <div class="panel">
     <h2 id="waitRoomName"></h2>
+    <p id="waitCode"></p>
     <div id="waitPlayers"></div>
     <p class="hint" id="waitHint"></p>
     <div class="row">
@@ -45,6 +64,7 @@
     <span id="dealInfo"></span>
     <span id="phaseInfo"></span>
     <span id="turnInfo"></span>
+    <span id="blindInfo"></span>
   </div>
   <div id="table">
     <div id="seats"></div>
@@ -88,8 +108,9 @@
   <div id="overlayContent" class="panel"></div>
 </div>
 
+<div id="fx"></div>
 <div id="toast" class="hidden"></div>
 
-<script src="client.js?v=2"></script>
+<script type="module" src="client.js?v=3"></script>
 </body>
 </html>

@@ -1,10 +1,10 @@
-'use strict';
+// Headless bot game: spins up the server, connects N ws clients, plays full
+// matches until one player remains. Exercises discard, tarots, pegging,
+// staged scoring reveal, blind checks/elimination, and the shop.
+process.env.CRIB_FAST = '1';
 
-// Headless bot game: spins up the server, connects N ws clients, plays a
-// full match to gameover. Exercises discard, tarots, pegging, scoring, shop.
-
-const WebSocket = require('ws');
-const { start } = require('../server');
+import WebSocket from 'ws';
+const { start } = await import('../server.js');
 
 const PORT = 3100;
 
@@ -39,12 +39,13 @@ function act(b) {
   const you = st.you;
   setTimeout(() => {
     if (b.done || !b.state || b.state !== st) return;
+    if (st.phase === 'gameover') { b.done = true; return; }
+    if (!you.active) return; // spectating
     if (st.phase === 'discard' && you.canDiscard) {
       if (you.tarots.length && Math.random() < 0.5) {
-        const idx = 0;
-        const def = you.tarots[idx];
+        const def = you.tarots[0];
         const targets = you.hand.slice(0, def.targets).map(c => c.id);
-        b.ws.send(JSON.stringify({ t: 'useTarot', idx, targets }));
+        b.ws.send(JSON.stringify({ t: 'useTarot', idx: 0, targets }));
       } else {
         const cards = you.hand.slice(0, st.discardCount).map(c => c.id);
         b.ws.send(JSON.stringify({ t: 'discard', cards }));
@@ -52,18 +53,16 @@ function act(b) {
     } else if (st.phase === 'pegging' && st.turnSeat === st.mySeat) {
       const card = you.hand.find(c => st.pegCount + Math.min(c.rank, 10) <= 31);
       if (card) b.ws.send(JSON.stringify({ t: 'playCard', card: card.id }));
-    } else if ((st.phase === 'scoring' || st.phase === 'shop') && !you.ready) {
+    } else if ((st.phase === 'scoring' || st.phase === 'shop' || st.phase === 'roundEnd') && !you.ready) {
       if (st.phase === 'shop' && you.shopOffer) {
         const idx = you.shopOffer.findIndex(it => !it.sold && it.cost <= you.coins &&
           (it.kind === 'joker' ? you.jokers.length < 5 : you.tarots.length < 3));
         if (idx >= 0 && Math.random() < 0.7) {
           b.ws.send(JSON.stringify({ t: 'buy', idx }));
-          return; // next state update will re-trigger act
+          return; // next state update re-triggers act
         }
       }
       b.ws.send(JSON.stringify({ t: 'ready' }));
-    } else if (st.phase === 'gameover') {
-      b.done = true;
     }
   }, 5);
 }
@@ -78,21 +77,27 @@ async function runMatch(nPlayers) {
     await new Promise(r => setTimeout(r, 100));
   }
 
-  const deadline = Date.now() + 60000;
+  const deadline = Date.now() + 90000;
   while (Date.now() < deadline) {
     if (bots.every(b => b.done)) break;
     await new Promise(r => setTimeout(r, 200));
   }
   if (!bots.every(b => b.done)) {
     const b = bots.find(x => !x.done);
-    console.error('STALLED. phase=', b.state && b.state.phase,
+    console.error('STALLED. phase=', b.state && b.state.phase, 'round=', b.state && b.state.round,
       'turnSeat=', b.state && b.state.turnSeat, 'lastError=', b.lastError);
     process.exit(1);
   }
   const final = bots[0].state;
-  console.log('gameover OK:', final.standings.map(s => `${s.name}:${s.score}`).join('  '));
-  if (final.dealNumber !== final.totalDeals) {
-    console.error(`FAIL: ended after ${final.dealNumber} deals, expected ${final.totalDeals}`);
+  if (!final.standings || final.standings.length !== nPlayers) {
+    console.error('FAIL: bad standings', final.standings);
+    process.exit(1);
+  }
+  const winners = final.standings.filter(s => s.eliminatedRound === null);
+  console.log(`gameover OK after round ${final.round}:`,
+    final.standings.map(s => `${s.name}:${s.score}${s.eliminatedRound === null ? '(W)' : '(r' + s.eliminatedRound + ')'}`).join('  '));
+  if (winners.length < 1) {
+    console.error('FAIL: no winner recorded');
     process.exit(1);
   }
   for (const b of bots) {
@@ -102,12 +107,10 @@ async function runMatch(nPlayers) {
   await new Promise(r => setTimeout(r, 200));
 }
 
-(async () => {
-  const server = await start(PORT);
-  await runMatch(2);   // 3 rotations -> 6 deals
-  await runMatch(3);   // 2 rotations -> 6 deals
-  await runMatch(5);   // 1 rotation  -> 5 deals
-  console.log('smoke test passed');
-  server.close();
-  process.exit(0);
-})().catch(e => { console.error(e); process.exit(1); });
+const server = await start(PORT);
+await runMatch(2);
+await runMatch(3);
+await runMatch(5);
+console.log('smoke test passed');
+server.close();
+process.exit(0);

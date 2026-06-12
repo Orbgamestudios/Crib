@@ -1,14 +1,14 @@
-'use strict';
+import http from 'http';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { WebSocketServer } from 'ws';
+import { Game } from './lib/game.js';
 
-const http = require('http');
-const fs = require('fs');
-const path = require('path');
-const { WebSocketServer } = require('ws');
-const { Game } = require('./lib/game');
-
-const PUBLIC_DIR = path.join(__dirname, 'public');
+const ROOT = path.dirname(fileURLToPath(import.meta.url));
 const MIME = {
   '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css',
+  '.json': 'application/json', '.webmanifest': 'application/manifest+json',
   '.png': 'image/png', '.svg': 'image/svg+xml', '.ico': 'image/x-icon',
 };
 
@@ -228,15 +228,21 @@ function joinPlayer(room, ws, name) {
 }
 
 // ---- http + ws ----
+// Static files are served from the repo root so the exact same tree deploys
+// to GitHub Pages (which runs the P2P transport instead of this server).
 
 const server = http.createServer((req, res) => {
   let urlPath = decodeURIComponent(req.url.split('?')[0]);
   if (urlPath === '/') urlPath = '/index.html';
-  const file = path.join(PUBLIC_DIR, path.normalize(urlPath));
-  if (!file.startsWith(PUBLIC_DIR)) { res.writeHead(403); return res.end(); }
+  if (urlPath.includes('node_modules') || urlPath.includes('/.')) {
+    res.writeHead(404); return res.end('Not found');
+  }
+  const file = path.join(ROOT, path.normalize(urlPath));
+  const type = MIME[path.extname(file)];
+  if (!file.startsWith(ROOT) || !type) { res.writeHead(404); return res.end('Not found'); }
   fs.readFile(file, (err, data) => {
     if (err) { res.writeHead(404); return res.end('Not found'); }
-    res.writeHead(200, { 'Content-Type': MIME[path.extname(file)] || 'application/octet-stream' });
+    res.writeHead(200, { 'Content-Type': type });
     res.end(data);
   });
 });
@@ -257,7 +263,7 @@ wss.on('connection', ws => {
   ws.on('close', () => leaveRoom(ws));
 });
 
-function start(port) {
+export function start(port) {
   return new Promise(resolve => {
     server.listen(port, () => {
       console.log(`Crib server running at http://localhost:${port}`);
@@ -266,8 +272,6 @@ function start(port) {
   });
 }
 
-if (require.main === module) {
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
   start(process.env.PORT || 3000);
 }
-
-module.exports = { start };
