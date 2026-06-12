@@ -548,7 +548,7 @@ body.my-turn #bgRush { opacity: 0.55; animation-play-state: running; }
 
   #bottombar {
     flex-wrap: wrap; gap: 6px; height: auto; min-height: 0;
-    padding: 6px 6px calc(6px + env(safe-area-inset-bottom));
+    padding: 10px 8px calc(12px + env(safe-area-inset-bottom));
     flex-direction: column;
   }
   #myCenter { order: 1; width: 100%; }
@@ -558,7 +558,7 @@ body.my-turn #bgRush { opacity: 0.55; animation-play-state: running; }
   #hand .card { width: 42px; height: 58px; font-size: 14px; }
   #hand .card .suit { font-size: 15px; }
   #hand { gap: 2px; height: 64px; }
-  #actionRow { height: 32px; }
+  #actionRow { min-height: 44px; margin-bottom: 4px; }
   #pegCount { font-size: 24px; min-width: 40px; }
 
   #myInfo { width: auto; display: flex; flex-direction: row; gap: 10px; align-items: baseline; order: 3; flex-shrink: 0; }
