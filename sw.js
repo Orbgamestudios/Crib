@@ -14,11 +14,17 @@ const SHELL = [
   'icons/icon-192.png',
   'icons/icon-512.png',
   'icons/apple-touch-icon.png',
-  'https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js',
 ];
+const CDN = 'https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js';
 
 self.addEventListener('install', e => {
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).then(() => self.skipWaiting()));
+  e.waitUntil(
+    caches.open(CACHE)
+      .then(c => c.addAll(SHELL)
+        // cross-origin precache is best-effort: never block install on the CDN
+        .then(() => c.add(CDN).catch(() => {})))
+      .then(() => self.skipWaiting())
+  );
 });
 
 self.addEventListener('activate', e => {
