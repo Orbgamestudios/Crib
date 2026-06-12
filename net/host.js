@@ -117,7 +117,8 @@ export class HostSession {
       case 'useTarot': if (gp) this.fail(conn, game.useTarot(gp, msg.idx, msg.targets)); break;
       case 'buy': if (gp) this.fail(conn, game.buyItem(gp, msg.idx)); break;
       case 'reroll': if (gp) this.fail(conn, game.reroll(gp)); break;
-      case 'ready': if (gp) game.setReady(gp); break;
+      case 'pickPack': if (gp) this.fail(conn, game.pickPack(gp, msg.idx)); break;
+      case 'ready': if (gp) this.fail(conn, game.setReady(gp)); break;
       case 'leaveRoom':
       case 'backToLobby':
         this.dropConn(conn);

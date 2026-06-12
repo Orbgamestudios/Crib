@@ -1,4 +1,4 @@
-import { JOKER_ICONS, TAROT_ICONS } from './icons.js';
+import { JOKER_ICONS, TAROT_ICONS, PACK_ICONS } from './icons.js';
 
 const $ = id => document.getElementById(id);
 const SUIT_CHARS = ['♥', '♦', '♣', '♠']; // H D C S
@@ -24,6 +24,7 @@ let view = 'lobby';
 let pendingFly = null;    // { cardId, rect } captured when I click a peg card
 let revealShown = -1;     // last scoring result index already animated
 let revealKey = '';
+let deckOpen = false;     // deck viewer overlay
 
 // ---- transport ----
 
@@ -393,11 +394,12 @@ function renderCenter(st) {
   $('pegCount').textContent = st.phase === 'pegging' ? st.pegCount : '';
 }
 
-function miniCard(kind, def, opts = {}) {
+// joker/tarot rendered as a little card tile, Balatro-row style
+function jtile(kind, def, opts = {}) {
   const d = document.createElement('div');
-  d.className = 'mini-card ' + kind;
+  d.className = 'jtile ' + kind;
   const icon = (kind === 'joker' ? JOKER_ICONS : TAROT_ICONS)[def.id] || '';
-  d.innerHTML = `<span class="mc-icon">${icon}</span><span class="mc-name">${esc(def.name)}</span>` +
+  d.innerHTML = `<span class="jt-icon">${icon}</span><span class="jt-name">${esc(def.name)}</span>` +
     `<div class="tip">${esc(def.desc)}${opts.tipExtra || ''}</div>`;
   return d;
 }
@@ -408,29 +410,31 @@ function renderMyArea(st) {
   $('myName').innerHTML = `${esc(me.name)} ${me.isDealer && me.active ? '<span class="dealer-chip">D</span>' : ''}`;
   $('myScore').textContent = `${you.score} pts`;
   $('myCoins').textContent = `🪙 ${you.coins}`;
+  $('deckBtn').textContent = `🂠 Deck (${you.deck.length})`;
 
   const jr = $('jokerRow');
   jr.innerHTML = '';
   you.jokers.forEach(j => {
-    const d = miniCard('joker', j);
+    const d = jtile('joker', j);
     if (TOUCH) d.onclick = () => toast(`${j.name}: ${j.desc}`);
     jr.appendChild(d);
   });
-  if (!you.jokers.length) jr.innerHTML = '<span class="none">none yet</span>';
+  if (!you.jokers.length) jr.innerHTML = '<span class="none">no jokers yet</span>';
 
   const tr = $('tarotRow');
   tr.innerHTML = '';
   you.tarots.forEach((t, idx) => {
-    const d = miniCard('tarot', t, {
+    const d = jtile('tarot', t, {
       tipExtra: you.canDiscard ? '<br><i>Click to use</i>' : '<br><i>Usable before you discard</i>',
     });
     if (you.canDiscard) d.onclick = () => startTarot(idx, t);
     else if (TOUCH) d.onclick = () => toast(`${t.name}: ${t.desc} (usable before you discard)`);
     tr.appendChild(d);
   });
-  if (!you.tarots.length) tr.innerHTML = '<span class="none">none yet</span>';
+  if (!you.tarots.length) tr.innerHTML = '<span class="none">no tarots yet</span>';
 
   renderHand(st);
+  if (deckOpen) renderDeckOverlay(st);
 }
 
 function renderHand(st) {
@@ -520,6 +524,37 @@ function renderHand(st) {
 function dealerName(st) {
   const d = st.players.find(p => p.isDealer);
   return d ? (d.seat === st.mySeat ? 'your' : `${d.name}'s`) : '';
+}
+
+// ---- deck viewer ----
+
+$('deckBtn').onclick = () => {
+  deckOpen = !deckOpen;
+  if (deckOpen && lastState) renderDeckOverlay(lastState);
+  else $('deckOverlay').classList.add('hidden');
+};
+$('deckClose').onclick = () => { deckOpen = false; $('deckOverlay').classList.add('hidden'); };
+$('deckOverlay').onclick = e => {
+  if (e.target === $('deckOverlay')) { deckOpen = false; $('deckOverlay').classList.add('hidden'); }
+};
+
+function renderDeckOverlay(st) {
+  $('deckOverlay').classList.remove('hidden');
+  const body = $('deckBody');
+  const deck = st.you.deck;
+  $('deckTitle').textContent = `Your deck — ${deck.length} cards`;
+  body.innerHTML = '';
+  for (let s = 0; s < 4; s++) {
+    const cards = deck.filter(c => c.suit === s);
+    const row = document.createElement('div');
+    row.className = 'deck-row';
+    row.innerHTML = `<span class="deck-suit ${s < 2 ? 'red' : ''}">${SUIT_CHARS[s]}<b>${cards.length}</b></span>`;
+    const wrap = document.createElement('div');
+    wrap.className = 'deck-cards';
+    for (const c of cards) wrap.appendChild(cardEl(c, { small: true }));
+    row.appendChild(wrap);
+    body.appendChild(row);
+  }
 }
 
 function startTarot(idx, def) {
@@ -664,19 +699,23 @@ function renderShop(oc, st) {
     oc.innerHTML = '<h2>Shop</h2><div class="hint">The survivors are shopping… you\'re spectating.</div>';
     return;
   }
+  if (you.pendingPack) return renderPackOpen(oc, st);
+
   oc.innerHTML = `<h2>Shop</h2><div class="row spread"><span class="shop-coins">🪙 ${you.coins}</span>` +
-    `<span style="opacity:.7;font-size:13px">Jokers ${you.jokers.length}/5 · Tarots ${you.tarots.length}/3</span></div>`;
+    `<span style="opacity:.7;font-size:13px">Jokers ${you.jokers.length}/5 · Tarots ${you.tarots.length}/3 · Deck ${you.deck.length}</span></div>`;
   const grid = document.createElement('div');
   grid.className = 'shop-grid';
   (you.shopOffer || []).forEach((item, idx) => {
     const div = document.createElement('div');
-    div.className = `shop-item ${item.kind}` + (item.sold ? ' sold' : '');
-    const icon = (item.kind === 'joker' ? JOKER_ICONS : TAROT_ICONS)[item.id] || '';
-    div.innerHTML = `<div class="si-icon">${icon}</div><div class="si-name">${esc(item.name)}</div>` +
+    div.className = `shop-item ${item.kind}` + (item.sold ? ' sold' : '') + (item.kind === 'pack' ? ' shiny' : '');
+    const icon = item.kind === 'joker' ? JOKER_ICONS[item.id]
+      : item.kind === 'tarot' ? TAROT_ICONS[item.id]
+      : PACK_ICONS[item.id];
+    div.innerHTML = `<div class="si-icon">${icon || ''}</div><div class="si-name">${esc(item.name)}</div>` +
       `<div class="si-desc">${esc(item.desc)}</div>`;
     const btn = document.createElement('button');
     btn.className = 'btn small primary';
-    btn.textContent = item.sold ? 'Sold' : `Buy 🪙${item.cost}`;
+    btn.textContent = item.sold ? (item.kind === 'pack' ? 'Opened' : 'Sold') : `Buy 🪙${item.cost}`;
     btn.disabled = item.sold || you.coins < item.cost || you.ready;
     btn.onclick = () => sendMsg({ t: 'buy', idx });
     div.appendChild(btn);
@@ -694,6 +733,38 @@ function renderShop(oc, st) {
   oc.appendChild(row);
   const nextRound = st.dealIndexInRound >= st.dealsInRound;
   appendReadyBtn(oc, st, nextRound ? `Round ${st.round + 1}` : 'Next Deal');
+}
+
+function renderPackOpen(oc, st) {
+  const pack = st.you.pendingPack;
+  oc.innerHTML = `<h2>✨ ${esc(pack.name)}</h2><div class="hint">Pick one:</div>`;
+  const grid = document.createElement('div');
+  grid.className = 'shop-grid pack-grid';
+  pack.options.forEach((opt, idx) => {
+    const div = document.createElement('div');
+    const kindCls = opt.kind === 'card' ? 'standardcard' : opt.kind;
+    div.className = `shop-item shiny pick ${kindCls}`;
+    if (opt.kind === 'card') {
+      div.innerHTML = `<div class="si-bigcard"></div><div class="si-name">${RANK_NAMES[opt.rank]}${SUIT_CHARS[opt.suit]} — add to your deck</div>`;
+      div.querySelector('.si-bigcard').appendChild(cardEl(opt));
+    } else {
+      const icon = (opt.kind === 'joker' ? JOKER_ICONS : TAROT_ICONS)[opt.id] || '';
+      div.innerHTML = `<div class="si-icon">${icon}</div><div class="si-name">${esc(opt.name)}</div>` +
+        `<div class="si-desc">${esc(opt.desc)}</div>`;
+    }
+    const btn = document.createElement('button');
+    btn.className = 'btn small primary';
+    btn.textContent = 'Take';
+    btn.onclick = () => sendMsg({ t: 'pickPack', idx });
+    div.appendChild(btn);
+    grid.appendChild(div);
+  });
+  oc.appendChild(grid);
+  const skip = document.createElement('button');
+  skip.className = 'btn';
+  skip.textContent = 'Skip pack';
+  skip.onclick = () => sendMsg({ t: 'pickPack', idx: -1 });
+  oc.appendChild(skip);
 }
 
 function appendReadyBtn(oc, st, label) {

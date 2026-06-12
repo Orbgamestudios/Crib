@@ -251,28 +251,34 @@ body {
 #actionRow { margin-top: 8px; min-height: 40px; display: flex; justify-content: center; gap: 10px; align-items: center; flex-wrap: wrap; }
 #prompt { font-size: 14px; opacity: 0.85; }
 
-#myStuff { width: 250px; font-size: 12px; }
+#myStuff { width: 300px; font-size: 12px; }
 .stuff-label { opacity: 0.6; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 3px; }
-#jokerRow, #tarotRow { display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 6px; min-height: 34px; }
+#jokerRow, #tarotRow { display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 6px; min-height: 36px; }
 #jokerRow .none, #tarotRow .none { opacity: 0.4; }
-.mini-card {
-  background: var(--panel-light); border: 1px solid #ffffff33; border-radius: 6px;
-  padding: 3px 7px 3px 4px; font-size: 12px; cursor: help; position: relative;
-  display: flex; align-items: center; gap: 4px;
+#deckBtn { margin-top: 6px; }
+
+/* joker/tarot card tiles, Balatro-row style */
+.jtile {
+  width: 56px; height: 76px; border-radius: 7px; position: relative;
+  background: linear-gradient(160deg, var(--panel-light), #1d2c38);
+  border: 1.5px solid #ffffff33; cursor: help;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 2px; padding: 3px; box-shadow: 0 2px 5px #00000066;
   transition: transform 0.15s ease;
 }
-.mini-card:hover { transform: translateY(-3px); animation: wobble 2.2s ease-in-out infinite; }
-.mini-card .mc-icon { width: 26px; height: 26px; display: inline-block; }
-.mini-card .mc-icon svg { width: 100%; height: 100%; }
-.mini-card.joker { border-color: var(--gold); }
-.mini-card.tarot { border-color: var(--purple); cursor: pointer; }
-.mini-card.tarot:hover { background: #4a3563; }
-.mini-card .tip {
-  display: none; position: absolute; bottom: 110%; left: 50%; transform: translateX(-50%);
+.jtile:hover { transform: translateY(-8px); animation: wobble 2.2s ease-in-out infinite; z-index: 8; }
+.jtile .jt-icon { width: 36px; height: 36px; }
+.jtile .jt-icon svg { width: 100%; height: 100%; }
+.jtile .jt-name { font-size: 8.5px; text-align: center; line-height: 1.1; opacity: 0.9; }
+.jtile.joker { border-color: var(--gold); }
+.jtile.tarot { border-color: var(--purple); cursor: pointer; background: linear-gradient(160deg, #342347, #241733); }
+.jtile.tarot:hover { background: linear-gradient(160deg, #46315e, #2c1d40); }
+.jtile .tip {
+  display: none; position: absolute; bottom: 108%; left: 50%; transform: translateX(-50%);
   background: #000000ee; padding: 8px 10px; border-radius: 6px; width: 180px;
   font-size: 12px; z-index: 30; pointer-events: none;
 }
-.mini-card:hover .tip { display: block; }
+.jtile:hover .tip { display: block; }
 
 /* ---- log ---- */
 #log {
@@ -342,6 +348,39 @@ body {
 .shop-item.sold { opacity: 0.35; }
 .shop-coins { font-size: 18px; color: #ffd76e; font-weight: 700; }
 
+/* shiny booster packs */
+.shop-item.shiny {
+  position: relative; overflow: hidden;
+  border-width: 2px;
+  background: linear-gradient(160deg, var(--panel-light), #1a2733);
+}
+.shop-item.shiny::before {
+  content: ''; position: absolute; inset: -60% -120%;
+  background: linear-gradient(115deg, transparent 38%, #ffffff2e 46%, #8fe7ff33 50%, #ffb3f955 54%, transparent 62%);
+  animation: sheen 3.2s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes sheen {
+  0%, 100% { transform: translateX(-32%); }
+  50% { transform: translateX(32%); }
+}
+.shop-item.pack { border-color: #8fe7ff; }
+.shop-item.pick .si-bigcard { align-self: center; margin: 6px 0; }
+.pack-grid { grid-template-columns: 1fr 1fr 1fr; }
+
+/* deck viewer */
+#deckOverlay {
+  position: fixed; inset: 0; background: #000000aa; z-index: 90;
+  display: flex; align-items: center; justify-content: center; padding: 16px;
+}
+#deckPanel { width: min(760px, 95vw); max-height: 86vh; overflow-y: auto; }
+#deckPanel h2 { color: var(--gold); }
+.deck-row { display: flex; gap: 10px; align-items: flex-start; margin-top: 12px; }
+.deck-suit { font-size: 20px; width: 44px; text-align: center; flex-shrink: 0; padding-top: 8px; }
+.deck-suit.red { color: #ff8d80; }
+.deck-suit b { display: block; font-size: 12px; color: var(--gold); }
+.deck-cards { display: flex; flex-wrap: wrap; gap: 3px; }
+
 .standing { display: flex; justify-content: space-between; gap: 10px; padding: 8px 12px; background: var(--panel-light); border-radius: 8px; margin-bottom: 6px; font-size: 16px; }
 .standing.winner { border: 2px solid var(--gold); font-weight: 700; }
 .standing-tag { opacity: 0.75; font-size: 13px; align-self: center; }
@@ -374,11 +413,14 @@ body {
   #myStuff { order: 3; width: auto; flex: 1; }
   #myStuff .stuff-label { display: none; }
   #jokerRow, #tarotRow { display: inline-flex; margin-right: 6px; min-height: 0; }
-  .mini-card .mc-name { display: none; }
+  .jtile { width: 38px; height: 52px; }
+  .jtile .jt-icon { width: 26px; height: 26px; }
+  .jtile .jt-name { display: none; }
   #log { display: none; }
   #topbar { gap: 10px; font-size: 12px; padding: 6px 8px; }
   #blindInfo { width: 100%; margin-left: 0; }
   .br-name { width: 80px; font-size: 13px; }
   .br-tag { width: 88px; }
-  .shop-grid { grid-template-columns: 1fr; }
+  .shop-grid, .pack-grid { grid-template-columns: 1fr; }
+  .deck-suit { width: 26px; font-size: 15px; }
 }

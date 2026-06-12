@@ -99,6 +99,111 @@ export const JOKER_ICONS = {
     `<rect x="10" y="36" width="24" height="5" rx="1.5" fill="${G}"/>` +
     card(28, 6, 18) + txt(36, 21, 'J', 10, R, 'transform="rotate(18 36 17)"')
   ),
+  even_steven: svg(
+    `<rect x="6" y="12" width="16" height="22" rx="3" fill="${C}" stroke="${D}" stroke-width="1.5"/>` +
+    `<rect x="26" y="14" width="16" height="22" rx="3" fill="${C}" stroke="${D}" stroke-width="1.5" transform="rotate(7 34 25)"/>` +
+    txt(14, 28, '2', 13) + txt(34, 31, '4', 13, R, 'transform="rotate(7 34 25)"')
+  ),
+  odd_todd: svg(
+    `<rect x="6" y="12" width="16" height="22" rx="3" fill="${C}" stroke="${D}" stroke-width="1.5" transform="rotate(-7 14 23)"/>` +
+    `<rect x="26" y="12" width="16" height="22" rx="3" fill="${C}" stroke="${D}" stroke-width="1.5"/>` +
+    txt(14, 28, 'A', 13, R, 'transform="rotate(-7 14 23)"') + txt(34, 28, '3', 13)
+  ),
+  fibonacci: svg(
+    `<path d="M24 24a4 4 0 014-4 7 7 0 01-7 7A11 11 0 0132 38 17 17 0 016 27 24 24 0 0140 9" fill="none" stroke="${G}" stroke-width="3" stroke-linecap="round"/>` +
+    `<circle cx="24" cy="24" r="2.4" fill="${R}"/>`
+  ),
+  walkie_talkie: svg(
+    `<rect x="15" y="12" width="18" height="28" rx="3.5" fill="${BL}" stroke="${D}" stroke-width="1.5"/>` +
+    `<line x1="20" y1="12" x2="20" y2="4" stroke="${BL}" stroke-width="2.6" stroke-linecap="round"/>` +
+    `<rect x="18.5" y="17" width="11" height="6" rx="1.5" fill="#9fd3a8"/>` +
+    txt(24, 33, '10·4', 6.5, G)
+  ),
+  scary_face: svg(
+    card(14, 10, 0) +
+    `<circle cx="19" cy="19" r="2.1" fill="${D}"/><circle cx="27" cy="19" r="2.1" fill="${D}"/>` +
+    `<path d="M18 27q5-3.5 10 0v2q-5 3.5-10 0z" fill="${R}"/>` +
+    `<path d="M16 13l3 2.5M30 13l-3 2.5" stroke="${D}" stroke-width="1.6" stroke-linecap="round"/>`
+  ),
+  greedy_joker: svg(
+    `<path d="M24 6l13 18-13 18-13-18z" fill="${G}" stroke="${D}" stroke-width="1.6"/>` +
+    txt(24, 29, '$', 13, D)
+  ),
+  lusty_joker: svg(
+    `<path d="M24 41C13 32 7 25 7 17.5 7 12 11 8 16 8c3.4 0 6.4 1.8 8 4.6C25.6 9.8 28.6 8 32 8c5 0 9 4 9 9.5C41 25 35 32 24 41z" fill="${R}" stroke="${D}" stroke-width="1.4"/>` +
+    `<path d="M16 19q2-2 4 0M28 19q2-2 4 0" stroke="${C}" stroke-width="1.8" fill="none" stroke-linecap="round"/>` +
+    `<path d="M20 26q4 3 8 0" stroke="${C}" stroke-width="1.8" fill="none" stroke-linecap="round"/>`
+  ),
+  gluttonous_joker: svg(
+    `<circle cx="16" cy="20" r="8.5" fill="${BL}"/><circle cx="32" cy="20" r="8.5" fill="${BL}"/>` +
+    `<circle cx="24" cy="13" r="8.5" fill="${BL}"/>` +
+    `<path d="M21 28h6l3 13h-12z" fill="${BL}"/>` +
+    `<path d="M36 9a5 5 0 11-7 7 8 8 0 017-7z" fill="${G}"/>`
+  ),
+  wrathful_joker: svg(
+    `<path d="M24 5C18 14 8 19 8 27a9.5 9.5 0 0016 7l-3 9h6l-3-9a9.5 9.5 0 0016-7c0-8-10-13-16-22z" fill="${BL}" stroke="${D}" stroke-width="1.3"/>` +
+    `<path d="M16 22l6 3M32 22l-6 3" stroke="${R}" stroke-width="2.4" stroke-linecap="round"/>` +
+    `<circle cx="20" cy="28" r="1.8" fill="${R}"/><circle cx="28" cy="28" r="1.8" fill="${R}"/>`
+  ),
+  shortcut: svg(
+    `<rect x="5" y="26" width="11" height="15" rx="2" fill="${C}" stroke="${D}" stroke-width="1.3"/>` +
+    `<rect x="32" y="26" width="11" height="15" rx="2" fill="${C}" stroke="${D}" stroke-width="1.3"/>` +
+    txt(10.5, 37, '3', 9) + txt(37.5, 37, '7', 9, R) +
+    `<path d="M10 24Q24 4 38 24" fill="none" stroke="${G}" stroke-width="2.6" stroke-dasharray="4 4" stroke-linecap="round"/>` +
+    `<path d="M38 24l-5-2m5 2l-1-6" stroke="${G}" stroke-width="2.4" fill="none" stroke-linecap="round"/>`
+  ),
+  muggins: svg(
+    `<path d="M6 30q8-7 17-4l9 3-2 6-9-2q-8-1-15 3z" fill="#d9a066" stroke="${D}" stroke-width="1.4"/>` +
+    `<path d="M30 26l4-13 5 1.5-4 13z" fill="#d9a066" stroke="${D}" stroke-width="1.4"/>` +
+    txt(36, 12, '+2', 11, G)
+  ),
+  nineteen: svg(
+    `<path d="M12 42V18a12 12 0 0124 0v24h-7V19a5 5 0 00-10 0v23z" fill="${G}" stroke="${D}" stroke-width="1.5"/>` +
+    txt(24, 30, '19', 12, R)
+  ),
+  skunk_line: svg(
+    `<rect x="6" y="20" width="36" height="9" rx="2" fill="${D}"/>` +
+    `<rect x="6" y="22.5" width="36" height="4" fill="${C}"/>` +
+    `<path d="M38 12q5 4 4 9l-6-1z" fill="${BL}"/>` +
+    txt(24, 41, '+5', 11, G)
+  ),
+  his_majesty: svg(
+    card(16, 16, 0) +
+    `<path d="M14 14l5 4 5-7 5 7 5-4v6H14z" fill="${G}" stroke="${D}" stroke-width="1.3"/>` +
+    txt(24, 33, 'K', 11, R)
+  ),
+  pony_express: svg(
+    `<path d="M24 8c9 0 15 7 15 15v12h-7V24a8 8 0 00-16 0v11H9V23c0-8 6-15 15-15z" fill="${G}" stroke="${D}" stroke-width="1.6"/>` +
+    `<circle cx="13" cy="32" r="1.7" fill="${D}"/><circle cx="35" cy="32" r="1.7" fill="${D}"/>` +
+    `<circle cx="11.5" cy="25" r="1.7" fill="${D}"/><circle cx="36.5" cy="25" r="1.7" fill="${D}"/>` +
+    txt(24, 28, '1st', 8, D)
+  ),
+  small_ball: svg(
+    `<circle cx="14" cy="32" r="7.5" fill="${C}" stroke="${D}" stroke-width="1.4"/>` +
+    `<circle cx="30" cy="35" r="5.5" fill="${R}" stroke="${D}" stroke-width="1.4"/>` +
+    `<circle cx="32" cy="17" r="9" fill="${G}" stroke="${D}" stroke-width="1.4"/>` +
+    txt(14, 35.5, '2', 9) + txt(30, 38, '3', 8, C) + txt(32, 21, '5', 11)
+  ),
+  bull_market: svg(
+    `<path d="M10 14q-6-1-7-7 7-1 10 4zM38 14q6-1 7-7-7-1-10 4z" fill="${C}" stroke="${D}" stroke-width="1.3"/>` +
+    `<path d="M24 12c-7 0-12 5-12 11 0 7 5 12 12 12s12-5 12-12c0-6-5-11-12-11z" fill="#7a4a32" stroke="${D}" stroke-width="1.4"/>` +
+    `<circle cx="19" cy="22" r="1.8" fill="${D}"/><circle cx="29" cy="22" r="1.8" fill="${D}"/>` +
+    `<circle cx="21" cy="30" r="1.4" fill="${D}"/><circle cx="27" cy="30" r="1.4" fill="${D}"/>` +
+    `<path d="M40 38l4-6m-4 6l-6 1" stroke="${G}" stroke-width="2.6" fill="none" stroke-linecap="round"/>`
+  ),
+  rocket: svg(
+    `<path d="M24 4c6 5 8 12 8 18l-4 11h-8l-4-11c0-6 2-13 8-18z" fill="${C}" stroke="${D}" stroke-width="1.5"/>` +
+    `<circle cx="24" cy="17" r="3.5" fill="#7fb4d8" stroke="${D}" stroke-width="1.2"/>` +
+    `<path d="M16 26l-6 6 7 1zM32 26l6 6-7 1z" fill="${R}"/>` +
+    `<path d="M21 35h6l-3 9z" fill="${G}"/>`
+  ),
+  blueprint: svg(
+    `<rect x="6" y="8" width="36" height="30" rx="2.5" fill="#274b73" stroke="#9fc4e8" stroke-width="1.8"/>` +
+    `<path d="M6 16h36M6 24h36M6 32h36M14 8v30M24 8v30M34 8v30" stroke="#9fc4e8" stroke-width="0.7" opacity="0.5"/>` +
+    `<path d="M14 27q8-9 17-3" fill="none" stroke="${C}" stroke-width="2.2" stroke-dasharray="3 3"/>` +
+    `<path d="M31 24l3 1-2 3z" fill="${C}"/>` +
+    txt(24, 45.5, 'COPY →', 6, '#9fc4e8')
+  ),
 };
 
 const tarotFrame = (roman, inner) =>
@@ -146,4 +251,60 @@ export const TAROT_ICONS = {
     `<line x1="24" y1="8" x2="24" y2="12" stroke="${G}" stroke-width="2"/>` +
     `<path d="M24 18l2.4 5h-4.8z" fill="${G}"/>` +
     `<circle cx="24" cy="26" r="2.2" fill="${G}"/>`)),
+  strength: svg(tarotFrame('XI',
+    `<path d="M15 34V22q0-8 7-8 6 0 6 6v4h4q4 0 4 5v5" fill="none" stroke="${G}" stroke-width="3" stroke-linecap="round"/>` +
+    `<path d="M24 12V7m0 0l-3 3m3-3l3 3M33 16l3-4m-3 4l4 .5" stroke="${P}" stroke-width="1.8" fill="none" stroke-linecap="round"/>`)),
+  empress: svg(tarotFrame('III',
+    `<path d="M24 36c-7-5.5-11-10-11-15 0-3.5 2.6-6 6-6 2.2 0 4 1.1 5 2.9 1-1.8 2.8-2.9 5-2.9 3.4 0 6 2.5 6 6 0 5-4 9.5-11 15z" fill="${R}"/>` +
+    `<path d="M16 11l3 2.5 5-4 5 4 3-2.5v4H16z" fill="${G}"/>`)),
+  emperor: svg(tarotFrame('IV',
+    `<path d="M24 13l9 12-9 12-9-12z" fill="${R}"/>` +
+    `<path d="M16 9l3 2.5 5-4 5 4 3-2.5v4H16z" fill="${G}"/>`)),
+  devil: svg(tarotFrame('XV',
+    `<circle cx="18" cy="22" r="5.5" fill="${C}"/><circle cx="30" cy="22" r="5.5" fill="${C}"/>` +
+    `<circle cx="24" cy="16" r="5.5" fill="${C}"/>` +
+    `<path d="M22 27h4l2 8h-8z" fill="${C}"/>` +
+    `<path d="M15 11l3 4M33 11l-3 4" stroke="${R}" stroke-width="2.4" stroke-linecap="round"/>`)),
+  tower: svg(tarotFrame('XVI',
+    `<path d="M24 12C19 19 13 23 13 28a6.5 6.5 0 0011 4.5l-2 5h4l-2-5A6.5 6.5 0 0035 28c0-5-6-9-11-16z" fill="${C}"/>` +
+    `<path d="M30 8l-5 7h4l-6 8 2-6h-4l5-9z" fill="${G}"/>`)),
+  priestess: svg(tarotFrame('II',
+    `<g transform="rotate(-8 21 24)"><rect x="14" y="13" width="13" height="18" rx="2" fill="${C}" stroke="#241733" stroke-width="1"/></g>` +
+    `<g transform="rotate(8 29 26)"><rect x="22" y="15" width="13" height="18" rx="2" fill="${C}" stroke="#241733" stroke-width="1" opacity="0.85"/></g>` +
+    `<circle cx="33" cy="13" r="5.5" fill="${G}"/>` +
+    `<path d="M33 10.5v5M30.5 13h5" stroke="#241733" stroke-width="1.6"/>`)),
+  hanged_man: svg(tarotFrame('XII',
+    `<line x1="13" y1="10" x2="35" y2="10" stroke="${G}" stroke-width="2.4"/>` +
+    `<line x1="24" y1="10" x2="24" y2="16" stroke="${G}" stroke-width="1.8"/>` +
+    `<circle cx="24" cy="30" r="4.5" fill="${C}"/>` +
+    `<path d="M24 16v10m0 0l-5 7m5-7l5 7" stroke="${C}" stroke-width="2.4" stroke-linecap="round" transform="rotate(180 24 24)"/>`)),
+  judgement: svg(tarotFrame('XX',
+    `<path d="M13 14l18 5v8l-18 5q-3-9 0-18z" fill="${G}"/>` +
+    `<path d="M31 17h4v12h-4z" fill="${G}"/>` +
+    `<path d="M38 14l4-3M39 23h5M38 31l4 3" stroke="${P}" stroke-width="1.8" stroke-linecap="round"/>`)),
+};
+
+export const PACK_ICONS = {
+  buffoon: svg(
+    `<rect x="10" y="6" width="28" height="38" rx="4" fill="#6b4f1d" stroke="${G}" stroke-width="2.2"/>` +
+    `<path d="M10 16q14 6 28 0" fill="none" stroke="${G}" stroke-width="1.6"/>` +
+    `<path d="M24 22l2 5 5-2-2 5 5 2-5 2 2 5-5-2-2 5-2-5-5 2 2-5-5-2 5-2-2-5 5 2z" fill="${G}"/>` +
+    txt(24, 43, 'JOKER', 6, G)
+  ),
+  arcana: svg(
+    `<rect x="10" y="6" width="28" height="38" rx="4" fill="#2c1b42" stroke="${P}" stroke-width="2.2"/>` +
+    `<path d="M10 16q14 6 28 0" fill="none" stroke="${P}" stroke-width="1.6"/>` +
+    `<path d="M24 20q8 4 0 14-8-10 0-14z" fill="${P}"/>` +
+    `<circle cx="24" cy="27" r="2.6" fill="#2c1b42"/><circle cx="24" cy="27" r="1.2" fill="${C}"/>` +
+    txt(24, 43, 'ARCANA', 6, P)
+  ),
+  standard: svg(
+    `<rect x="10" y="6" width="28" height="38" rx="4" fill="#1d3a5c" stroke="#7fb4d8" stroke-width="2.2"/>` +
+    `<path d="M10 16q14 6 28 0" fill="none" stroke="#7fb4d8" stroke-width="1.6"/>` +
+    `<g transform="rotate(-10 20 28)"><rect x="15" y="21" width="10" height="14" rx="1.5" fill="${C}"/></g>` +
+    `<g transform="rotate(10 29 28)"><rect x="24" y="21" width="10" height="14" rx="1.5" fill="${C}"/></g>` +
+    txt(20, 30, '♥', 7, R, 'transform="rotate(-10 20 28)"') +
+    txt(29, 30, '♠', 7, D, 'transform="rotate(10 29 28)"') +
+    txt(24, 43, 'CARDS', 6, '#7fb4d8')
+  ),
 };

@@ -54,9 +54,17 @@ function act(b) {
       const card = you.hand.find(c => st.pegCount + Math.min(c.rank, 10) <= 31);
       if (card) b.ws.send(JSON.stringify({ t: 'playCard', card: card.id }));
     } else if ((st.phase === 'scoring' || st.phase === 'shop' || st.phase === 'roundEnd') && !you.ready) {
+      if (st.phase === 'shop' && you.pendingPack) {
+        const ok = you.pendingPack.options.findIndex(o =>
+          o.kind === 'joker' ? you.jokers.length < 5 :
+          o.kind === 'tarot' ? you.tarots.length < 3 : true);
+        b.ws.send(JSON.stringify({ t: 'pickPack', idx: ok }));
+        return;
+      }
       if (st.phase === 'shop' && you.shopOffer) {
         const idx = you.shopOffer.findIndex(it => !it.sold && it.cost <= you.coins &&
-          (it.kind === 'joker' ? you.jokers.length < 5 : you.tarots.length < 3));
+          (it.kind === 'joker' ? you.jokers.length < 5 :
+           it.kind === 'tarot' ? you.tarots.length < 3 : true));
         if (idx >= 0 && Math.random() < 0.7) {
           b.ws.send(JSON.stringify({ t: 'buy', idx }));
           return; // next state update re-triggers act
@@ -86,6 +94,11 @@ async function runMatch(nPlayers) {
     const b = bots.find(x => !x.done);
     console.error('STALLED. phase=', b.state && b.state.phase, 'round=', b.state && b.state.round,
       'turnSeat=', b.state && b.state.turnSeat, 'lastError=', b.lastError);
+    for (const x of bots) {
+      console.error(`  ${x.name}: done=${x.done} ready=${x.state && x.state.you.ready}`,
+        'pendingPack=', x.state && JSON.stringify(x.state.you.pendingPack),
+        'active=', x.state && x.state.you.active, 'phase=', x.state && x.state.phase);
+    }
     process.exit(1);
   }
   const final = bots[0].state;

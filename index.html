@@ -12,7 +12,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Crib">
-<link rel="stylesheet" href="style.css?v=3">
+<link rel="stylesheet" href="style.css?v=4">
 <script src="https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js" defer></script>
 </head>
 <body>
@@ -85,6 +85,7 @@
       <div id="myName"></div>
       <div id="myScore"></div>
       <div id="myCoins"></div>
+      <button id="deckBtn" class="btn small">🂠 Deck</button>
     </div>
     <div id="myCards">
       <div id="hand"></div>
@@ -108,9 +109,19 @@
   <div id="overlayContent" class="panel"></div>
 </div>
 
+<div id="deckOverlay" class="hidden">
+  <div id="deckPanel" class="panel">
+    <div class="row spread">
+      <h2 id="deckTitle">Your deck</h2>
+      <button id="deckClose" class="btn small">✕</button>
+    </div>
+    <div id="deckBody"></div>
+  </div>
+</div>
+
 <div id="fx"></div>
 <div id="toast" class="hidden"></div>
 
-<script type="module" src="client.js?v=3"></script>
+<script type="module" src="client.js?v=4"></script>
 </body>
 </html>

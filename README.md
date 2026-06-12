@@ -41,16 +41,35 @@ to game over through the real server.
 2 players — 6 cards, discard 2; 3 — 5 cards, discard 1 plus a deck card to
 the crib; 4 — 5 cards, discard 1; 5–6 — 5 cards, discard 1 (oversized crib).
 
-## Jokers & tarots
+## Your deck is yours
+
+Every player owns a personal deck (starts as a standard 52) and is dealt
+from it each deal — and the deck **remembers**. Tarot edits to cards are
+permanent, packs and tarots can add cards, The Hanged Man destroys them.
+The **Deck** button shows your full deck, grouped by suit, any time.
+
+## Jokers, tarots & booster packs
 
 - After each deal everyone earns **coins** (3 + 1 per 5 points that deal) and
-  a personal **shop** opens: 2 jokers + 2 tarots, reroll for 2.
-- **Jokers** (max 5, each with its own hand-drawn icon) are passive and warp
-  your scoring — fifteens worth 3, doubled pegging, a fattened crib, coins on
-  every cut…
-- **Tarots** (max 3) are one-shot consumables, used **during the discard
-  phase before you discard**: bump a card's rank, copy one card onto another,
-  change suits for a flush, redraw your whole hand…
+  a personal **shop** opens: 2 jokers + 1 tarot + 2 shiny **booster packs**,
+  reroll for 2. Your jokers and tarots sit as card tiles next to your hand.
+- **Jokers** (max 5, ~34 designs, each with its own hand-drawn icon) are
+  passive and warp scoring: repricers (Fifteen Fanatic, Pair Pal, Golden
+  Crib), per-card bonuses Balatro-style (Even Steven, Odd Todd, Fibonacci,
+  Walkie Talkie, Scary Face, the four suit jokers), cribbage-native oddities
+  (The Nineteen — a zero hand scores 19; Muggins — feed on opponents' weak
+  hands; Skunk Line, His Majesty, Shortcut — runs that hop a gap), pegging
+  tech (Counter King, Pony Express, Small Ball, 31 Salute), economy (Rocket,
+  Cutpurse, Mug's Coin, Bull Market) and Blueprint, which copies its
+  right-hand neighbour.
+- **Tarots** (max 3, 16 designs) are one-shot consumables used **before you
+  discard**: rank up/down (Sun, Moon, Strength), transforms (Death, Justice,
+  Star), suit painting (Lovers, Empress/Emperor/Devil/Tower), deck surgery
+  (High Priestess adds a copy, Hanged Man destroys 2), Judgement (random
+  joker), Wheel of Fortune (redraw), The Hermit (coins).
+- **Booster packs** (animated holo sheen): Buffoon (pick 1 of 3 jokers),
+  Arcana (1 of 3 tarots), Standard (1 of 3 playing cards added permanently
+  to your deck). Opening is a pick-or-skip choice.
 
 ## Table rules of the UI
 

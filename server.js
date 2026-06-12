@@ -203,8 +203,11 @@ function handleMessage(ws, msg) {
     case 'reroll':
       if (gp) fail(ws, game.reroll(gp));
       break;
+    case 'pickPack':
+      if (gp) fail(ws, game.pickPack(gp, msg.idx));
+      break;
     case 'ready':
-      if (gp) game.setReady(gp);
+      if (gp) fail(ws, game.setReady(gp));
       break;
     case 'backToLobby':
       leaveRoom(ws);
