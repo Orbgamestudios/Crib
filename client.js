@@ -788,7 +788,7 @@ function scoreBlock(r, st, fresh) {
   r.lines.forEach((line, i) => {
     const lineEl = document.createElement('div');
     lineEl.className = 'sb-line' + (fresh ? ' anim' : '');
-    if (fresh) lineEl.style.animationDelay = (400 + i * 350) + 'ms';
+    if (fresh) lineEl.style.animationDelay = (250 + i * 150) + 'ms';
     lineEl.innerHTML = `<span>${esc(line.label)}</span><span>${line.pts == null ? '' : '+' + line.pts}</span>`;
     div.appendChild(lineEl);
   });
@@ -796,7 +796,7 @@ function scoreBlock(r, st, fresh) {
     div.insertAdjacentHTML('beforeend', '<div class="sb-line"><span>Nineteen! (nothing)</span><span>+0</span></div>');
   }
   if (fresh && r.total > 0) {
-    countUp(div.querySelector('.sb-total'), r.total, 400 + r.lines.length * 350);
+    countUp(div.querySelector('.sb-total'), r.total, 250 + r.lines.length * 150);
   }
   return div;
 }
