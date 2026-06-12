@@ -12,7 +12,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Crib">
-<link rel="stylesheet" href="style.css?v=5">
+<link rel="stylesheet" href="style.css?v=6">
 <script src="https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js" defer></script>
 </head>
 <body>
@@ -68,7 +68,6 @@
     <span id="dealInfo"></span>
     <span id="phaseInfo"></span>
     <span id="turnInfo"></span>
-    <span id="blindInfo"></span>
     <button id="syncBtn" class="btn small" title="Force refresh game state">⟳</button>
   </div>
   <div id="table">
@@ -80,8 +79,8 @@
         <div class="pile" id="cribPile"></div>
       </div>
       <div id="pegArea">
-        <div id="pegStack"></div>
         <div id="pegCount"></div>
+        <div id="pegStack"></div>
       </div>
     </div>
   </div>
@@ -92,19 +91,36 @@
       <div id="myCoins"></div>
       <button id="deckBtn" class="btn small">🂠 Deck</button>
     </div>
-    <div id="myCards">
-      <div id="hand"></div>
-      <div id="actionRow">
-        <span id="prompt"></span>
-        <button id="actionBtn" class="btn primary hidden"></button>
-        <button id="cancelBtn" class="btn hidden">Cancel</button>
+    <div id="myCenter">
+      <div id="blindProgress">
+        <div id="blindBarOuter">
+          <div id="blindBarFill"></div>
+          <span id="blindBarLabel"></span>
+        </div>
+      </div>
+      <div id="myCards">
+        <div id="hand"></div>
+        <div id="actionRow">
+          <span id="prompt"></span>
+          <button id="actionBtn" class="btn primary hidden"></button>
+          <button id="cancelBtn" class="btn hidden">Cancel</button>
+        </div>
       </div>
     </div>
     <div id="myStuff">
-      <div class="stuff-label">Jokers</div>
-      <div id="jokerRow"></div>
-      <div class="stuff-label">Tarots</div>
-      <div id="tarotRow"></div>
+      <div class="stuff-label">Jokers <span id="jokerCount"></span></div>
+      <div id="jokerRow">
+        <div class="jslot empty" data-slot="0"></div>
+        <div class="jslot empty" data-slot="1"></div>
+        <div class="jslot empty" data-slot="2"></div>
+        <div class="jslot empty" data-slot="3"></div>
+        <div class="jslot empty" data-slot="4"></div>
+      </div>
+      <div class="stuff-label">Tarots <span id="tarotCount"></span></div>
+      <div id="tarotRow">
+        <div class="tslot empty" data-slot="0"></div>
+        <div class="tslot empty" data-slot="1"></div>
+      </div>
     </div>
   </div>
   <div id="log"></div>
@@ -127,6 +143,6 @@
 <div id="fx"></div>
 <div id="toast" class="hidden"></div>
 
-<script type="module" src="client.js?v=5"></script>
+<script type="module" src="client.js?v=6"></script>
 </body>
 </html>

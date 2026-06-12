@@ -26,6 +26,9 @@ let revealShown = -1;     // last scoring result index already animated
 let revealKey = '';
 let deckOpen = false;     // deck viewer overlay
 
+// Joker drag state
+let dragJokerIdx = -1;
+
 // ---- transport ----
 
 function connectWs() {
@@ -315,7 +318,7 @@ function renderGame(st) {
     ((st.phase === 'pegging' && st.turnSeat === st.mySeat) || st.you.canDiscard);
   document.body.classList.toggle('my-turn', myMove);
 
-  renderBlind(st);
+  renderBlindBar(st);
   renderSeats(st);
   renderCenter(st);
   renderMyArea(st);
@@ -334,16 +337,34 @@ function phaseLabel(st) {
   }
 }
 
-function renderBlind(st) {
-  const el = $('blindInfo');
+// ---- blind progress bar ----
+
+function renderBlindBar(st) {
+  const el = $('blindProgress');
+  const fill = $('blindBarFill');
+  const label = $('blindBarLabel');
+
   if (!st.you || !st.you.active) {
-    el.innerHTML = '<span class="blind-out">OUT — spectating</span>';
+    el.classList.add('out-label');
+    label.textContent = '☠ OUT — spectating';
+    label.style.color = '#ff7b6e';
+    fill.style.width = '0%';
+    fill.className = '';
     return;
   }
+
+  el.classList.remove('out-label');
   const pct = Math.min(100, Math.round(100 * st.you.roundScore / st.blind));
-  el.innerHTML =
-    `<span>Blind <b>${st.blind}</b> · You <b>${st.you.roundScore}</b></span>` +
-    `<div class="blind-bar"><div class="blind-fill${pct >= 100 ? ' done' : ''}" style="width:${pct}%"></div></div>`;
+  fill.style.width = pct + '%';
+
+  // Color classes based on progress
+  fill.className = '';
+  if (pct >= 100) fill.classList.add('done');
+  else if (pct >= 75) fill.classList.add('high');
+  else if (pct >= 45) fill.classList.add('mid');
+
+  label.style.color = '';
+  label.textContent = `${st.you.roundScore} / ${st.blind}  ·  Blind`;
 }
 
 function renderSeats(st) {
@@ -419,7 +440,7 @@ function renderCenter(st) {
   crib.appendChild(backEl());
   const dealer = st.players.find(p => p.isDealer);
   crib.insertAdjacentHTML('beforeend',
-    `<div class="lbl">Crib ${st.cribCount} (${esc(dealer ? dealer.name : '')})</div>`);
+    `<div class="lbl">Crib ×${st.cribCount} (${esc(dealer ? dealer.name : '')})</div>`);
 
   const stack = $('pegStack');
   stack.innerHTML = '';
@@ -443,31 +464,112 @@ function renderMyArea(st) {
   $('myName').innerHTML = `${esc(me.name)} ${me.isDealer && me.active ? '<span class="dealer-chip">D</span>' : ''}`;
   $('myScore').textContent = `${you.score} pts`;
   $('myCoins').textContent = `🪙 ${you.coins}`;
-  $('deckBtn').textContent = `🂠 Deck (${you.deck.length})`;
+  $('deckBtn').textContent = `🂠 ${you.deck.length}`;
 
-  const jr = $('jokerRow');
-  jr.innerHTML = '';
-  you.jokers.forEach(j => {
-    const d = jtile('joker', j);
-    if (TOUCH) d.onclick = () => toast(`${j.name}: ${j.desc}`);
-    jr.appendChild(d);
-  });
-  if (!you.jokers.length) jr.innerHTML = '<span class="none">no jokers yet</span>';
-
-  const tr = $('tarotRow');
-  tr.innerHTML = '';
-  you.tarots.forEach((t, idx) => {
-    const d = jtile('tarot', t, {
-      tipExtra: you.canDiscard ? '<br><i>Click to use</i>' : '<br><i>Usable before you discard</i>',
-    });
-    if (you.canDiscard) d.onclick = () => startTarot(idx, t);
-    else if (TOUCH) d.onclick = () => toast(`${t.name}: ${t.desc} (usable before you discard)`);
-    tr.appendChild(d);
-  });
-  if (!you.tarots.length) tr.innerHTML = '<span class="none">no tarots yet</span>';
-
+  renderJokerSlots(st);
+  renderTarotSlots(st);
   renderHand(st);
   if (deckOpen) renderDeckOverlay(st);
+}
+
+// ---- joker slots (5 fixed, drag-to-reorder) ----
+
+function renderJokerSlots(st) {
+  const you = st.you;
+  $('jokerCount').textContent = `${you.jokers.length}/5`;
+
+  const slots = $('jokerRow').querySelectorAll('.jslot');
+  slots.forEach((slot, i) => {
+    // Clear previous content
+    slot.innerHTML = '';
+    slot.className = 'jslot';
+    slot.dataset.slot = i;
+
+    if (i < you.jokers.length) {
+      const j = you.jokers[i];
+      slot.classList.add('filled');
+      const tile = jtile('joker', j);
+
+      // Drag-and-drop for reordering
+      tile.draggable = true;
+      tile.addEventListener('dragstart', (e) => {
+        dragJokerIdx = i;
+        tile.classList.add('dragging');
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', String(i));
+      });
+      tile.addEventListener('dragend', () => {
+        tile.classList.remove('dragging');
+        dragJokerIdx = -1;
+        // Clear all drag-over highlights
+        slots.forEach(s => s.classList.remove('drag-over'));
+      });
+
+      // Touch-based drag info
+      if (TOUCH) tile.onclick = () => toast(`${j.name}: ${j.desc}`);
+
+      slot.appendChild(tile);
+    } else {
+      slot.classList.add('empty');
+    }
+
+    // Drop target handlers
+    slot.addEventListener('dragover', (e) => {
+      if (dragJokerIdx < 0) return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      slot.classList.add('drag-over');
+    });
+    slot.addEventListener('dragleave', () => {
+      slot.classList.remove('drag-over');
+    });
+    slot.addEventListener('drop', (e) => {
+      e.preventDefault();
+      slot.classList.remove('drag-over');
+      const fromIdx = dragJokerIdx;
+      const toIdx = i;
+      if (fromIdx < 0 || fromIdx === toIdx) return;
+      if (fromIdx < you.jokers.length && toIdx < you.jokers.length) {
+        // Swap jokers in the state
+        const jokers = you.jokers;
+        const temp = jokers[fromIdx];
+        jokers[fromIdx] = jokers[toIdx];
+        jokers[toIdx] = temp;
+        // Re-render
+        renderJokerSlots(st);
+        // Notify server of reorder
+        sendMsg({ t: 'reorderJokers', order: jokers.map(j => j.id) });
+      }
+      dragJokerIdx = -1;
+    });
+  });
+}
+
+// ---- tarot slots (2 fixed) ----
+
+function renderTarotSlots(st) {
+  const you = st.you;
+  $('tarotCount').textContent = `${you.tarots.length}/2`;
+
+  const slots = $('tarotRow').querySelectorAll('.tslot');
+  slots.forEach((slot, i) => {
+    slot.innerHTML = '';
+    slot.className = 'tslot';
+    slot.dataset.slot = i;
+
+    if (i < you.tarots.length) {
+      const t = you.tarots[i];
+      slot.classList.add('filled');
+      const tile = jtile('tarot', t, {
+        tipExtra: you.canDiscard ? '<br><i>Click to use</i>' : '<br><i>Usable before you discard</i>',
+      });
+      if (you.canDiscard) tile.onclick = () => startTarot(i, t);
+      else if (TOUCH) tile.onclick = () => toast(`${t.name}: ${t.desc} (usable before you discard)`);
+      slot.appendChild(tile);
+    } else {
+      slot.classList.add('empty');
+    }
+  });
 }
 
 function renderHand(st) {
@@ -747,7 +849,7 @@ function renderShop(oc, st) {
   if (you.pendingPack) return renderPackOpen(oc, st);
 
   oc.innerHTML = `<h2>Shop</h2><div class="row spread"><span class="shop-coins">🪙 ${you.coins}</span>` +
-    `<span style="opacity:.7;font-size:13px">Jokers ${you.jokers.length}/5 · Tarots ${you.tarots.length}/3 · Deck ${you.deck.length}</span></div>`;
+    `<span style="opacity:.7;font-size:13px">Jokers ${you.jokers.length}/5 · Tarots ${you.tarots.length}/2 · Deck ${you.deck.length}</span></div>`;
   const grid = document.createElement('div');
   grid.className = 'shop-grid';
   (you.shopOffer || []).forEach((item, idx) => {

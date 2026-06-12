@@ -101,7 +101,7 @@ body.my-turn #bgRush { opacity: 0.55; animation-play-state: running; }
 .btn.wide { width: 100%; }
 .btn.ghost { background: transparent; border-color: #ffffff22; opacity: 0.65; }
 .btn:disabled { opacity: 0.4; cursor: default; }
-#syncBtn { margin-left: 8px; }
+#syncBtn { margin-left: auto; }
 .run-summary { font-size: 17px; line-height: 1.8; margin-bottom: 14px; }
 
 .room-item {
@@ -121,16 +121,11 @@ body.my-turn #bgRush { opacity: 0.55; animation-play-state: running; }
 #game { display: flex; flex-direction: column; }
 
 #topbar {
-  display: flex; gap: 20px; padding: 8px 16px; font-size: 14px;
+  display: flex; gap: 14px; padding: 8px 16px; font-size: 14px;
   background: #00000044; align-items: center; flex-wrap: wrap;
+  flex-shrink: 0;
 }
 #turnInfo { color: var(--gold); font-weight: 600; }
-#blindInfo { margin-left: auto; display: flex; align-items: center; gap: 8px; font-size: 13px; }
-#blindInfo b { color: var(--gold); }
-.blind-bar { width: 90px; height: 8px; background: #00000066; border-radius: 4px; overflow: hidden; }
-.blind-fill { height: 100%; background: var(--red); border-radius: 4px; transition: width 0.5s ease; }
-.blind-fill.done { background: #4caf6e; }
-.blind-out { opacity: 0.7; color: var(--red); font-weight: 600; }
 
 #table { position: relative; flex: 1; min-height: 0; }
 
@@ -273,40 +268,140 @@ body.my-turn #bgRush { opacity: 0.55; animation-play-state: running; }
   display: flex; flex-direction: column; align-items: center; gap: 10px;
 }
 #centerCards { display: flex; gap: 18px; align-items: flex-end; }
-.pile { text-align: center; font-size: 11px; opacity: 0.95; }
-.pile .lbl { margin-top: 3px; opacity: 0.7; }
+.pile { text-align: center; font-size: 11px; opacity: 0.95; position: relative; }
+.pile .lbl {
+  margin-top: 3px; opacity: 0.7;
+  white-space: nowrap; font-size: 10px;
+}
 #pegArea { display: flex; align-items: center; gap: 14px; min-height: 70px; }
 #pegStack { display: flex; }
 #pegStack .card { margin-right: -18px; }
-#pegCount { font-size: 30px; font-weight: 800; color: var(--gold); min-width: 70px; }
+#pegCount { font-size: 30px; font-weight: 800; color: var(--gold); min-width: 50px; text-align: center; }
+
+/* ---- blind progress bar ---- */
+#blindProgress {
+  width: 100%;
+  padding: 0 4px;
+  margin-bottom: 6px;
+}
+#blindBarOuter {
+  position: relative;
+  width: 100%;
+  height: 22px;
+  background: #00000066;
+  border-radius: 11px;
+  overflow: hidden;
+  border: 1px solid #ffffff22;
+}
+#blindBarFill {
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 0%;
+  border-radius: 11px;
+  background: linear-gradient(90deg, #c0392b, #e74c3c);
+  transition: width 0.6s ease, background 0.5s ease, box-shadow 0.5s ease;
+}
+#blindBarFill.mid {
+  background: linear-gradient(90deg, #e67e22, #f1c40f);
+}
+#blindBarFill.high {
+  background: linear-gradient(90deg, #27ae60, #2ecc71);
+  box-shadow: 0 0 12px #2ecc7166;
+}
+#blindBarFill.done {
+  background: linear-gradient(90deg, #2ecc71, #58d68d);
+  box-shadow: 0 0 18px #2ecc7188;
+  animation: blindPulse 2s ease-in-out infinite;
+}
+@keyframes blindPulse {
+  0%, 100% { box-shadow: 0 0 12px #2ecc7166; }
+  50% { box-shadow: 0 0 22px #2ecc71aa; }
+}
+#blindBarLabel {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: #fff;
+  text-shadow: 0 1px 3px #00000088;
+  pointer-events: none;
+  z-index: 1;
+}
+#blindProgress.out-label {
+  text-align: center;
+}
+#blindProgress.out-label #blindBarOuter { display: none; }
 
 /* ---- bottom bar ---- */
 #bottombar {
-  display: flex; gap: 16px; padding: 10px 16px 14px; background: #00000055;
-  align-items: flex-end; min-height: 150px;
-  padding-bottom: calc(14px + env(safe-area-inset-bottom));
+  display: flex; gap: 12px; padding: 8px 12px 10px; background: #00000055;
+  align-items: stretch; height: 190px; flex-shrink: 0;
+  padding-bottom: calc(10px + env(safe-area-inset-bottom));
 }
-#myInfo { width: 130px; font-size: 14px; }
-#myName { font-weight: 700; font-size: 16px; }
-#myScore { color: var(--gold); font-size: 22px; font-weight: 800; }
-#myCoins { color: #ffd76e; }
+#myInfo { width: 110px; font-size: 14px; display: flex; flex-direction: column; justify-content: center; flex-shrink: 0; }
+#myName { font-weight: 700; font-size: 15px; }
+#myScore { color: var(--gold); font-size: 20px; font-weight: 800; }
+#myCoins { color: #ffd76e; font-size: 13px; }
 
-#myCards { flex: 1; text-align: center; }
-#hand { display: flex; justify-content: center; gap: 6px; min-height: 84px; align-items: flex-end; }
+#myCenter { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+#myCards { flex: 1; text-align: center; display: flex; flex-direction: column; justify-content: flex-end; }
+#hand {
+  display: flex; justify-content: center; gap: 6px;
+  height: 84px; align-items: flex-end;
+}
 #hand .card { width: 56px; height: 78px; font-size: 18px; }
 #hand .card .suit { font-size: 21px; }
-#actionRow { margin-top: 8px; min-height: 40px; display: flex; justify-content: center; gap: 10px; align-items: center; flex-wrap: wrap; }
+#actionRow { height: 36px; display: flex; justify-content: center; gap: 10px; align-items: center; flex-wrap: wrap; flex-shrink: 0; }
 #prompt { font-size: 14px; opacity: 0.85; }
 
-#myStuff { width: 300px; font-size: 12px; }
+#myStuff { width: 200px; font-size: 12px; display: flex; flex-direction: column; justify-content: center; flex-shrink: 0; overflow: hidden; }
 .stuff-label { opacity: 0.6; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 3px; }
-#jokerRow, #tarotRow { display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 6px; min-height: 36px; }
-#jokerRow .none, #tarotRow .none { opacity: 0.4; }
-#deckBtn { margin-top: 6px; }
+.stuff-label span { color: var(--gold); font-weight: 700; }
+
+/* ---- joker & tarot slot system ---- */
+#jokerRow { display: flex; gap: 4px; margin-bottom: 6px; }
+#tarotRow { display: flex; gap: 4px; }
+
+.jslot, .tslot {
+  width: 50px; height: 68px; border-radius: 7px;
+  border: 1.5px dashed #ffffff28;
+  background: #ffffff08;
+  display: flex; align-items: center; justify-content: center;
+  transition: border-color 0.2s, background 0.2s, transform 0.15s;
+  position: relative;
+  flex-shrink: 0;
+}
+.jslot.empty::after {
+  content: '🃏'; font-size: 18px; opacity: 0.15;
+}
+.tslot.empty::after {
+  content: '🔮'; font-size: 18px; opacity: 0.15;
+}
+.jslot.filled, .tslot.filled {
+  border-style: solid;
+  background: transparent;
+  padding: 0;
+}
+.jslot.filled { border-color: var(--gold); }
+.tslot.filled { border-color: var(--purple); }
+
+.jslot.drag-over, .tslot.drag-over {
+  border-color: #fff;
+  background: #ffffff18;
+  transform: scale(1.06);
+}
+
+.jslot .jtile, .tslot .jtile {
+  width: 100%; height: 100%; border: none; border-radius: 6px;
+  margin: 0;
+}
 
 /* joker/tarot card tiles, Balatro-row style */
 .jtile {
-  width: 56px; height: 76px; border-radius: 7px; position: relative;
+  width: 50px; height: 68px; border-radius: 7px; position: relative;
   background: linear-gradient(160deg, var(--panel-light), #1d2c38);
   border: 1.5px solid #ffffff33; cursor: help;
   display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -314,10 +409,11 @@ body.my-turn #bgRush { opacity: 0.55; animation-play-state: running; }
   transition: transform 0.15s ease;
 }
 .jtile:hover { transform: translateY(-8px); animation: wobble 2.2s ease-in-out infinite; z-index: 8; }
-.jtile .jt-icon { width: 36px; height: 36px; }
+.jtile .jt-icon { width: 30px; height: 30px; }
 .jtile .jt-icon svg { width: 100%; height: 100%; }
-.jtile .jt-name { font-size: 8.5px; text-align: center; line-height: 1.1; opacity: 0.9; }
-.jtile.joker { border-color: var(--gold); }
+.jtile .jt-name { font-size: 7.5px; text-align: center; line-height: 1.1; opacity: 0.9; }
+.jtile.joker { border-color: var(--gold); cursor: grab; }
+.jtile.joker.dragging { opacity: 0.4; cursor: grabbing; }
 .jtile.tarot { border-color: var(--purple); cursor: pointer; background: linear-gradient(160deg, #342347, #241733); }
 .jtile.tarot:hover { background: linear-gradient(160deg, #46315e, #2c1d40); }
 .jtile .tip {
@@ -329,7 +425,7 @@ body.my-turn #bgRush { opacity: 0.55; animation-play-state: running; }
 
 /* ---- log ---- */
 #log {
-  position: absolute; right: 8px; bottom: 170px; width: 220px; max-height: 26vh;
+  position: absolute; left: 8px; bottom: 200px; width: 200px; max-height: 22vh;
   overflow-y: auto; font-size: 12px; background: #00000055; border-radius: 8px;
   padding: 8px; pointer-events: none;
 }
@@ -433,7 +529,7 @@ body.my-turn #bgRush { opacity: 0.55; animation-play-state: running; }
 .standing-tag { opacity: 0.75; font-size: 13px; align-self: center; }
 
 #toast {
-  position: fixed; bottom: 180px; left: 50%; transform: translateX(-50%);
+  position: fixed; bottom: 200px; left: 50%; transform: translateX(-50%);
   background: var(--red); color: white; padding: 10px 18px; border-radius: 8px;
   z-index: 130; font-size: 14px; box-shadow: 0 4px 16px #00000088;
   max-width: 90vw; text-align: center;
@@ -449,25 +545,42 @@ body.my-turn #bgRush { opacity: 0.55; animation-play-state: running; }
   .seat .backs .card { margin: 0 -7px; }
   .card { width: 38px; height: 53px; font-size: 12px; }
   .card .suit { font-size: 13px; }
-  #hand .card { width: 46px; height: 64px; font-size: 15px; }
-  #hand .card .suit { font-size: 16px; }
-  #hand { gap: 2px; }
-  #pegCount { font-size: 24px; min-width: 50px; }
-  #bottombar { flex-wrap: wrap; gap: 8px; min-height: 0; padding: 8px 8px calc(8px + env(safe-area-inset-bottom)); }
-  #myInfo { width: auto; display: flex; gap: 10px; align-items: baseline; order: 2; }
+
+  #bottombar {
+    flex-wrap: wrap; gap: 6px; height: auto; min-height: 0;
+    padding: 6px 6px calc(6px + env(safe-area-inset-bottom));
+    flex-direction: column;
+  }
+  #myCenter { order: 1; width: 100%; }
+  #blindProgress { margin-bottom: 4px; }
+  #blindBarOuter { height: 20px; }
+  #blindBarLabel { font-size: 11px; }
+  #hand .card { width: 42px; height: 58px; font-size: 14px; }
+  #hand .card .suit { font-size: 15px; }
+  #hand { gap: 2px; height: 64px; }
+  #actionRow { height: 32px; }
+  #pegCount { font-size: 24px; min-width: 40px; }
+
+  #myInfo { width: auto; display: flex; flex-direction: row; gap: 10px; align-items: baseline; order: 3; flex-shrink: 0; }
   #myScore { font-size: 17px; }
-  #myCards { order: 1; width: 100%; }
-  #myStuff { order: 3; width: auto; flex: 1; }
-  #myStuff .stuff-label { display: none; }
-  #jokerRow, #tarotRow { display: inline-flex; margin-right: 6px; min-height: 0; }
-  .jtile { width: 38px; height: 52px; }
-  .jtile .jt-icon { width: 26px; height: 26px; }
+  #myName { font-size: 14px; }
+
+  #myStuff { order: 2; width: 100%; flex-direction: row; gap: 8px; align-items: flex-start; }
+  #myStuff .stuff-label { font-size: 10px; margin-bottom: 2px; }
+  #jokerRow { flex: 1; margin-bottom: 0; }
+  #tarotRow { flex-shrink: 0; }
+  .jslot, .tslot { width: 36px; height: 50px; }
+  .jslot.empty::after, .tslot.empty::after { font-size: 14px; }
+  .jtile { width: 36px; height: 50px; }
+  .jtile .jt-icon { width: 22px; height: 22px; }
   .jtile .jt-name { display: none; }
+
   #log { display: none; }
-  #topbar { gap: 10px; font-size: 12px; padding: 6px 8px; }
-  #blindInfo { width: 100%; margin-left: 0; }
+  #topbar { gap: 8px; font-size: 12px; padding: 6px 8px; }
   .br-name { width: 80px; font-size: 13px; }
   .br-tag { width: 88px; }
   .shop-grid, .pack-grid { grid-template-columns: 1fr; }
   .deck-suit { width: 26px; font-size: 15px; }
+
+  #deckBtn { font-size: 12px; padding: 4px 8px; }
 }
