@@ -205,7 +205,7 @@ $('nameInput').addEventListener('input', () => localStorage.setItem('crib_name',
 function startMqttDiscovery() {
   if (mqttClient) return;
   if (!window.mqtt) return setTimeout(startMqttDiscovery, 500);
-  mqttClient = mqtt.connect('wss://test.mosquitto.org:8081/mqtt');
+  mqttClient = mqtt.connect('wss://broker.hivemq.com:8884/mqtt');
   mqttClient.on('connect', () => mqttClient.subscribe('orbcrib-lobbies-v1'));
   mqttClient.on('message', (topic, payload) => {
     try {
@@ -220,7 +220,7 @@ function startMqttDiscovery() {
     const now = Date.now();
     let changed = false;
     for (const [code, lobby] of activeLobbies.entries()) {
-      if (now - lobby.lastSeen > 10000) { activeLobbies.delete(code); changed = true; }
+      if (now - lobby.lastSeen > 30000) { activeLobbies.delete(code); changed = true; }
     }
     if (changed) renderP2pLobbies();
   }, 3000);
@@ -337,7 +337,7 @@ function esc(s) {
 function renderWaiting(msg) {
   $('waitRoomName').textContent = msg.room.name;
   $('waitCode').innerHTML = msg.code
-    ? `Share this code: <b class="code">${esc(msg.code)}</b>`
+    ? `Share this code: <b class="code">${esc(msg.code)}</b><div style="font-size:12px;margin-top:10px;color:#ff7b6e;"><b>Mobile Users:</b> Keep this tab open! Mobile browsers pause background tabs which causes the game to disconnect.</div>`
     : '';
   const el = $('waitPlayers');
   el.innerHTML = '';

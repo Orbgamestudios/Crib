@@ -218,7 +218,7 @@ export class HostSession {
   startMqttBroadcast() {
     if (this.solo) return;
     if (!window.mqtt) return setTimeout(() => this.startMqttBroadcast(), 500);
-    this.mqttClient = window.mqtt.connect('wss://test.mosquitto.org:8081/mqtt');
+    this.mqttClient = window.mqtt.connect('wss://broker.hivemq.com:8884/mqtt');
     this.mqttTimer = setInterval(() => {
       if (this.game || this.destroyed || !this.mqttClient) return;
       const connectedCount = this.players.filter(p => p.connected).length;
@@ -230,7 +230,7 @@ export class HostSession {
         count: connectedCount
       });
       this.mqttClient.publish('orbcrib-lobbies-v1', payload);
-    }, 3000);
+    }, 5000);
   }
 
   stopMqttBroadcast() {
