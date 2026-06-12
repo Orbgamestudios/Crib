@@ -6,6 +6,11 @@ import { Game } from '../lib/game.js';
 // CDN script tag.
 
 export const PEER_PREFIX = 'orbcrib-v1-';
+const P2P_LOBBY_TOPIC = 'orbcrib-lobbies-v1';
+const P2P_LOBBY_BROKERS = [
+  'wss://broker.hivemq.com:8884/mqtt',
+  'wss://broker.emqx.io:8084/mqtt',
+];
 
 export function makeCode() {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -216,25 +221,44 @@ export class HostSession {
   }
 
   startMqttBroadcast() {
-    if (this.solo) return;
-    if (!window.mqtt) return setTimeout(() => this.startMqttBroadcast(), 500);
-    this.mqttClient = window.mqtt.connect('wss://broker.hivemq.com:8884/mqtt');
-    this.mqttTimer = setInterval(() => {
-      if (this.game || this.destroyed || !this.mqttClient) return;
+    if (this.solo || this.destroyed) return;
+    if (!window.mqtt) {
+      this.mqttRetry = setTimeout(() => this.startMqttBroadcast(), 500);
+      return;
+    }
+    const publish = client => {
+      if (this.game || this.destroyed || !client || !client.connected) return;
       const connectedCount = this.players.filter(p => p.connected).length;
       if (connectedCount >= 6) return; // Full
       const payload = JSON.stringify({
         t: 'lobbyUpdate',
         code: this.code,
         name: this.roomName,
-        count: connectedCount
+        count: connectedCount,
+        players: this.players.filter(p => p.connected).map(p => p.name),
       });
-      this.mqttClient.publish('orbcrib-lobbies-v1', payload);
-    }, 5000);
+      client.publish(P2P_LOBBY_TOPIC, payload);
+    };
+    this.mqttClients = P2P_LOBBY_BROKERS.map((url, idx) => {
+      const client = window.mqtt.connect(url, {
+        clientId: `orbcrib-host-${idx}-${this.code}-` + Math.random().toString(36).slice(2),
+        clean: true,
+        connectTimeout: 8000,
+        reconnectPeriod: 3000,
+      });
+      client.on('connect', () => publish(client));
+      client.on('error', err => console.warn('Lobby broadcast error:', url, err && err.message || err));
+      return client;
+    });
+    this.mqttTimer = setInterval(() => this.mqttClients.forEach(publish), 5000);
   }
 
   stopMqttBroadcast() {
+    if (this.mqttRetry) clearTimeout(this.mqttRetry);
     if (this.mqttTimer) clearInterval(this.mqttTimer);
-    if (this.mqttClient) { this.mqttClient.end(); this.mqttClient = null; }
+    if (this.mqttClients) {
+      for (const client of this.mqttClients) client.end(true);
+      this.mqttClients = null;
+    }
   }
 }

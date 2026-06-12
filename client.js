@@ -4,6 +4,12 @@ const $ = id => document.getElementById(id);
 const SUIT_CHARS = ['♥', '♦', '♣', '♠']; // H D C S
 const RANK_NAMES = [null, 'A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
 const PEER_PREFIX = 'orbcrib-v1-';
+const P2P_LOBBY_TOPIC = 'orbcrib-lobbies-v1';
+const P2P_LOBBY_TTL = 16000;
+const P2P_LOBBY_BROKERS = [
+  'wss://broker.hivemq.com:8884/mqtt',
+  'wss://broker.emqx.io:8084/mqtt',
+];
 const TOUCH = 'ontouchstart' in window;
 
 // GitHub Pages (or any static host) has no WebSocket server: use P2P rooms.
@@ -15,6 +21,8 @@ let wsOpen = false;
 let hostSession = null;   // P2P: I am the host (game runs in this tab)
 let guestConn = null;     // P2P: I am a guest
 let guestPeer = null;
+let p2pLobbyClients = [];
+const p2pRooms = new Map();
 let myRoomId = null;
 let lastState = null;
 let prevState = null;
@@ -201,7 +209,6 @@ $('nameInput').addEventListener('input', () => localStorage.setItem('crib_name',
 
 if (P2P_MODE) {
   $('wsPanel').classList.add('hidden');
-  $('roomsPanel').classList.add('hidden');
   $('p2pPanel').classList.remove('hidden');
   $('codeInput').value = sessionStorage.getItem('crib_code') || '';
   $('hostBtn').onclick = () => {
@@ -212,6 +219,12 @@ if (P2P_MODE) {
     if (!myName()) return toast('Enter a name first.');
     joinByCode($('codeInput').value);
   };
+  $('refreshBtn').onclick = () => {
+    pruneP2pRooms();
+    renderP2pRooms();
+  };
+  renderP2pRooms();
+  startP2pLobbyDiscovery();
 } else {
   $('createBtn').onclick = () => {
     if (!myName()) return toast('Enter a name first.');
@@ -261,11 +274,65 @@ function renderRoomList(rooms) {
     btn.textContent = 'Join';
     btn.onclick = () => {
       if (!myName()) return toast('Enter a name first.');
-      sendMsg({ t: 'joinRoom', roomId: r.id, playerName: myName() });
+      if (P2P_MODE) joinByCode(r.id);
+      else sendMsg({ t: 'joinRoom', roomId: r.id, playerName: myName() });
     };
     div.appendChild(btn);
     el.appendChild(div);
   }
+}
+
+function startP2pLobbyDiscovery() {
+  if (!P2P_MODE || p2pLobbyClients.length) return;
+  if (!window.mqtt) {
+    setTimeout(startP2pLobbyDiscovery, 500);
+    return;
+  }
+  const onMessage = (topic, payload) => {
+    if (topic !== P2P_LOBBY_TOPIC) return;
+    let msg;
+    try { msg = JSON.parse(payload.toString()); } catch { return; }
+    if (msg.t !== 'lobbyUpdate' || !/^[A-Z0-9]{5}$/.test(String(msg.code || ''))) return;
+    p2pRooms.set(msg.code, {
+      id: msg.code,
+      name: msg.name || `${msg.code} table`,
+      count: Number(msg.count) || 1,
+      players: Array.isArray(msg.players) ? msg.players : [],
+      lastSeen: Date.now(),
+    });
+    renderP2pRooms();
+  };
+  p2pLobbyClients = P2P_LOBBY_BROKERS.map((url, idx) => {
+    const client = window.mqtt.connect(url, {
+      clientId: `orbcrib-list-${idx}-` + Math.random().toString(36).slice(2),
+      clean: true,
+      connectTimeout: 8000,
+      reconnectPeriod: 3000,
+    });
+    client.on('connect', () => client.subscribe(P2P_LOBBY_TOPIC));
+    client.on('message', onMessage);
+    client.on('error', err => console.warn('Lobby discovery error:', url, err && err.message || err));
+    return client;
+  });
+  setInterval(() => {
+    if (pruneP2pRooms()) renderP2pRooms();
+  }, 3000);
+}
+
+function pruneP2pRooms() {
+  let changed = false;
+  const now = Date.now();
+  for (const [code, room] of p2pRooms) {
+    if (now - room.lastSeen > P2P_LOBBY_TTL) {
+      p2pRooms.delete(code);
+      changed = true;
+    }
+  }
+  return changed;
+}
+
+function renderP2pRooms() {
+  renderRoomList([...p2pRooms.values()].sort((a, b) => b.lastSeen - a.lastSeen));
 }
 
 function esc(s) {
