@@ -1,9 +1,9 @@
-const CACHE = 'crib-v4';
+const CACHE = 'crib-v5';
 const SHELL = [
   './',
   'index.html',
-  'style.css?v=4',
-  'client.js?v=4',
+  'style.css?v=5',
+  'client.js?v=5',
   'icons.js',
   'lib/cards.js',
   'lib/scoring.js',
@@ -35,17 +35,17 @@ self.addEventListener('activate', e => {
   );
 });
 
+// network-first so deploys reach players immediately; cache is the
+// offline fallback (solo vs The House works with no connection)
 self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET') return;
   e.respondWith(
-    caches.match(e.request).then(hit => hit ||
-      fetch(e.request).then(res => {
-        if (res.ok) {
-          const copy = res.clone();
-          caches.open(CACHE).then(c => c.put(e.request, copy));
-        }
-        return res;
-      })
-    )
+    fetch(e.request).then(res => {
+      if (res.ok) {
+        const copy = res.clone();
+        caches.open(CACHE).then(c => c.put(e.request, copy));
+      }
+      return res;
+    }).catch(() => caches.match(e.request))
   );
 });

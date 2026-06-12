@@ -15,9 +15,10 @@ export function makeCode() {
 }
 
 export class HostSession {
-  constructor(code, hostName, onLocal, onStatus) {
+  constructor(code, hostName, onLocal, onStatus, opts = {}) {
     this.code = code;
-    this.roomName = `${hostName}'s table`;
+    this.solo = !!opts.solo;
+    this.roomName = this.solo ? `${hostName} vs The House` : `${hostName}'s table`;
     this.onLocal = onLocal;       // deliver a protocol message to the host's own client
     this.onStatus = onStatus || (() => {});
     this.players = [{ id: 'p1', name: hostName, conn: null, connected: true }];
@@ -25,6 +26,19 @@ export class HostSession {
     this.game = null;
     this.logs = [];
     this.destroyed = false;
+    // dropped-message insurance: clients always converge within a heartbeat
+    this.heartbeat = setInterval(() => { if (!this.destroyed) this.broadcastRoom(); }, 2500);
+
+    if (this.solo) {
+      // fully local — no signalling needed, works offline in the PWA
+      this.peer = null;
+      setTimeout(() => {
+        this.onLocal({ t: 'joined', roomId: 'SOLO', logs: this.logs });
+        this.players.push({ id: 'p2', name: 'The House', conn: 'bot', connected: true, isBot: true });
+        this.startGame();
+      }, 0);
+      return;
+    }
 
     this.peer = new Peer(PEER_PREFIX + code, { debug: 1 });
     this.peer.on('open', () => {
@@ -51,6 +65,7 @@ export class HostSession {
   }
 
   sendTo(target, msg) {
+    if (target === 'bot') return;                    // The House needs no mail
     if (target === null) this.onLocal(msg);          // host player
     else if (target.open) target.send(msg);
   }
@@ -119,6 +134,7 @@ export class HostSession {
       case 'reroll': if (gp) this.fail(conn, game.reroll(gp)); break;
       case 'pickPack': if (gp) this.fail(conn, game.pickPack(gp, msg.idx)); break;
       case 'ready': if (gp) this.fail(conn, game.setReady(gp)); break;
+      case 'sync': this.broadcastRoom(); break;
       case 'leaveRoom':
       case 'backToLobby':
         this.dropConn(conn);
@@ -163,7 +179,7 @@ export class HostSession {
     }
     this.players = connected;
     this.game = new Game(
-      this.players.map(p => ({ id: p.id, name: p.name, connected: p.connected })),
+      this.players.map(p => ({ id: p.id, name: p.name, connected: p.connected, isBot: p.isBot })),
       { onUpdate: () => this.broadcastRoom(), log: text => this.log(text) }
     );
     this.broadcastRoom();
@@ -187,11 +203,12 @@ export class HostSession {
   destroy(reason) {
     if (this.destroyed) return;
     this.destroyed = true;
+    clearInterval(this.heartbeat);
     for (const p of this.players.slice(1)) {
       if (p.connected) this.sendTo(p.conn, { t: 'hostLeft', text: reason });
     }
     if (this.game) this.game.destroy();
-    try { this.peer.destroy(); } catch { /* already gone */ }
+    if (this.peer) { try { this.peer.destroy(); } catch { /* already gone */ } }
     this.onLocal({ t: 'left' });
   }
 }

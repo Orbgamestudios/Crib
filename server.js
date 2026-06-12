@@ -137,6 +137,29 @@ function handleMessage(ws, msg) {
       break;
     }
 
+    case 'createSolo': {
+      if (meta.roomId) return;
+      const name = String(msg.playerName || '').trim().slice(0, 16);
+      if (!name) return send(ws, { t: 'error', text: 'Enter a name first.' });
+      const soloRoom = makeRoom(`${name} vs The House`);
+      joinPlayer(soloRoom, ws, name);
+      soloRoom.game = new Game(
+        [
+          ...soloRoom.players.map(p => ({ id: p.id, name: p.name, connected: true })),
+          { id: 'house-' + soloRoom.id, name: 'The House', isBot: true },
+        ],
+        { onUpdate: () => broadcastRoom(soloRoom), log: t => roomLog(soloRoom, t) }
+      );
+      broadcastRoom(soloRoom);
+      broadcastRooms();
+      break;
+    }
+
+    case 'sync':
+      if (room) broadcastRoom(room);
+      else send(ws, { t: 'rooms', rooms: openRooms() });
+      break;
+
     case 'joinRoom': {
       if (meta.roomId) return;
       const name = String(msg.playerName || '').trim().slice(0, 16);
@@ -251,6 +274,12 @@ const server = http.createServer((req, res) => {
 });
 
 const wss = new WebSocketServer({ server });
+
+// belt-and-braces: rebroadcast room state so a dropped message never
+// leaves a client staring at a stale screen
+setInterval(() => {
+  for (const room of rooms.values()) broadcastRoom(room);
+}, 2500);
 
 wss.on('connection', ws => {
   ws.meta = { roomId: null, playerId: null };

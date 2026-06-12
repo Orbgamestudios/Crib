@@ -12,10 +12,12 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Crib">
-<link rel="stylesheet" href="style.css?v=4">
+<link rel="stylesheet" href="style.css?v=5">
 <script src="https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js" defer></script>
 </head>
 <body>
+
+<div id="bg"><div id="bgDrift"></div><div id="bgRush"></div></div>
 
 <div id="lobby" class="view">
   <h1>♠ CRIB ♥</h1>
@@ -36,6 +38,7 @@
       </div>
       <p class="hint">Hosting gives you a 5-letter code to share. The game runs peer-to-peer — keep the host's tab open.</p>
     </div>
+    <button id="soloBtn" class="btn wide" style="margin-top:10px">🤖 Play Solo vs The House</button>
   </div>
   <div class="panel" id="roomsPanel">
     <div class="row spread">
@@ -44,6 +47,7 @@
     </div>
     <div id="roomList"></div>
   </div>
+  <button id="updateBtn" class="btn small ghost">⟳ Update app</button>
 </div>
 
 <div id="waiting" class="view hidden">
@@ -65,6 +69,7 @@
     <span id="phaseInfo"></span>
     <span id="turnInfo"></span>
     <span id="blindInfo"></span>
+    <button id="syncBtn" class="btn small" title="Force refresh game state">⟳</button>
   </div>
   <div id="table">
     <div id="seats"></div>
@@ -122,6 +127,6 @@
 <div id="fx"></div>
 <div id="toast" class="hidden"></div>
 
-<script type="module" src="client.js?v=4"></script>
+<script type="module" src="client.js?v=5"></script>
 </body>
 </html>

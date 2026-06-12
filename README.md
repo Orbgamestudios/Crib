@@ -20,6 +20,14 @@ npm start          # http://localhost:3000
 `npm test` runs a headless smoke test: bots play full matches (2/3/5 players)
 to game over through the real server.
 
+## Solo mode
+
+**Play Solo vs The House** from the lobby: a bot opponent that discards on
+hand-evaluation heuristics and pegs greedily. The House is exempt from blind
+checks — your run lasts exactly as long as you keep beating the blinds, and
+the end screen tells you how far you got. On the static/PWA build solo runs
+entirely in your browser, no connection needed.
+
 ## How a match works
 
 - Play happens in **rounds**. Each round the deal goes around the table —
@@ -77,9 +85,14 @@ The **Deck** button shows your full deck, grouped by suit, any time.
   the backs of their cards (played pegging cards are face up).
 - Your jokers and tarots live on your screen; opponents' joker lists are
   public on hover/tap, like Balatro's joker row.
-- Cards lift and wobble on hover (or tap-select on phones), deals are
-  shuffled and flown out of the deck, and every score pops off the seat that
-  earned it.
+- Cards lift and wobble on hover (or tap-select on phones); deals are
+  shuffled and flown out of the deck, discards glide face-down into the crib,
+  played cards fly to the count pile, finished counts sweep off the table,
+  and every score pops off the seat that earned it.
+- The felt background is a slowly drifting suit lattice; when it's your
+  move it warms in colour and flows faster.
+- State is re-broadcast every 2.5s (lobby and game), and the ⟳ button in the
+  top bar forces a refresh; "Update app" in the lobby clears the PWA cache.
 - Disconnected players are auto-played after a grace period and can rejoin
   with the same name to reclaim their seat. In P2P mode the game lives in the
   host's tab — if the host leaves, the table closes.

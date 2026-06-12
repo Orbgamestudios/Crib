@@ -12,7 +12,8 @@ function bot(name, opts) {
   const ws = new WebSocket(`ws://localhost:${PORT}`);
   const b = { name, ws, state: null, done: false };
   ws.on('open', () => {
-    if (opts.create) ws.send(JSON.stringify({ t: 'createRoom', roomName: 'smoke', playerName: name }));
+    if (opts.solo) ws.send(JSON.stringify({ t: 'createSolo', playerName: name }));
+    else if (opts.create) ws.send(JSON.stringify({ t: 'createRoom', roomName: 'smoke', playerName: name }));
   });
   ws.on('message', raw => {
     const msg = JSON.parse(raw);
@@ -120,10 +121,35 @@ async function runMatch(nPlayers) {
   await new Promise(r => setTimeout(r, 200));
 }
 
+async function runSolo() {
+  console.log('--- smoke: solo vs The House ---');
+  const b = bot('Solo1', { solo: true });
+  const deadline = Date.now() + 90000;
+  while (Date.now() < deadline && !b.done) {
+    await new Promise(r => setTimeout(r, 200));
+  }
+  if (!b.done) {
+    console.error('SOLO STALLED. phase=', b.state && b.state.phase, 'round=', b.state && b.state.round,
+      'turnSeat=', b.state && b.state.turnSeat, 'lastError=', b.lastError);
+    process.exit(1);
+  }
+  const final = b.state;
+  if (!final.solo || !final.standings || final.standings.length !== 2) {
+    console.error('FAIL: bad solo gameover', final.solo, final.standings);
+    process.exit(1);
+  }
+  const me = final.standings.find(s => s.name === 'Solo1');
+  console.log(`solo run over OK: reached round ${final.round}, score ${me.score}`);
+  b.ws.send(JSON.stringify({ t: 'backToLobby' }));
+  b.ws.close();
+  await new Promise(r => setTimeout(r, 200));
+}
+
 const server = await start(PORT);
 await runMatch(2);
 await runMatch(3);
 await runMatch(5);
+await runSolo();
 console.log('smoke test passed');
 server.close();
 process.exit(0);

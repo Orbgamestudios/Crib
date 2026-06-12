@@ -151,7 +151,11 @@ function showView(v) {
   $('lobby').classList.toggle('hidden', v !== 'lobby');
   $('waiting').classList.toggle('hidden', v !== 'waiting');
   $('game').classList.toggle('hidden', v !== 'game');
-  if (v !== 'game') { $('overlay').classList.add('hidden'); lastState = prevState = null; }
+  if (v !== 'game') {
+    $('overlay').classList.add('hidden');
+    lastState = prevState = null;
+    document.body.classList.remove('my-turn');
+  }
 }
 
 function toast(text) {
@@ -201,6 +205,31 @@ if (P2P_MODE) {
   };
   $('refreshBtn').onclick = () => sendMsg({ t: 'listRooms' });
 }
+
+$('soloBtn').onclick = async () => {
+  if (!myName()) return toast('Enter a name first.');
+  if (P2P_MODE) {
+    const { HostSession, makeCode } = await import('./net/host.js');
+    hostSession = new HostSession(makeCode(), myName(), msg => handle(msg), () => {}, { solo: true });
+  } else {
+    sendMsg({ t: 'createSolo', playerName: myName() });
+  }
+};
+
+$('syncBtn').onclick = () => { sendMsg({ t: 'sync' }); toast('Refreshed.'); };
+
+$('updateBtn').onclick = async () => {
+  try {
+    if ('caches' in window) {
+      for (const k of await caches.keys()) await caches.delete(k);
+    }
+    if (navigator.serviceWorker) {
+      const regs = await navigator.serviceWorker.getRegistrations();
+      for (const r of regs) await r.unregister();
+    }
+  } catch { /* best effort */ }
+  location.reload();
+};
 
 function renderRoomList(rooms) {
   const el = $('roomList');
@@ -282,6 +311,10 @@ function renderGame(st) {
   $('turnInfo').textContent =
     st.phase === 'pegging' && turnP ? (turnP.seat === st.mySeat ? '▶ Your turn' : `▶ ${turnP.name}'s turn`) : '';
 
+  const myMove = !!st.you && st.you.active &&
+    ((st.phase === 'pegging' && st.turnSeat === st.mySeat) || st.you.canDiscard);
+  document.body.classList.toggle('my-turn', myMove);
+
   renderBlind(st);
   renderSeats(st);
   renderCenter(st);
@@ -347,7 +380,7 @@ function renderSeats(st) {
     const plaque = document.createElement('div');
     plaque.className = 'plaque';
     plaque.innerHTML =
-      `<span class="nm">${esc(p.name)}</span> ${p.isDealer && p.active ? '<span class="dealer-chip">D</span>' : ''}` +
+      `<span class="nm">${esc(p.name)}${p.isBot ? ' 🤖' : ''}</span> ${p.isDealer && p.active ? '<span class="dealer-chip">D</span>' : ''}` +
       ` <span class="sc">${p.score}</span><div class="badges">${badges.join(' ')}</div>`;
     if (p.jokers.length) {
       plaque.title = 'Jokers: ' + p.jokers.join(', ');
@@ -588,13 +621,20 @@ function renderOverlay(st) {
     renderShop(oc, st);
   } else if (st.phase === 'gameover') {
     ov.classList.remove('hidden');
-    oc.innerHTML = '<h2>Final Standings</h2>';
-    (st.standings || []).forEach((s, i) => {
-      const tag = s.eliminatedRound === null ? '🏆 winner' : `out round ${s.eliminatedRound}`;
-      oc.insertAdjacentHTML('beforeend',
-        `<div class="standing${i === 0 ? ' winner' : ''}"><span>${i + 1}. ${esc(s.name)}</span>` +
-        `<span class="standing-tag">${tag}</span><span>${s.score} pts</span></div>`);
-    });
+    if (st.solo) {
+      const me = (st.standings || []).find(s => s.seat === st.mySeat) || { score: 0 };
+      oc.innerHTML = `<h2>Run Over</h2>` +
+        `<div class="run-summary">You reached <b>Round ${st.round}</b> against The House.<br>` +
+        `Final score: <b>${me.score}</b> · Blinds beaten: <b>${st.you.blindsPassed}</b></div>`;
+    } else {
+      oc.innerHTML = '<h2>Final Standings</h2>';
+      (st.standings || []).forEach((s, i) => {
+        const tag = s.eliminatedRound === null ? '🏆 winner' : `out round ${s.eliminatedRound}`;
+        oc.insertAdjacentHTML('beforeend',
+          `<div class="standing${i === 0 ? ' winner' : ''}"><span>${i + 1}. ${esc(s.name)}</span>` +
+          `<span class="standing-tag">${tag}</span><span>${s.score} pts</span></div>`);
+      });
+    }
     const btn = document.createElement('button');
     btn.className = 'btn primary';
     btn.textContent = 'Back to Lobby';
@@ -687,8 +727,13 @@ function renderRoundEnd(oc, st) {
       `<span class="br-tag">${row.passed ? '✅ SAFE' : '☠ ELIMINATED'}</span></div>`);
   }
   const left = st.players.filter(p => p.active).length;
-  oc.insertAdjacentHTML('beforeend',
-    `<div class="hint" style="margin-top:10px">${left <= 1 ? 'We have a winner!' : left + ' players remain.'}</div>`);
+  if (st.solo) {
+    oc.insertAdjacentHTML('beforeend',
+      '<div class="hint" style="margin-top:10px">The House is exempt — your run lasts as long as you beat the blinds.</div>');
+  } else {
+    oc.insertAdjacentHTML('beforeend',
+      `<div class="hint" style="margin-top:10px">${left <= 1 ? 'We have a winner!' : left + ' players remain.'}</div>`);
+  }
   if (st.you.active) appendReadyBtn(oc, st, left <= 1 ? 'Final Standings' : 'Continue');
   else oc.insertAdjacentHTML('beforeend', '<div class="hint">Spectating…</div>');
 }
@@ -814,6 +859,27 @@ function runAnimations(prev, st) {
     if (el) el.classList.add('flip-in');
   }
 
+  // discards glide (face down) from each player's hand to the crib pile
+  if (prev.dealNumber === st.dealNumber && prev.players) {
+    const cribCard = document.querySelector('#cribPile .card');
+    for (const p of st.players) {
+      const pp = prev.players.find(q => q.seat === p.seat);
+      if (!pp || pp.discarded || !p.discarded || !p.active || !cribCard) continue;
+      const fromEl = p.seat === st.mySeat
+        ? $('hand')
+        : document.querySelector(`.seat[data-seat="${p.seat}"] .backs`) ||
+          document.querySelector(`.seat[data-seat="${p.seat}"]`);
+      if (!fromEl) continue;
+      const fromRect = fromEl.getBoundingClientRect();
+      for (let i = 0; i < st.discardCount; i++) {
+        setTimeout(() => {
+          const tgt = document.querySelector('#cribPile .card');
+          if (tgt) flyClone(backEl(), fromRect, tgt.getBoundingClientRect(), 420, p.seat === st.mySeat ? -8 : 8);
+        }, i * 110);
+      }
+    }
+  }
+
   if (st.phase === 'pegging' && prev.dealNumber === st.dealNumber &&
       Array.isArray(prev.pegStack) && st.pegStack.length > prev.pegStack.length) {
     const played = st.pegStack[st.pegStack.length - 1];
@@ -830,6 +896,22 @@ function runAnimations(prev, st) {
     pendingFly = null;
     if (fromRect && target) flyCard(played, fromRect, target);
     pulse($('pegCount'));
+  }
+
+  // a finished 31/go count sweeps off the table
+  if (prev.dealNumber === st.dealNumber && Array.isArray(prev.pegStack) &&
+      prev.pegStack.length > 1 && st.pegStack.length === 0 &&
+      (st.phase === 'pegging' || st.phase === 'scoring')) {
+    const area = $('pegStack').getBoundingClientRect();
+    prev.pegStack.forEach((c, i) => {
+      const clone = cardEl(c);
+      clone.classList.add('sweep');
+      clone.style.left = (area.left + i * 28) + 'px';
+      clone.style.top = area.top + 'px';
+      clone.style.animationDelay = (i * 40) + 'ms';
+      $('fx').appendChild(clone);
+      setTimeout(() => clone.remove(), 700 + i * 40);
+    });
   }
 
   for (const p of st.players) {
@@ -855,19 +937,24 @@ function shuffleAnim(deckRect) {
   }
 }
 
+function flyClone(el, fromRect, toRect, ms = 380, rot = 0) {
+  el.classList.add('flying');
+  el.style.left = fromRect.left + 'px';
+  el.style.top = fromRect.top + 'px';
+  el.style.transitionDuration = ms + 'ms';
+  $('fx').appendChild(el);
+  requestAnimationFrame(() => {
+    el.style.transform =
+      `translate(${toRect.left - fromRect.left}px, ${toRect.top - fromRect.top}px) rotate(${rot}deg)`;
+  });
+  setTimeout(() => el.remove(), ms + 60);
+}
+
 function flyCard(card, fromRect, target) {
   const toRect = target.getBoundingClientRect();
-  const clone = cardEl(card);
-  clone.classList.add('flying');
-  clone.style.left = fromRect.left + 'px';
-  clone.style.top = fromRect.top + 'px';
-  $('fx').appendChild(clone);
   target.style.visibility = 'hidden';
-  requestAnimationFrame(() => {
-    clone.style.transform =
-      `translate(${toRect.left - fromRect.left}px, ${toRect.top - fromRect.top}px)`;
-  });
-  setTimeout(() => { clone.remove(); target.style.visibility = ''; }, 330);
+  flyClone(cardEl(card), fromRect, toRect, 380, 0);
+  setTimeout(() => { target.style.visibility = ''; }, 400);
 }
 
 function floatAtSeat(st, seat, text, cls) {
