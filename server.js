@@ -1,0 +1,273 @@
+'use strict';
+
+const http = require('http');
+const fs = require('fs');
+const path = require('path');
+const { WebSocketServer } = require('ws');
+const { Game } = require('./lib/game');
+
+const PUBLIC_DIR = path.join(__dirname, 'public');
+const MIME = {
+  '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css',
+  '.png': 'image/png', '.svg': 'image/svg+xml', '.ico': 'image/x-icon',
+};
+
+const rooms = new Map(); // id -> room
+let nextRoomId = 1;
+
+function makeRoom(name) {
+  const room = {
+    id: 'r' + (nextRoomId++),
+    name: (name || 'Cribbage Table').slice(0, 30),
+    players: [], // { id, name, ws, connected }
+    game: null,
+    logs: [],
+  };
+  rooms.set(room.id, room);
+  return room;
+}
+
+function roomSummary(room) {
+  return {
+    id: room.id, name: room.name,
+    players: room.players.map(p => p.name),
+    count: room.players.filter(p => p.connected).length,
+    inGame: !!room.game && room.game.phase !== 'gameover',
+  };
+}
+
+function openRooms() {
+  return [...rooms.values()]
+    .filter(r => !r.game || r.game.phase === 'gameover')
+    .filter(r => r.players.length < 6)
+    .map(roomSummary);
+}
+
+function send(ws, msg) {
+  if (ws && ws.readyState === 1) ws.send(JSON.stringify(msg));
+}
+
+function broadcastRooms() {
+  const list = openRooms();
+  for (const ws of wss.clients) {
+    if (ws.readyState === 1 && !ws.meta.roomId) send(ws, { t: 'rooms', rooms: list });
+  }
+}
+
+function broadcastRoom(room) {
+  for (const p of room.players) {
+    if (!p.connected) continue;
+    if (room.game) {
+      send(p.ws, { t: 'state', room: roomSummary(room), state: room.game.stateFor(p.id) });
+    } else {
+      send(p.ws, {
+        t: 'roomUpdate',
+        room: roomSummary(room),
+        hostId: room.players[0] && room.players[0].id,
+        youId: p.id,
+        players: room.players.map(pl => ({ id: pl.id, name: pl.name, connected: pl.connected })),
+      });
+    }
+  }
+}
+
+function roomLog(room, text) {
+  room.logs.push(text);
+  if (room.logs.length > 60) room.logs.shift();
+  for (const p of room.players) {
+    if (p.connected) send(p.ws, { t: 'log', text });
+  }
+}
+
+function startGame(room) {
+  room.game = new Game(
+    room.players.map(p => ({ id: p.id, name: p.name, connected: p.connected })),
+    {
+      onUpdate: () => broadcastRoom(room),
+      log: text => roomLog(room, text),
+    }
+  );
+  broadcastRoom(room);
+  broadcastRooms();
+}
+
+function leaveRoom(ws) {
+  const room = rooms.get(ws.meta.roomId);
+  ws.meta.roomId = null;
+  if (!room) return;
+  const p = room.players.find(pl => pl.id === ws.meta.playerId);
+  if (p) {
+    if (room.game && room.game.phase !== 'gameover') {
+      p.connected = false;
+      p.ws = null;
+      room.game.playerDisconnected(p.id);
+      roomLog(room, `${p.name} disconnected`);
+    } else {
+      room.players = room.players.filter(pl => pl.id !== p.id);
+    }
+  }
+  if (room.players.length === 0 || room.players.every(pl => !pl.connected)) {
+    if (room.game) room.game.destroy();
+    rooms.delete(room.id);
+  } else {
+    broadcastRoom(room);
+  }
+  broadcastRooms();
+}
+
+let nextPlayerId = 1;
+
+function handleMessage(ws, msg) {
+  const meta = ws.meta;
+  const room = rooms.get(meta.roomId);
+  const game = room && room.game;
+  const gp = game && game.byId(meta.playerId);
+
+  switch (msg.t) {
+    case 'listRooms':
+      send(ws, { t: 'rooms', rooms: openRooms() });
+      break;
+
+    case 'createRoom': {
+      if (meta.roomId) return;
+      const name = String(msg.playerName || '').trim().slice(0, 16);
+      if (!name) return send(ws, { t: 'error', text: 'Enter a name first.' });
+      const newRoom = makeRoom(msg.roomName);
+      joinPlayer(newRoom, ws, name);
+      break;
+    }
+
+    case 'joinRoom': {
+      if (meta.roomId) return;
+      const name = String(msg.playerName || '').trim().slice(0, 16);
+      if (!name) return send(ws, { t: 'error', text: 'Enter a name first.' });
+      const target = rooms.get(msg.roomId);
+      if (!target) return send(ws, { t: 'error', text: 'Room no longer exists.' });
+      // reconnect: reclaim a disconnected seat with the same name
+      const seat = target.players.find(p => !p.connected && p.name === name);
+      if (seat) {
+        seat.ws = ws; seat.connected = true;
+        meta.roomId = target.id; meta.playerId = seat.id;
+        if (target.game) target.game.playerReconnected(seat.id);
+        roomLog(target, `${name} reconnected`);
+        send(ws, { t: 'joined', roomId: target.id, logs: target.logs });
+        broadcastRoom(target);
+        broadcastRooms();
+        return;
+      }
+      if (target.game && target.game.phase !== 'gameover') {
+        return send(ws, { t: 'error', text: 'That game is already underway.' });
+      }
+      if (target.players.length >= 6) return send(ws, { t: 'error', text: 'Room is full.' });
+      if (target.players.some(p => p.name === name)) {
+        return send(ws, { t: 'error', text: 'That name is taken in this room.' });
+      }
+      if (target.game && target.game.phase === 'gameover') {
+        target.game.destroy();
+        target.game = null;
+        target.players = target.players.filter(p => p.connected);
+      }
+      joinPlayer(target, ws, name);
+      break;
+    }
+
+    case 'leaveRoom':
+      leaveRoom(ws);
+      send(ws, { t: 'left', rooms: openRooms() });
+      break;
+
+    case 'startGame': {
+      if (!room || room.game) return;
+      if (room.players[0].id !== meta.playerId) {
+        return send(ws, { t: 'error', text: 'Only the host can start the game.' });
+      }
+      const connected = room.players.filter(p => p.connected);
+      if (connected.length < 2) return send(ws, { t: 'error', text: 'Need at least 2 players.' });
+      room.players = connected;
+      startGame(room);
+      break;
+    }
+
+    case 'discard':
+      if (gp) fail(ws, game.discard(gp, msg.cards));
+      break;
+    case 'playCard':
+      if (gp) fail(ws, game.playCard(gp, msg.card));
+      break;
+    case 'useTarot':
+      if (gp) fail(ws, game.useTarot(gp, msg.idx, msg.targets));
+      break;
+    case 'buy':
+      if (gp) fail(ws, game.buyItem(gp, msg.idx));
+      break;
+    case 'reroll':
+      if (gp) fail(ws, game.reroll(gp));
+      break;
+    case 'ready':
+      if (gp) game.setReady(gp);
+      break;
+    case 'backToLobby':
+      leaveRoom(ws);
+      send(ws, { t: 'left', rooms: openRooms() });
+      break;
+  }
+}
+
+function fail(ws, err) {
+  if (typeof err === 'string') send(ws, { t: 'error', text: err });
+}
+
+function joinPlayer(room, ws, name) {
+  const player = { id: 'p' + (nextPlayerId++), name, ws, connected: true };
+  room.players.push(player);
+  ws.meta.roomId = room.id;
+  ws.meta.playerId = player.id;
+  send(ws, { t: 'joined', roomId: room.id, logs: room.logs });
+  broadcastRoom(room);
+  broadcastRooms();
+}
+
+// ---- http + ws ----
+
+const server = http.createServer((req, res) => {
+  let urlPath = decodeURIComponent(req.url.split('?')[0]);
+  if (urlPath === '/') urlPath = '/index.html';
+  const file = path.join(PUBLIC_DIR, path.normalize(urlPath));
+  if (!file.startsWith(PUBLIC_DIR)) { res.writeHead(403); return res.end(); }
+  fs.readFile(file, (err, data) => {
+    if (err) { res.writeHead(404); return res.end('Not found'); }
+    res.writeHead(200, { 'Content-Type': MIME[path.extname(file)] || 'application/octet-stream' });
+    res.end(data);
+  });
+});
+
+const wss = new WebSocketServer({ server });
+
+wss.on('connection', ws => {
+  ws.meta = { roomId: null, playerId: null };
+  send(ws, { t: 'rooms', rooms: openRooms() });
+  ws.on('message', raw => {
+    let msg;
+    try { msg = JSON.parse(raw); } catch { return; }
+    try { handleMessage(ws, msg); } catch (e) {
+      console.error('handleMessage error:', e);
+      send(ws, { t: 'error', text: 'Server error.' });
+    }
+  });
+  ws.on('close', () => leaveRoom(ws));
+});
+
+function start(port) {
+  return new Promise(resolve => {
+    server.listen(port, () => {
+      console.log(`Crib server running at http://localhost:${port}`);
+      resolve(server);
+    });
+  });
+}
+
+if (require.main === module) {
+  start(process.env.PORT || 3000);
+}
+
+module.exports = { start };

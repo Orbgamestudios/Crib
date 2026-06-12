@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Crib — Roguelike Cribbage</title>
+<link rel="stylesheet" href="style.css?v=2">
+</head>
+<body>
+
+<div id="lobby" class="view">
+  <h1>♠ CRIB ♥</h1>
+  <p class="tagline">Online cribbage with jokers &amp; tarot cards</p>
+  <div class="panel">
+    <label>Your name</label>
+    <input id="nameInput" maxlength="16" placeholder="e.g. Slinde">
+    <div class="row">
+      <input id="roomNameInput" maxlength="30" placeholder="New table name">
+      <button id="createBtn" class="btn primary">Create Table</button>
+    </div>
+  </div>
+  <div class="panel">
+    <div class="row spread">
+      <h2>Open Tables</h2>
+      <button id="refreshBtn" class="btn small">Refresh</button>
+    </div>
+    <div id="roomList"></div>
+  </div>
+</div>
+
+<div id="waiting" class="view hidden">
+  <div class="panel">
+    <h2 id="waitRoomName"></h2>
+    <div id="waitPlayers"></div>
+    <p class="hint" id="waitHint"></p>
+    <div class="row">
+      <button id="startBtn" class="btn primary hidden">Start Game</button>
+      <button id="leaveBtn" class="btn">Leave</button>
+    </div>
+  </div>
+</div>
+
+<div id="game" class="view hidden">
+  <div id="topbar">
+    <span id="dealInfo"></span>
+    <span id="phaseInfo"></span>
+    <span id="turnInfo"></span>
+  </div>
+  <div id="table">
+    <div id="seats"></div>
+    <div id="center">
+      <div id="centerCards">
+        <div class="pile" id="deckPile"></div>
+        <div class="pile" id="starterPile"></div>
+        <div class="pile" id="cribPile"></div>
+      </div>
+      <div id="pegArea">
+        <div id="pegStack"></div>
+        <div id="pegCount"></div>
+      </div>
+    </div>
+  </div>
+  <div id="bottombar">
+    <div id="myInfo">
+      <div id="myName"></div>
+      <div id="myScore"></div>
+      <div id="myCoins"></div>
+    </div>
+    <div id="myCards">
+      <div id="hand"></div>
+      <div id="actionRow">
+        <span id="prompt"></span>
+        <button id="actionBtn" class="btn primary hidden"></button>
+        <button id="cancelBtn" class="btn hidden">Cancel</button>
+      </div>
+    </div>
+    <div id="myStuff">
+      <div class="stuff-label">Jokers</div>
+      <div id="jokerRow"></div>
+      <div class="stuff-label">Tarots</div>
+      <div id="tarotRow"></div>
+    </div>
+  </div>
+  <div id="log"></div>
+</div>
+
+<div id="overlay" class="hidden">
+  <div id="overlayContent" class="panel"></div>
+</div>
+
+<div id="toast" class="hidden"></div>
+
+<script src="client.js?v=2"></script>
+</body>
+</html>

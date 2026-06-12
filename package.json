@@ -1,0 +1,14 @@
+{
+  "name": "crib",
+  "version": "0.1.0",
+  "description": "Online multiplayer cribbage with Balatro-style jokers and tarot cards",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node test/smoke.js"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "ws": "^8.18.0"
+  }
+}
