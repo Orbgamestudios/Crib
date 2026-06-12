@@ -45,6 +45,7 @@ export class HostSession {
       this.onStatus('open');
       this.onLocal({ t: 'joined', roomId: code, logs: this.logs });
       this.broadcastRoom();
+      this.startMqttBroadcast();
     });
     this.peer.on('error', err => {
       if (err.type === 'unavailable-id') this.onStatus('code-taken');
@@ -182,6 +183,7 @@ export class HostSession {
       this.players.map(p => ({ id: p.id, name: p.name, connected: p.connected, isBot: p.isBot })),
       { onUpdate: () => this.broadcastRoom(), log: text => this.log(text) }
     );
+    this.stopMqttBroadcast();
     this.broadcastRoom();
   }
 
@@ -203,6 +205,7 @@ export class HostSession {
   destroy(reason) {
     if (this.destroyed) return;
     this.destroyed = true;
+    this.stopMqttBroadcast();
     clearInterval(this.heartbeat);
     for (const p of this.players.slice(1)) {
       if (p.connected) this.sendTo(p.conn, { t: 'hostLeft', text: reason });
@@ -210,5 +213,28 @@ export class HostSession {
     if (this.game) this.game.destroy();
     if (this.peer) { try { this.peer.destroy(); } catch { /* already gone */ } }
     this.onLocal({ t: 'left' });
+  }
+
+  startMqttBroadcast() {
+    if (this.solo) return;
+    if (!window.mqtt) return setTimeout(() => this.startMqttBroadcast(), 500);
+    this.mqttClient = window.mqtt.connect('wss://test.mosquitto.org:8081/mqtt');
+    this.mqttTimer = setInterval(() => {
+      if (this.game || this.destroyed || !this.mqttClient) return;
+      const connectedCount = this.players.filter(p => p.connected).length;
+      if (connectedCount >= 6) return; // Full
+      const payload = JSON.stringify({
+        t: 'lobbyUpdate',
+        code: this.code,
+        name: this.roomName,
+        count: connectedCount
+      });
+      this.mqttClient.publish('orbcrib-lobbies-v1', payload);
+    }, 3000);
+  }
+
+  stopMqttBroadcast() {
+    if (this.mqttTimer) clearInterval(this.mqttTimer);
+    if (this.mqttClient) { this.mqttClient.end(); this.mqttClient = null; }
   }
 }

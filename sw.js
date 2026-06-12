@@ -1,9 +1,9 @@
-const CACHE = 'crib-v10';
+const CACHE = 'crib-v11';
 const SHELL = [
   './',
   'index.html',
-  'style.css?v=10',
-  'client.js?v=10',
+  'style.css?v=11',
+  'client.js?v=11',
   'icons.js',
   'lib/cards.js',
   'lib/scoring.js',
@@ -15,14 +15,17 @@ const SHELL = [
   'icons/icon-512.png',
   'icons/apple-touch-icon.png',
 ];
-const CDN = 'https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js';
+const CDN_PEER = 'https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js';
+const CDN_MQTT = 'https://unpkg.com/mqtt/dist/mqtt.min.js';
 
 self.addEventListener('install', e => {
   e.waitUntil(
     caches.open(CACHE)
       .then(c => c.addAll(SHELL)
-        // cross-origin precache is best-effort: never block install on the CDN
-        .then(() => c.add(CDN).catch(() => {})))
+        .then(() => Promise.all([
+          c.add(CDN_PEER).catch(() => {}),
+          c.add(CDN_MQTT).catch(() => {})
+        ])))
       .then(() => self.skipWaiting())
   );
 });

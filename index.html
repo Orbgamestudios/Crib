@@ -12,8 +12,9 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Crib">
-<link rel="stylesheet" href="style.css?v=10">
+<link rel="stylesheet" href="style.css?v=11">
 <script src="https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js" defer></script>
+<script src="https://unpkg.com/mqtt/dist/mqtt.min.js" defer></script>
 </head>
 <body>
 
@@ -33,8 +34,11 @@
       <button id="hostBtn" class="btn primary wide">Host a Table</button>
       <div class="or">— or —</div>
       <div class="row">
-        <input id="codeInput" maxlength="5" placeholder="Table code" autocapitalize="characters" autocomplete="off">
+        <input id="codeInput" maxlength="5" placeholder="Table code" autocapitalize="characters" autocomplete="off" style="width:100px;">
         <button id="joinCodeBtn" class="btn primary">Join</button>
+      </div>
+      <div id="p2pRoomList" style="margin-top:15px;max-height:150px;overflow-y:auto;font-size:13px;">
+        <!-- P2P lobbies injected here via MQTT -->
       </div>
       <div style="margin-top:10px;font-size:12px;opacity:0.6;line-height:1.4">
         <b>Note:</b> Lobbies do not appear in a list. One player must <b>Create Table</b> and share their 5-letter code with the other players.
@@ -145,6 +149,6 @@
 <div id="fx"></div>
 <div id="toast" class="hidden"></div>
 
-<script type="module" src="client.js?v=10"></script>
+<script type="module" src="client.js?v=11"></script>
 </body>
 </html>

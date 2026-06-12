@@ -29,6 +29,11 @@ let deckOpen = false;     // deck viewer overlay
 // Joker drag state
 let dragJokerIdx = -1;
 
+// MQTT Lobby Discovery for P2P mode
+let mqttClient = null;
+let activeLobbies = new Map();
+let lobbyTimer = null;
+
 // ---- transport ----
 
 function connectWs() {
@@ -164,6 +169,10 @@ function showView(v) {
     lastState = prevState = null;
     document.body.classList.remove('my-turn');
   }
+  if (P2P_MODE && typeof startMqttDiscovery === 'function') {
+    if (v === 'lobby') startMqttDiscovery();
+    else stopMqttDiscovery();
+  }
 }
 
 function toast(text) {
@@ -193,6 +202,60 @@ function myName() {
 $('nameInput').value = localStorage.getItem('crib_name') || '';
 $('nameInput').addEventListener('input', () => localStorage.setItem('crib_name', myName()));
 
+function startMqttDiscovery() {
+  if (mqttClient) return;
+  if (!window.mqtt) return setTimeout(startMqttDiscovery, 500);
+  mqttClient = mqtt.connect('wss://test.mosquitto.org:8081/mqtt');
+  mqttClient.on('connect', () => mqttClient.subscribe('orbcrib-lobbies-v1'));
+  mqttClient.on('message', (topic, payload) => {
+    try {
+      const msg = JSON.parse(payload.toString());
+      if (msg.t === 'lobbyUpdate') {
+        activeLobbies.set(msg.code, { ...msg, lastSeen: Date.now() });
+        renderP2pLobbies();
+      }
+    } catch (e) {}
+  });
+  lobbyTimer = setInterval(() => {
+    const now = Date.now();
+    let changed = false;
+    for (const [code, lobby] of activeLobbies.entries()) {
+      if (now - lobby.lastSeen > 10000) { activeLobbies.delete(code); changed = true; }
+    }
+    if (changed) renderP2pLobbies();
+  }, 3000);
+}
+
+function stopMqttDiscovery() {
+  if (mqttClient) { mqttClient.end(); mqttClient = null; }
+  clearInterval(lobbyTimer);
+  activeLobbies.clear();
+}
+
+function renderP2pLobbies() {
+  const el = $('p2pRoomList');
+  if (!el) return;
+  el.innerHTML = '';
+  if (activeLobbies.size === 0) {
+    el.innerHTML = '<div class="empty">No public tables open. Host one!</div>';
+    return;
+  }
+  for (const lobby of activeLobbies.values()) {
+    const div = document.createElement('div');
+    div.className = 'room-item';
+    div.innerHTML = `<div><b>${esc(lobby.name)}</b><div class="meta">${lobby.count}/6 players</div></div>`;
+    const btn = document.createElement('button');
+    btn.className = 'btn small primary';
+    btn.textContent = 'Join';
+    btn.onclick = () => {
+      $('codeInput').value = lobby.code;
+      $('joinCodeBtn').click();
+    };
+    div.appendChild(btn);
+    el.appendChild(div);
+  }
+}
+
 if (P2P_MODE) {
   $('wsPanel').classList.add('hidden');
   $('roomsPanel').classList.add('hidden');
@@ -206,6 +269,7 @@ if (P2P_MODE) {
     if (!myName()) return toast('Enter a name first.');
     joinByCode($('codeInput').value);
   };
+  startMqttDiscovery();
 } else {
   $('createBtn').onclick = () => {
     if (!myName()) return toast('Enter a name first.');
