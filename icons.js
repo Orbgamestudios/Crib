@@ -278,6 +278,12 @@ export const JOKER_ICONS = {
     `<g transform="rotate(10 29 29)"><rect x="23" y="22" width="11" height="15" rx="1.6" fill="${C}" stroke="${D}" stroke-width="1"/></g>` +
     txt(24, 47, 'FREE', 6, '#9fd0ee')
   ),
+  acemaker: svg(
+    `<path d="M10 25h28l-3 13a3 3 0 01-3 2H16a3 3 0 01-3-2z" fill="${G}" stroke="${D}" stroke-width="1.5"/>` +
+    `<path d="M10 25c0-6 6-10 14-10s14 4 14 10" fill="none" stroke="${G}" stroke-width="2.4"/>` +
+    card(16, 3, 0) + txt(24, 18, 'A', 13, R) +
+    `<path d="M33 9l1.2 3 3 1.2-3 1.2-1.2 3-1.2-3-3-1.2 3-1.2z" fill="${C}"/>`
+  ),
 };
 
 const tarotFrame = (roman, inner) =>

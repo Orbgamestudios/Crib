@@ -1,4 +1,4 @@
-import { JOKER_ICONS, TAROT_ICONS, PACK_ICONS } from './icons.js?v=5';
+import { JOKER_ICONS, TAROT_ICONS, PACK_ICONS } from './icons.js?v=6';
 import { cardValue } from './lib/cards.js';
 import { pegEvents, scoreBreakdown } from './lib/scoring.js';
 import { aggregateMods, buildScore } from './lib/jokers.js';
@@ -555,11 +555,11 @@ function showHowToPlay() {
     fifteens 2, pairs 2, runs 1 per card, flush, and His Nobs (Jack matching the
     starter's suit).</p>
     <p>Everything you peg becomes <span class="chip-red">Mult</span> (red).
-    Each hand starts at <b>x2</b>, and every pegging point (15s, 31s, pairs,
+    Each hand starts at <b>x1</b>, and every pegging point (15s, 31s, pairs,
     runs, go, His Heels) adds to it.</p>
-    <p>At the show, <b>Points x Mult = the deal's score</b>. The dealer's crib is
-    scored with the dealer's Mult too. So a fat hand with a big pegging Mult
-    snowballs - that's how you beat late blinds.</p>
+    <p>At the show, <b>Points x Mult = the deal's score</b>. So a fat hand with a
+    big pegging Mult snowballs - that's how you beat late blinds. The <b>crib</b>
+    scores its points straight (no Mult), so its value is all about the cards in it.</p>
 
     <h4>Pegging points</h4>
     <ul>
@@ -590,6 +590,26 @@ function showHowToPlay() {
     <b>booster packs</b> - open a pack to pick 1 of 3 (jokers, tarots, or cards
     to add to your deck). Tap a shop card to flip it and read it, tap again to
     buy. Reroll for fresh stock.</p>
+
+    <h4>Strategy</h4>
+    <ul>
+      <li><b>Pegging is your multiplier.</b> A 12-point hand at x1 is 12, but
+      peg 4 points first and it's 12 x5 = 60. Hunt 15s, 31s and pairs while
+      laying cards — often worth more than the points you keep.</li>
+      <li><b>Keep Points and Mult balanced.</b> A huge hand at x1, or a tiny
+      hand at x8, both fizzle. Buy jokers that lift whichever you're short on.</li>
+      <li><b>Build an engine early.</b> Round 1-2 blinds are gentle — spend
+      coins on jokers that compound (repricers, suit/rank bonuses, doubled
+      pegging) rather than hoarding.</li>
+      <li><b>Sculpt your deck.</b> Tarots and Standard packs let you load up on
+      one suit (for flushes) or rank (for fifteens/pairs). A focused deck scores
+      far more reliably than a random 52.</li>
+      <li><b>Mind the crib.</b> It has no Mult, so the dealer wants high-scoring
+      cards in it — and non-dealers should avoid handing the dealer easy points.
+      Crib jokers (Golden/Steel Crib, Copier, Acemaker) only pay you on your deal.</li>
+      <li><b>Race for the blind.</b> Clearing it first earns the most bonus
+      coins — and once everyone clears, the round ends early.</li>
+    </ul>
 
     <h4>Controls</h4>
     <p>Tap a card to lift it, tap again or <b>drag</b> it onto the crib/pile to
@@ -1732,17 +1752,21 @@ function scoreBlock(r, st, fresh) {
     div.insertAdjacentHTML('beforeend', '<div class="sb-line"><span>Nothing scored</span><span>+0</span></div>');
   }
 
-  // Points × Mult = Total  (Balatro-style)
+  // Points × Mult = Total  (Balatro-style). The crib has no Mult — show its
+  // points as the total straight.
   const eqDelay = 300 + r.lines.length * 130;
   const eq = document.createElement('div');
   eq.className = 'sb-equation' + (fresh ? ' anim' : '');
   if (fresh) eq.style.animationDelay = eqDelay + 'ms';
-  eq.innerHTML =
-    `<span class="chips" title="Hand points">${r.points}</span>` +
-    `<span class="eq-op">×</span>` +
-    `<span class="mult" title="Pegging multiplier">${r.mult}</span>` +
-    `<span class="eq-op">=</span>` +
-    `<span class="eq-total">${r.total}</span>`;
+  eq.innerHTML = r.noMult
+    ? `<span class="chips" title="Crib points">${r.points}</span>` +
+      `<span class="eq-op">=</span>` +
+      `<span class="eq-total">${r.total}</span>`
+    : `<span class="chips" title="Hand points">${r.points}</span>` +
+      `<span class="eq-op">×</span>` +
+      `<span class="mult" title="Pegging multiplier">${r.mult}</span>` +
+      `<span class="eq-op">=</span>` +
+      `<span class="eq-total">${r.total}</span>`;
   div.appendChild(eq);
   if (fresh) countUp(eq.querySelector('.eq-total'), r.total, eqDelay + 250);
   return div;
