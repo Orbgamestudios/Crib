@@ -69,25 +69,41 @@ let lastTutKey = '';
 
 let audioCtx = null;
 let soundUnlocked = false;
-const SFX_GAIN = 0.15;
+const SFX_GAIN = 0.28;
 
 function ensureAudio() {
-  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  const AudioCtor = window.AudioContext || window.webkitAudioContext;
+  if (!AudioCtor) return null;
+  if (!audioCtx) audioCtx = new AudioCtor();
   return audioCtx;
 }
 
 function unlockAudio() {
   const ctx = ensureAudio();
+  if (!ctx) return;
   soundUnlocked = true;
   if (ctx.state === 'suspended') ctx.resume();
+  const osc = ctx.createOscillator();
+  const amp = ctx.createGain();
+  const t = ctx.currentTime;
+  osc.frequency.setValueAtTime(1, t);
+  amp.gain.setValueAtTime(0.0001, t);
+  osc.connect(amp).connect(ctx.destination);
+  osc.start(t);
+  osc.stop(t + 0.02);
 }
 
 window.addEventListener('pointerdown', unlockAudio, { passive: true });
+window.addEventListener('touchstart', unlockAudio, { passive: true });
+window.addEventListener('mousedown', unlockAudio);
+window.addEventListener('click', unlockAudio);
 window.addEventListener('keydown', unlockAudio);
 
 function tone(freq, delay = 0, dur = 0.08, type = 'sine', gain = 0.45) {
   if (!soundUnlocked) return;
   const ctx = ensureAudio();
+  if (!ctx) return;
+  if (ctx.state === 'suspended') ctx.resume();
   const t = ctx.currentTime + delay;
   const osc = ctx.createOscillator();
   const amp = ctx.createGain();
@@ -104,6 +120,8 @@ function tone(freq, delay = 0, dur = 0.08, type = 'sine', gain = 0.45) {
 function sweep(freqA, freqB, delay = 0, dur = 0.14, type = 'sine', gain = 0.4) {
   if (!soundUnlocked) return;
   const ctx = ensureAudio();
+  if (!ctx) return;
+  if (ctx.state === 'suspended') ctx.resume();
   const t = ctx.currentTime + delay;
   const osc = ctx.createOscillator();
   const amp = ctx.createGain();
@@ -121,6 +139,8 @@ function sweep(freqA, freqB, delay = 0, dur = 0.14, type = 'sine', gain = 0.4) {
 function noise(delay = 0, dur = 0.08, gain = 0.35, filterFreq = 1200) {
   if (!soundUnlocked) return;
   const ctx = ensureAudio();
+  if (!ctx) return;
+  if (ctx.state === 'suspended') ctx.resume();
   const t = ctx.currentTime + delay;
   const buffer = ctx.createBuffer(1, Math.max(1, Math.floor(ctx.sampleRate * dur)), ctx.sampleRate);
   const data = buffer.getChannelData(0);
@@ -2339,15 +2359,15 @@ $('tutClose').onclick = () => $('tutorialBar').classList.add('hidden');
 function tutorialMessage(st) {
   if (!st.you) return null;
   if (st.phase === 'scoring') {
-    return { key: 'scoring', text: "Scoring reveal - each hand is counted in order, then the dealer's crib scores last. Your deal total is hand Points times your red Mult, and any coins you earn will pop in before the shop." };
+    return { key: `scoring-${st.dealNumber}`, text: "Scoring reveal - each hand is counted in order, then the dealer's crib scores last. Your deal total is hand Points times your red Mult, and any coins you earn will pop in before the shop." };
   }
   if (st.phase === 'roundEnd') {
-    return { key: 'round', text: st.solo
+    return { key: `round-${st.round}`, text: st.solo
       ? 'Blind check - your round score is compared to the target blind. Beat it to keep the run alive; The House can score points, but it cannot knock you out.'
       : 'Blind check - everyone compares their round score to the target blind. Players who cleared it survive and earn bonus coins; anyone short is eliminated.' };
   }
   if (st.phase === 'shop') {
-    return { key: 'shop', text: 'Shop - spend coins before the next deal. Tap a card once to enlarge it and read the effect, tap it again to buy; jokers stay passive, tarots are single-use, and packs let you choose one reward.' };
+    return { key: `shop-${st.dealNumber}`, text: 'Shop - spend coins before the next deal. Tap a card once to enlarge it and read the effect, tap it again to buy; jokers stay passive, tarots are single-use, and packs let you choose one reward.' };
   }
   if (!st.you.active && st.phase !== 'gameover') {
     return { key: 'spectate', text: "You've busted out — sit back and watch the rest of the table." };
