@@ -1,4 +1,4 @@
-import { JOKER_ICONS, TAROT_ICONS, PACK_ICONS } from './icons.js?v=2';
+import { JOKER_ICONS, TAROT_ICONS, PACK_ICONS } from './icons.js?v=3';
 import { cardValue } from './lib/cards.js';
 import { pegEvents, scoreBreakdown } from './lib/scoring.js';
 import { aggregateMods, buildScore } from './lib/jokers.js';
@@ -1224,6 +1224,34 @@ function peggingPreview(card, st) {
   };
 }
 
+function peggingEventText(ev) {
+  if (ev.type === 'fifteen') return 'making 15';
+  if (ev.type === 'thirtyone') return 'hitting 31';
+  if (ev.type === 'pair') {
+    if (ev.size === 2) return 'pairing the last card';
+    if (ev.size === 3) return 'making trips';
+    return 'making four of a kind';
+  }
+  if (ev.type === 'run') return `making a run of ${ev.size}`;
+  return ev.type;
+}
+
+function scoringOpportunity(st) {
+  if (st.phase !== 'pegging' || st.turnSeat !== st.mySeat || !st.you || !st.you.active) return null;
+  const options = st.you.hand
+    .map(card => ({ card, preview: peggingPreview(card, st) }))
+    .filter(o => o.preview.legal && o.preview.points > 0)
+    .sort((a, b) => b.preview.points - a.preview.points);
+  if (!options.length) return null;
+  const best = options[0];
+  const why = best.preview.events.map(peggingEventText).join(' and ');
+  const count = st.pegCount + cardValue(best.card.rank);
+  return {
+    key: `score-${best.card.id}-${st.pegCount}-${best.preview.points}`,
+    text: `Scoring chance: play ${cardLabel(best.card)} to make the count ${count} and gain +${best.preview.points} Mult for ${why}.`
+  };
+}
+
 function cardLabel(card) {
   return `${RANK_NAMES[card.rank]}${SUIT_CHARS[card.suit]}`;
 }
@@ -1788,6 +1816,10 @@ function tutorialMessage(st) {
         ? { key: 'discard', text: `Discard phase — send ${st.discardCount} card${st.discardCount > 1 ? 's' : ''} to ${dealerName(st)} crib. Tap a card to pick it (or drag it onto the crib pile), then press the button. Holding a tarot? Play it first.` }
         : { key: 'discardWait', text: 'Everyone secretly throws to the crib. Waiting for the other players…' };
     case 'pegging':
+      {
+        const chance = scoringOpportunity(st);
+        if (chance) return chance;
+      }
       return st.turnSeat === st.mySeat
         ? { key: 'pegMine', text: 'Your turn to peg! Every pegging point (15s, 31s, pairs, runs, go) adds to your red MULT for this deal. Keep the count at 31 or under. Tap a card to lift it, tap again or drag it to the pile.' }
         : { key: 'pegWait', text: 'Pegging — players take turns laying cards. Pegging points build your red MULT, applied to your hand at the show.' };

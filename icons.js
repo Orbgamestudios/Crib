@@ -202,6 +202,32 @@ export const JOKER_ICONS = {
     `<path d="M16 26l-6 6 7 1zM32 26l6 6-7 1z" fill="${R}"/>` +
     `<path d="M21 35h6l-3 9z" fill="${G}"/>`
   ),
+  crib_copier: svg(
+    card(8, 14, -10) + card(24, 14, 10) +
+    `<path d="M18 38q7 4 14 0" fill="none" stroke="${G}" stroke-width="2.4" stroke-linecap="round"/>` +
+    `<path d="M32 38l-5-1m5 1l-2 5" fill="none" stroke="${G}" stroke-width="2.4" stroke-linecap="round"/>` +
+    txt(16, 29, 'C', 9, R, 'transform="rotate(-10 16 25)"') +
+    txt(32, 29, 'C', 9, R, 'transform="rotate(10 32 25)"')
+  ),
+  ace_chaser: svg(
+    card(15, 10, 0) +
+    `<circle cx="34" cy="33" r="7" fill="${G}" stroke="${D}" stroke-width="1.4"/>` +
+    txt(23, 28, 'A', 15, R) +
+    txt(34, 37, '+3', 8, D)
+  ),
+  low_rider: svg(
+    `<path d="M8 32h32" stroke="${G}" stroke-width="3" stroke-linecap="round"/>` +
+    card(5, 13, -12) + card(16, 12, 0) + card(27, 13, 12) +
+    txt(13, 28, 'A', 8, R, 'transform="rotate(-12 13 24)"') +
+    txt(24, 27, '2', 8) +
+    txt(35, 28, '3', 8, R, 'transform="rotate(12 35 24)"')
+  ),
+  coin_clip: svg(
+    `<rect x="13" y="9" width="22" height="31" rx="5" fill="${BL}" stroke="${D}" stroke-width="1.5"/>` +
+    `<path d="M18 12v24M30 12v24" stroke="${C}" stroke-width="1.2" opacity=".55"/>` +
+    `<circle cx="24" cy="25" r="8" fill="${G}" stroke="${D}" stroke-width="1.4"/>` +
+    txt(24, 29, '$', 12, D)
+  ),
   blueprint: svg(
     `<rect x="6" y="8" width="36" height="30" rx="2.5" fill="#274b73" stroke="#9fc4e8" stroke-width="1.8"/>` +
     `<path d="M6 16h36M6 24h36M6 32h36M14 8v30M24 8v30M34 8v30" stroke="#9fc4e8" stroke-width="0.7" opacity="0.5"/>` +
