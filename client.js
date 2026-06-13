@@ -42,6 +42,7 @@ let revealKey = '';
 let deckOpen = false;     // deck viewer overlay
 let raisedCardId = null;
 let selectedShopIdx = -1;
+let focusMode = null;
 let pointerCardDrag = null;
 let lastCoinPopKey = '';
 let deferredRender = false; // a state update arrived mid-drag; apply on release
@@ -335,7 +336,7 @@ function showView(v) {
   $('game').classList.toggle('hidden', v !== 'game');
   if (v !== 'game') {
     $('overlay').classList.add('hidden');
-    closeShopFocus();
+    closeFocus();
     lastState = prevState = null;
     lastJokerSig = null;
     lastOverlayPhase = 'none';
@@ -926,7 +927,7 @@ function attachJokerPointer(tile, idx, st) {
     if (drag.ghost) drag.ghost.remove();
     [...$('jokerRow').querySelectorAll('.jslot')].forEach(s => s.classList.remove('drag-over'));
     if (!drag.dragging) {
-      showItemInfo('joker', st.you.jokers[idx]); // a tap just opens info
+      openOwnedFocus('joker', st.you.jokers[idx], idx, st); // a tap just opens the big card
       flushDeferredRender();
       return;
     }
@@ -979,7 +980,7 @@ function renderTarotSlots(st) {
       const tile = jtile('tarot', t, {
         tipExtra: you.canDiscard ? '<br><i>Click to use</i>' : '<br><i>Usable before you discard</i>',
       });
-      tile.onclick = () => showItemInfo('tarot', t, you.canDiscard ? () => startTarot(i, t) : null);
+      tile.onclick = () => openOwnedFocus('tarot', t, i, st);
       slot.appendChild(tile);
     } else {
       slot.classList.add('empty');
@@ -995,8 +996,6 @@ function renderHand(st) {
 
   selected = selected.filter(id => you.hand.some(c => c.id === id));
   if (!you.hand.some(c => c.id === raisedCardId)) raisedCardId = null;
-  if (tarotMode) tarotMode.targets = tarotMode.targets.filter(id => you.hand.some(c => c.id === id));
-
   setupCardDropTargets(st);
 
   const mid = (you.hand.length - 1) / 2;
@@ -1007,15 +1006,7 @@ function renderHand(st) {
     el.style.setProperty('--fan-rot', `${(idx - mid) * 5}deg`);
     el.style.setProperty('--fan-y', `${Math.abs(idx - mid) * 3}px`);
     el.style.zIndex = String(20 + idx);
-    if (tarotMode) {
-      el.classList.add('clickable');
-      const pos = tarotMode.targets.indexOf(c.id);
-      if (pos >= 0) {
-        el.classList.add('selected');
-        if (tarotMode.def.targets > 1) el.insertAdjacentHTML('beforeend', `<span class="ordertag">${pos + 1}</span>`);
-      }
-      el.onclick = () => toggleTarotTarget(c.id);
-    } else if (you.canDiscard) {
+    if (you.canDiscard) {
       el.classList.add('clickable');
       addPointerCardDrag(el, c.id);
       if (selected.includes(c.id)) el.classList.add('selected');
@@ -1066,20 +1057,6 @@ function renderHand(st) {
 
   if (!you.active) {
     prompt.textContent = "You're out — spectating the table.";
-  } else if (tarotMode) {
-    const need = tarotMode.def.targets;
-    prompt.textContent = need
-      ? `${tarotMode.def.name}: pick ${need} card(s) — ${tarotMode.def.desc}`
-      : `${tarotMode.def.name}: ${tarotMode.def.desc}`;
-    btn.textContent = `Use ${tarotMode.def.name}`;
-    btn.disabled = tarotMode.targets.length !== need;
-    btn.classList.remove('hidden');
-    btn.onclick = () => {
-      sendMsg({ t: 'useTarot', idx: tarotMode.idx, targets: tarotMode.targets });
-      tarotMode = null;
-    };
-    cancel.classList.remove('hidden');
-    cancel.onclick = () => { tarotMode = null; renderGame(lastState); };
   } else if (you.canDiscard) {
     prompt.textContent = `Select ${st.discardCount} card(s) for ${dealerName(st)} crib`;
     btn.textContent = `Send ${st.discardCount} to Crib`;
@@ -1381,7 +1358,7 @@ function renderOverlay(st) {
   if (key !== revealKey) { revealShown = -1; revealKey = key; }
 
   const phase = ['scoring', 'roundEnd', 'shop', 'gameover'].includes(st.phase) ? st.phase : 'none';
-  if (st.phase !== 'shop') closeShopFocus(); // dismiss any open card zoom when the phase moves on
+  if (st.phase !== 'shop' && focusMode === 'market') closeFocus(); // dismiss shop-buy zoom when the phase moves on
   const build = () => {
     if (st.phase === 'scoring') renderScoring(oc, st);
     else if (st.phase === 'roundEnd') renderRoundEnd(oc, st);
@@ -1606,24 +1583,18 @@ function renderShop(oc, st) {
   });
   oc.appendChild(grid);
 
-  // your collection — sell jokers / tarots back for coins
+  // your collection — tap an owned card to inspect, sell, or use it
   if ((you.jokers && you.jokers.length) || (you.tarots && you.tarots.length)) {
     const sell = document.createElement('div');
     sell.className = 'shop-sell';
-    sell.innerHTML = '<div class="sell-label">Your collection — sell for coins</div>';
+    sell.innerHTML = '<div class="sell-label">Your collection</div>';
     const sellRow = document.createElement('div');
     sellRow.className = 'sell-row';
     const addCell = (kind, def, idx) => {
       const cell = document.createElement('div');
       cell.className = 'sell-cell';
       cell.appendChild(jtile(kind, def));
-      const refund = Math.max(1, Math.floor((def.cost || 2) / 2));
-      const b = document.createElement('button');
-      b.className = 'btn small sell-btn';
-      b.textContent = `Sell 🪙${refund}`;
-      b.disabled = you.ready;
-      b.onclick = () => sendMsg({ t: kind === 'joker' ? 'sellJoker' : 'sellTarot', idx });
-      cell.appendChild(b);
+      cell.onclick = () => openOwnedFocus(kind, def, idx, st);
       sellRow.appendChild(cell);
     };
     (you.jokers || []).forEach((j, idx) => addCell('joker', j, idx));
@@ -1648,12 +1619,32 @@ function renderShop(oc, st) {
 // Tapping a shop card enlarges it to the centre of the screen for a clear look,
 // with its text auto-shrunk to fit. Tap the backdrop to go back; Buy to purchase.
 function openShopFocus(item, idx, you) {
-  closeShopFocus();
+  closeFocus();
+  focusMode = 'market';
   selectedShopIdx = idx;
   const wrap = document.createElement('div');
   wrap.id = 'shopFocus';
-  wrap.onclick = e => { if (e.target === wrap) closeShopFocus(); };
+  wrap.onclick = e => { if (e.target === wrap) closeFocus(); };
 
+  const card = focusCardShell(item);
+
+  const canAfford = !item.sold && you.coins >= item.cost && !you.ready;
+  const buy = document.createElement('button');
+  buy.className = 'btn primary focus-buy';
+  buy.textContent = item.sold ? 'Sold'
+    : you.ready ? 'Locked in'
+    : you.coins < item.cost ? `Need 🪙${item.cost}`
+    : `Buy · 🪙${item.cost}`;
+  buy.disabled = !canAfford;
+  buy.onclick = e => { e.stopPropagation(); sendMsg({ t: 'buy', idx }); closeFocus(); };
+  card.appendChild(buy);
+
+  wrap.appendChild(card);
+  document.body.appendChild(wrap);
+  requestAnimationFrame(() => fitText(card.querySelector('.focus-desc')));
+}
+
+function focusCardShell(item) {
   const card = document.createElement('div');
   card.className = `focus-card ${item.kind}` + (item.rarity ? ' r-' + item.rarity : '');
 
@@ -1674,28 +1665,126 @@ function openShopFocus(item, idx, you) {
   if (item.rarity === 'rare' || item.rarity === 'ultra') {
     card.insertAdjacentHTML('beforeend', '<span class="jt-foil"></span>');
   }
+  return card;
+}
 
-  const canAfford = !item.sold && you.coins >= item.cost && !you.ready;
-  const buy = document.createElement('button');
-  buy.className = 'btn primary focus-buy';
-  buy.textContent = item.sold ? 'Sold'
-    : you.ready ? 'Locked in'
-    : you.coins < item.cost ? `Need 🪙${item.cost}`
-    : `Buy · 🪙${item.cost}`;
-  buy.disabled = !canAfford;
-  buy.onclick = e => { e.stopPropagation(); sendMsg({ t: 'buy', idx }); closeShopFocus(); };
-  card.appendChild(buy);
+function openOwnedFocus(kind, def, idx, st, targetMode = false) {
+  closeFocus();
+  focusMode = targetMode ? 'tarotTargets' : 'owned';
+  const item = { ...def, kind };
+  const wrap = document.createElement('div');
+  wrap.id = 'shopFocus';
+  wrap.onclick = e => { if (e.target === wrap) closeFocus(); };
+
+  const card = focusCardShell(item);
+  if (targetMode) addTarotTargetPicker(card, def, idx, st);
+  else addOwnedActions(card, kind, def, idx, st);
 
   wrap.appendChild(card);
-  $('overlay').appendChild(wrap);
+  document.body.appendChild(wrap);
   requestAnimationFrame(() => fitText(card.querySelector('.focus-desc')));
 }
 
-function closeShopFocus() {
+function addOwnedActions(card, kind, def, idx, st) {
+  const actions = document.createElement('div');
+  actions.className = 'focus-actions';
+  if (kind === 'tarot') {
+    const use = document.createElement('button');
+    use.className = 'btn primary focus-btn';
+    const canUse = canUseTarotNow(def, st);
+    use.textContent = tarotUseLabel(def, st);
+    use.disabled = !canUse;
+    use.onclick = e => {
+      e.stopPropagation();
+      if (!canUse) return;
+      if (def.targets > 0) openOwnedFocus('tarot', def, idx, st, true);
+      else { sendMsg({ t: 'useTarot', idx, targets: [] }); closeFocus(); }
+    };
+    actions.appendChild(use);
+  }
+  if (st.phase === 'shop' && st.you.active && !st.you.ready) {
+    const refund = Math.max(1, Math.floor((def.cost || 2) / 2));
+    const sell = document.createElement('button');
+    sell.className = 'btn focus-btn';
+    sell.textContent = `Sell · 🪙${refund}`;
+    sell.onclick = e => {
+      e.stopPropagation();
+      sendMsg({ t: kind === 'joker' ? 'sellJoker' : 'sellTarot', idx });
+      closeFocus();
+    };
+    actions.appendChild(sell);
+  }
+  if (actions.children.length) card.appendChild(actions);
+  else card.insertAdjacentHTML('beforeend', `<div class="focus-note">${kind === 'joker' ? 'Passive joker: it triggers automatically.' : 'Use this tarot during discard before you throw to the crib.'}</div>`);
+}
+
+function tarotNeedsHand(def) {
+  return def.targets > 0 || def.id === 'wheel';
+}
+
+function canUseTarotNow(def, st) {
+  if (!st || !st.you || !st.you.active) return false;
+  if (st.phase === 'discard' && st.you.canDiscard) return true;
+  return st.phase === 'shop' && !st.you.ready && def.targets === 0 && !tarotNeedsHand(def);
+}
+
+function tarotUseLabel(def, st) {
+  if (canUseTarotNow(def, st)) return def.targets > 0 ? 'Use: choose hand cards' : 'Use now';
+  if (tarotNeedsHand(def)) return 'Use during discard';
+  return 'Use in shop or discard';
+}
+
+function addTarotTargetPicker(card, def, idx, st) {
+  const targets = [];
+  card.classList.add('targeting');
+  card.insertAdjacentHTML('beforeend', `<div class="focus-note">Choose ${def.targets} card${def.targets === 1 ? '' : 's'} from your hand.</div>`);
+  const hand = document.createElement('div');
+  hand.className = 'focus-hand';
+  const use = document.createElement('button');
+  use.className = 'btn primary focus-btn';
+  use.textContent = `Use ${def.name}`;
+  use.disabled = true;
+  const sync = () => {
+    hand.querySelectorAll('.card').forEach(el => {
+      const pos = targets.indexOf(el.dataset.cardId);
+      el.classList.toggle('selected', pos >= 0);
+      const old = el.querySelector('.ordertag');
+      if (old) old.remove();
+      if (pos >= 0 && def.targets > 1) el.insertAdjacentHTML('beforeend', `<span class="ordertag">${pos + 1}</span>`);
+    });
+    use.disabled = targets.length !== def.targets;
+  };
+  st.you.hand.forEach(c => {
+    const el = cardEl(c);
+    el.classList.add('clickable');
+    el.dataset.cardId = c.id;
+    el.onclick = e => {
+      e.stopPropagation();
+      const pos = targets.indexOf(c.id);
+      if (pos >= 0) targets.splice(pos, 1);
+      else if (targets.length < def.targets) targets.push(c.id);
+      sync();
+    };
+    hand.appendChild(el);
+  });
+  use.onclick = e => {
+    e.stopPropagation();
+    if (targets.length !== def.targets) return;
+    sendMsg({ t: 'useTarot', idx, targets });
+    closeFocus();
+  };
+  card.appendChild(hand);
+  card.appendChild(use);
+}
+
+function closeFocus() {
   const f = document.getElementById('shopFocus');
   if (f) f.remove();
   selectedShopIdx = -1;
+  focusMode = null;
 }
+
+function closeShopFocus() { closeFocus(); }
 
 // shrink text until it stops overflowing its (capped) box
 function fitText(el, maxPx = 17, minPx = 10) {

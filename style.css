@@ -926,8 +926,11 @@ body.my-turn #bgRush { opacity: 0.6; animation-play-state: running; }
 }
 .sell-label { font-size: 12px; opacity: 0.7; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.06em; }
 .sell-row { display: flex; flex-wrap: wrap; gap: 12px; }
-.sell-cell { display: flex; flex-direction: column; align-items: center; gap: 5px; }
-.sell-btn { padding: 3px 8px; font-size: 12px; }
+.sell-cell {
+  display: flex; flex-direction: column; align-items: center; gap: 5px;
+  cursor: pointer; padding: 4px; border-radius: 8px;
+}
+.sell-cell:hover { background: #ffffff10; }
 
 /* finishing-place tag on the blind check */
 .br-place { color: var(--gold); font-weight: 900; }
@@ -951,6 +954,7 @@ body.my-turn #bgRush { opacity: 0.6; animation-play-state: running; }
   animation: focusIn 0.34s cubic-bezier(.2,1.2,.35,1);
 }
 @keyframes focusIn { 0% { transform: scale(0.45); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+.focus-card.targeting { width: min(640px, 94vw); }
 .focus-card.joker { border-color: var(--gold); }
 .focus-card.tarot { border-color: var(--purple); }
 .focus-card.pack { border-color: #8fe7ff; }
@@ -961,7 +965,19 @@ body.my-turn #bgRush { opacity: 0.6; animation-play-state: running; }
 .focus-art.card .card { width: 84px; height: 118px; font-size: 26px; }
 .focus-name { font-size: 22px; font-weight: 800; color: var(--cream); text-align: center; line-height: 1.1; }
 .focus-desc { line-height: 1.4; text-align: center; opacity: 0.92; max-height: 34vh; overflow: hidden; width: 100%; }
-.focus-buy { margin-top: 6px; font-size: 16px; padding: 10px 26px; }
+.focus-buy, .focus-btn { margin-top: 6px; font-size: 16px; padding: 10px 26px; }
+.focus-actions { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+.focus-note { font-size: 13px; line-height: 1.35; opacity: 0.78; text-align: center; }
+.focus-hand {
+  display: flex; justify-content: center; align-items: flex-end; gap: 8px;
+  width: 100%; flex-wrap: wrap; padding: 8px 4px 2px;
+}
+.focus-hand .card { width: 58px; height: 82px; font-size: 18px; transform: none; }
+.focus-hand .card:hover,
+.focus-hand .card.selected,
+.focus-hand .card.selected:hover {
+  transform: translateY(-8px) scale(1.04);
+}
 .focus-card .jt-foil { opacity: 1; mix-blend-mode: screen; background-size: 250% 250%; }
 .focus-card.r-rare .jt-foil {
   background-image: linear-gradient(115deg, transparent 35%, #7fd0ff55 47%, #b9f0ff99 52%, transparent 66%);
