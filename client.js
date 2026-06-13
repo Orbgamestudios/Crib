@@ -335,6 +335,7 @@ function showView(v) {
   $('game').classList.toggle('hidden', v !== 'game');
   if (v !== 'game') {
     $('overlay').classList.add('hidden');
+    closeShopFocus();
     lastState = prevState = null;
     lastJokerSig = null;
     lastOverlayPhase = 'none';
@@ -1380,6 +1381,7 @@ function renderOverlay(st) {
   if (key !== revealKey) { revealShown = -1; revealKey = key; }
 
   const phase = ['scoring', 'roundEnd', 'shop', 'gameover'].includes(st.phase) ? st.phase : 'none';
+  if (st.phase !== 'shop') closeShopFocus(); // dismiss any open card zoom when the phase moves on
   const build = () => {
     if (st.phase === 'scoring') renderScoring(oc, st);
     else if (st.phase === 'roundEnd') renderRoundEnd(oc, st);
@@ -1581,57 +1583,24 @@ function renderShop(oc, st) {
     return;
   }
   if (you.pendingPack) return renderPackOpen(oc, st);
-  if (!you.shopOffer || !you.shopOffer[selectedShopIdx] || you.shopOffer[selectedShopIdx].sold) selectedShopIdx = -1;
 
   oc.innerHTML = `<h2>Shop</h2><div class="row spread"><span class="shop-coins">🪙 ${you.coins}</span>` +
     `<span style="opacity:.7;font-size:13px">Jokers ${you.jokers.length}/5 · Tarots ${you.tarots.length}/2 · Deck ${you.deck.length}</span></div>`;
   const grid = document.createElement('div');
   grid.className = 'shop-grid shop-grid-market';
   (you.shopOffer || []).forEach((item, idx) => {
-    const flipped = selectedShopIdx === idx;
-    const affordable = !item.sold && you.coins >= item.cost && !you.ready;
     const div = document.createElement('div');
     div.className = `shop-item shop-card ${item.kind}` + (item.sold ? ' sold' : '') +
-      (item.kind === 'pack' ? ' shiny' : '') + (item.rarity ? ' r-' + item.rarity : '') +
-      (flipped ? ' flipped' : '');
-
-    const flip = document.createElement('div');
-    flip.className = 'shop-flip';
-
-    const front = document.createElement('div');
-    front.className = 'shop-face shop-front';
-    front.appendChild(shopCardFace(item));
-    front.insertAdjacentHTML('beforeend',
+      (item.kind === 'pack' ? ' shiny' : '') + (item.rarity ? ' r-' + item.rarity : '');
+    div.appendChild(shopCardFace(item));
+    div.insertAdjacentHTML('beforeend',
       `<div class="si-name">${esc(item.name)}</div>` +
       (item.rarity && item.rarity !== 'common' ? `<div class="rar-pill ${item.rarity}">${item.rarity}</div>` : '') +
       `<div class="shop-price">🪙${item.cost}</div>`);
-
-    const back = document.createElement('div');
-    back.className = `shop-face shop-back ${item.kind}`;
-    const confirm = item.sold ? 'Sold'
-      : you.ready ? 'Locked in'
-      : you.coins < item.cost ? `Need 🪙${item.cost}`
-      : `Tap to buy · 🪙${item.cost}`;
-    back.innerHTML = `<div class="shop-back-name">${esc(item.name)}</div>` +
-      `<div class="shop-back-desc">${esc(item.desc)}</div>` +
-      `<div class="shop-confirm${affordable ? '' : ' disabled'}">${confirm}</div>`;
-
-    flip.appendChild(front);
-    flip.appendChild(back);
-    div.appendChild(flip);
-
     addInfoButton(div, shopKindTitle(item.kind), shopKindHelp(item.kind));
-
     div.onclick = () => {
       if (item.sold || you.ready) return;
-      if (flipped) {
-        if (you.coins < item.cost) { toast('Not enough coins.'); return; }
-        sendMsg({ t: 'buy', idx });
-        selectedShopIdx = -1;
-      } else {
-        selectedShopIdx = idx;
-        renderGame(lastState);
-      }
+      openShopFocus(item, idx, you); // tap a card → it enlarges to centre
     };
     grid.appendChild(div);
   });
@@ -1674,6 +1643,70 @@ function renderShop(oc, st) {
   oc.appendChild(row);
   const nextRound = st.dealIndexInRound >= st.dealsInRound;
   appendReadyBtn(oc, st, nextRound ? `Round ${st.round + 1}` : 'Next Deal');
+}
+
+// Tapping a shop card enlarges it to the centre of the screen for a clear look,
+// with its text auto-shrunk to fit. Tap the backdrop to go back; Buy to purchase.
+function openShopFocus(item, idx, you) {
+  closeShopFocus();
+  selectedShopIdx = idx;
+  const wrap = document.createElement('div');
+  wrap.id = 'shopFocus';
+  wrap.onclick = e => { if (e.target === wrap) closeShopFocus(); };
+
+  const card = document.createElement('div');
+  card.className = `focus-card ${item.kind}` + (item.rarity ? ' r-' + item.rarity : '');
+
+  const art = document.createElement('div');
+  art.className = 'focus-art ' + item.kind;
+  if (item.kind === 'card') {
+    art.appendChild(cardEl(item));
+  } else {
+    art.innerHTML = (item.kind === 'joker' ? JOKER_ICONS : item.kind === 'tarot' ? TAROT_ICONS : PACK_ICONS)[item.id] || '';
+  }
+  card.appendChild(art);
+
+  card.insertAdjacentHTML('beforeend',
+    `<div class="focus-name">${esc(item.name)}</div>` +
+    (item.rarity && item.rarity !== 'common' ? `<div class="rar-pill ${item.rarity}">${item.rarity}</div>` : '') +
+    `<div class="focus-desc">${esc(item.desc)}</div>`);
+
+  if (item.rarity === 'rare' || item.rarity === 'ultra') {
+    card.insertAdjacentHTML('beforeend', '<span class="jt-foil"></span>');
+  }
+
+  const canAfford = !item.sold && you.coins >= item.cost && !you.ready;
+  const buy = document.createElement('button');
+  buy.className = 'btn primary focus-buy';
+  buy.textContent = item.sold ? 'Sold'
+    : you.ready ? 'Locked in'
+    : you.coins < item.cost ? `Need 🪙${item.cost}`
+    : `Buy · 🪙${item.cost}`;
+  buy.disabled = !canAfford;
+  buy.onclick = e => { e.stopPropagation(); sendMsg({ t: 'buy', idx }); closeShopFocus(); };
+  card.appendChild(buy);
+
+  wrap.appendChild(card);
+  $('overlay').appendChild(wrap);
+  requestAnimationFrame(() => fitText(card.querySelector('.focus-desc')));
+}
+
+function closeShopFocus() {
+  const f = document.getElementById('shopFocus');
+  if (f) f.remove();
+  selectedShopIdx = -1;
+}
+
+// shrink text until it stops overflowing its (capped) box
+function fitText(el, maxPx = 17, minPx = 10) {
+  if (!el) return;
+  let size = maxPx;
+  el.style.fontSize = size + 'px';
+  let guard = 0;
+  while ((el.scrollHeight > el.clientHeight + 1) && size > minPx && guard++ < 48) {
+    size -= 0.5;
+    el.style.fontSize = size + 'px';
+  }
 }
 
 function renderPackOpen(oc, st) {
