@@ -2236,10 +2236,11 @@ function runAnimations(prev, st, refs = {}) {
         flyClone(cardEl(playAnim), fromRect, {
           left: area.left + area.width / 2 - 34,
           top: area.top + area.height / 2 - 46,
-        }, 440, { rot: 5 });
+        }, 440, { rot: 5, holdMs: 1200 });
       }
     }
     pulse($('pegCount'));
+    showMultGainForSeat(prev, st, playAnim.seat, st.lastPlayAnim.multGain || 0);
   } else if (st.phase === 'pegging' && prev.dealNumber === st.dealNumber &&
       Array.isArray(prev.pegStack) && st.pegStack.length > prev.pegStack.length) {
     const played = st.pegStack[st.pegStack.length - 1];
@@ -2260,18 +2261,7 @@ function runAnimations(prev, st, refs = {}) {
     // off the count; if it was MY play, orbs stream into the Mult box.
     const gained = pegEvents(st.pegStack, st.pegCount).reduce((s, e) => s + e.pts, 0);
     if (gained > 0) {
-      sfx('mult');
-      const pc = $('pegCount').getBoundingClientRect();
-      floatRise(pc.left + pc.width / 2, pc.top - 6, `+${gained} Mult`, 'fx-mult');
-      if (played.seat === st.mySeat && prev.you && st.you && st.you.dealMult > prev.you.dealMult) {
-        const b = $('myMult').querySelector('b');
-        if (b) b.textContent = 'x' + prev.you.dealMult; // hold old until orbs land
-        const mb = $('myMult').getBoundingClientRect();
-        flingOrbs(pc.left + pc.width / 2, pc.top + pc.height / 2,
-          mb.left + mb.width / 2, mb.top + mb.height / 2,
-          Math.min(9, 3 + gained), () => bumpMult(st.you.dealMult));
-        if (st.you.jokers && st.you.jokers.length) flashEl($('jokerRow'));
-      }
+      showMultGainForSeat(prev, st, played.seat, gained);
     }
   }
 
@@ -2353,7 +2343,11 @@ function flyClone(el, fromRect, toRect, ms = 440, opts = {}) {
     { transform: `translate(${dx * 0.5}px, ${dy * 0.5 + arc}px) rotate(${rot * 0.6}deg) scale(1.07)`, offset: 0.55 },
     { transform: `translate(${dx}px, ${dy}px) rotate(${rot}deg) scale(1)` },
   ], { duration: ms * ANIM, easing: 'cubic-bezier(.3,.85,.25,1)', fill: 'forwards' });
-  const done = () => { el.remove(); if (opts.onfinish) opts.onfinish(); };
+  const done = () => {
+    const finish = () => { el.remove(); if (opts.onfinish) opts.onfinish(); };
+    if (opts.holdMs) setTimeout(finish, opts.holdMs);
+    else finish();
+  };
   anim.onfinish = done;
   anim.oncancel = done;
   return anim;
@@ -2378,6 +2372,35 @@ function floatRise(x, y, text, cls) {
   div.style.top = y + 'px';
   $('fx').appendChild(div);
   div.addEventListener('animationend', () => div.remove());
+}
+
+function showMultGainForSeat(prev, st, seat, gained) {
+  if (!gained) return;
+  sfx('mult');
+  const pc = $('pegCount').getBoundingClientRect();
+  const fromX = pc.left + pc.width / 2;
+  const fromY = pc.top + pc.height / 2;
+  floatRise(fromX, pc.top - 6, `+${gained} Mult`, 'fx-mult');
+
+  const target = seat === st.mySeat
+    ? $('myMult')
+    : document.querySelector(`.seat[data-seat="${seat}"] .plaque`);
+  if (!target) return;
+  const tr = target.getBoundingClientRect();
+  const toX = tr.left + tr.width / 2;
+  const toY = tr.top + tr.height / 2;
+  flingOrbs(fromX, fromY, toX, toY, Math.min(9, 3 + gained), () => {
+    if (seat === st.mySeat && prev.you && st.you && st.you.dealMult > prev.you.dealMult) {
+      bumpMult(st.you.dealMult);
+    }
+  });
+  floatRise(toX, tr.top - 8, `+${gained} Mult`, 'fx-mult');
+  flashEl(target);
+  if (seat === st.mySeat) {
+    const b = $('myMult').querySelector('b');
+    if (b && prev.you && st.you && st.you.dealMult > prev.you.dealMult) b.textContent = 'x' + prev.you.dealMult;
+    if (st.you.jokers && st.you.jokers.length) flashEl($('jokerRow'));
+  }
 }
 
 function flingOrbs(fromX, fromY, toX, toY, count, onArrive) {

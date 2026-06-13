@@ -717,14 +717,14 @@ body.my-turn #bgRush { opacity: 0.6; animation-play-state: running; }
 
 /* ---- overlay ---- */
 #overlay {
-  position: fixed; inset: 0; background: #00000080; z-index: 50;
+  position: fixed; inset: 0; background: #00000080; z-index: 160;
   backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px);
   display: flex; align-items: center; justify-content: center; padding: 16px;
 }
 #overlayContent { width: min(720px, 95vw); max-height: 88vh; overflow-y: auto; }
 #overlayContent h2 { color: var(--gold); margin-bottom: 12px; }
 #infoOverlay {
-  position: fixed; inset: 0; background: #00000088; z-index: 120;
+  position: fixed; inset: 0; background: #00000088; z-index: 230;
   display: flex; align-items: center; justify-content: center; padding: 16px;
 }
 #infoPanel { width: min(420px, 94vw); max-height: 80vh; overflow-y: auto; }
@@ -888,7 +888,7 @@ body.my-turn #bgRush { opacity: 0.6; animation-play-state: running; }
 
 /* deck viewer */
 #deckOverlay {
-  position: fixed; inset: 0; background: #000000aa; z-index: 90;
+  position: fixed; inset: 0; background: #000000aa; z-index: 220;
   display: flex; align-items: center; justify-content: center; padding: 16px;
 }
 #deckPanel { width: min(760px, 95vw); max-height: 86vh; overflow-y: auto; overflow-wrap: anywhere; }
@@ -906,7 +906,7 @@ body.my-turn #bgRush { opacity: 0.6; animation-play-state: running; }
 #toast {
   position: fixed; bottom: 200px; left: 50%; transform: translateX(-50%);
   background: var(--red); color: white; padding: 10px 18px; border-radius: 8px;
-  z-index: 130; font-size: 14px; box-shadow: 0 4px 16px #00000088;
+  z-index: 260; font-size: 14px; box-shadow: 0 4px 16px #00000088;
   max-width: 90vw; text-align: center;
 }
 .coin-pop {
@@ -1085,7 +1085,7 @@ body.my-turn #bgRush { opacity: 0.6; animation-play-state: running; }
 }
 
 /* overlay cross-slide ghost (the outgoing screen flying left) */
-.overlay-ghost { pointer-events: none; z-index: 55; overflow: hidden; }
+.overlay-ghost { pointer-events: none; z-index: 165; overflow: hidden; }
 
 /* sell-your-collection section in the shop */
 .shop-sell {
@@ -1104,7 +1104,7 @@ body.my-turn #bgRush { opacity: 0.6; animation-play-state: running; }
 
 /* shop card focus — tap a card to enlarge it to the centre */
 #shopFocus {
-  position: fixed; inset: 0; z-index: 60;
+  position: fixed; inset: 0; z-index: 210;
   display: flex; align-items: center; justify-content: center; padding: 20px;
   background: #00000055; backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px);
   animation: focusFade 0.2s ease-out;
