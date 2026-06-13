@@ -65,6 +65,106 @@ let jokerDrag = null;
 let tutorialOn = localStorage.getItem('crib_tutorial') !== '0'; // default on
 let lastTutKey = '';
 
+// ---- sound effects ----
+
+let audioCtx = null;
+let soundUnlocked = false;
+const SFX_GAIN = 0.15;
+
+function ensureAudio() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return audioCtx;
+}
+
+function unlockAudio() {
+  const ctx = ensureAudio();
+  soundUnlocked = true;
+  if (ctx.state === 'suspended') ctx.resume();
+}
+
+window.addEventListener('pointerdown', unlockAudio, { passive: true });
+window.addEventListener('keydown', unlockAudio);
+
+function tone(freq, delay = 0, dur = 0.08, type = 'sine', gain = 0.45) {
+  if (!soundUnlocked) return;
+  const ctx = ensureAudio();
+  const t = ctx.currentTime + delay;
+  const osc = ctx.createOscillator();
+  const amp = ctx.createGain();
+  osc.type = type;
+  osc.frequency.setValueAtTime(freq, t);
+  amp.gain.setValueAtTime(0.0001, t);
+  amp.gain.exponentialRampToValueAtTime(Math.max(0.0002, gain * SFX_GAIN), t + 0.01);
+  amp.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  osc.connect(amp).connect(ctx.destination);
+  osc.start(t);
+  osc.stop(t + dur + 0.02);
+}
+
+function sweep(freqA, freqB, delay = 0, dur = 0.14, type = 'sine', gain = 0.4) {
+  if (!soundUnlocked) return;
+  const ctx = ensureAudio();
+  const t = ctx.currentTime + delay;
+  const osc = ctx.createOscillator();
+  const amp = ctx.createGain();
+  osc.type = type;
+  osc.frequency.setValueAtTime(freqA, t);
+  osc.frequency.exponentialRampToValueAtTime(freqB, t + dur);
+  amp.gain.setValueAtTime(0.0001, t);
+  amp.gain.exponentialRampToValueAtTime(Math.max(0.0002, gain * SFX_GAIN), t + 0.012);
+  amp.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  osc.connect(amp).connect(ctx.destination);
+  osc.start(t);
+  osc.stop(t + dur + 0.03);
+}
+
+function noise(delay = 0, dur = 0.08, gain = 0.35, filterFreq = 1200) {
+  if (!soundUnlocked) return;
+  const ctx = ensureAudio();
+  const t = ctx.currentTime + delay;
+  const buffer = ctx.createBuffer(1, Math.max(1, Math.floor(ctx.sampleRate * dur)), ctx.sampleRate);
+  const data = buffer.getChannelData(0);
+  for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / data.length);
+  const src = ctx.createBufferSource();
+  const filter = ctx.createBiquadFilter();
+  const amp = ctx.createGain();
+  src.buffer = buffer;
+  filter.type = 'bandpass';
+  filter.frequency.setValueAtTime(filterFreq, t);
+  filter.Q.setValueAtTime(0.8, t);
+  amp.gain.setValueAtTime(gain * SFX_GAIN, t);
+  amp.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  src.connect(filter).connect(amp).connect(ctx.destination);
+  src.start(t);
+}
+
+function sfx(name) {
+  if (!soundUnlocked) return;
+  switch (name) {
+    case 'click': tone(640, 0, 0.035, 'triangle', 0.2); break;
+    case 'error': sweep(180, 90, 0, 0.18, 'sawtooth', 0.42); break;
+    case 'toast': tone(420, 0, 0.06, 'triangle', 0.24); tone(560, 0.055, 0.06, 'triangle', 0.2); break;
+    case 'join': tone(440, 0, 0.07, 'triangle', 0.28); tone(660, 0.07, 0.08, 'triangle', 0.24); break;
+    case 'ready': tone(520, 0, 0.05, 'square', 0.22); tone(780, 0.055, 0.08, 'triangle', 0.24); break;
+    case 'deal': for (let i = 0; i < 5; i++) noise(i * 0.035, 0.035, 0.16, 2400); break;
+    case 'shuffle': noise(0, 0.2, 0.24, 1800); noise(0.12, 0.18, 0.18, 2600); break;
+    case 'card': noise(0, 0.045, 0.18, 2100); break;
+    case 'discard': sweep(520, 230, 0, 0.12, 'triangle', 0.28); noise(0.06, 0.05, 0.14, 1600); break;
+    case 'peg': tone(330, 0, 0.045, 'square', 0.2); noise(0.035, 0.04, 0.12, 2500); break;
+    case 'score': tone(520, 0, 0.07, 'triangle', 0.22); tone(690, 0.055, 0.07, 'triangle', 0.22); break;
+    case 'mult': sweep(260, 720, 0, 0.18, 'sine', 0.3); break;
+    case 'coin': tone(880, 0, 0.055, 'triangle', 0.24); tone(1320, 0.045, 0.08, 'triangle', 0.18); break;
+    case 'shop': tone(330, 0, 0.08, 'sine', 0.24); tone(495, 0.08, 0.08, 'sine', 0.22); tone(660, 0.16, 0.1, 'sine', 0.2); break;
+    case 'buy': tone(720, 0, 0.05, 'triangle', 0.26); tone(1040, 0.055, 0.1, 'triangle', 0.24); break;
+    case 'sell': sweep(700, 420, 0, 0.12, 'triangle', 0.22); tone(880, 0.09, 0.05, 'triangle', 0.18); break;
+    case 'reroll': sweep(360, 880, 0, 0.11, 'sine', 0.22); sweep(880, 360, 0.1, 0.12, 'sine', 0.2); break;
+    case 'pack': noise(0, 0.12, 0.22, 3100); tone(440, 0.06, 0.08, 'triangle', 0.24); tone(880, 0.13, 0.14, 'triangle', 0.22); break;
+    case 'tarot': sweep(300, 900, 0, 0.24, 'sine', 0.24); tone(1200, 0.1, 0.12, 'triangle', 0.15); break;
+    case 'blind': tone(140, 0, 0.12, 'sawtooth', 0.24); tone(210, 0.13, 0.16, 'sawtooth', 0.22); break;
+    case 'gameover': sweep(420, 120, 0, 0.5, 'sawtooth', 0.28); break;
+  }
+}
+
 // Remove any drag ghost left orphaned by a re-render that happened mid-gesture
 // (the heartbeat re-broadcasts state every 2.5s and rebuilds the hand, which
 // would otherwise strand the fixed-position clone on screen forever).
@@ -103,10 +203,40 @@ function connectWs() {
 }
 
 function sendMsg(msg) {
+  playMessageSfx(msg);
   if (hostSession) hostSession.handleLocal(msg);
   else if (guestConn && guestConn.open) guestConn.send(msg);
   else if (mqttGuest && mqttGuest.open) mqttGuest.send(msg, { qos: 1 });
   else if (wsOpen) ws.send(JSON.stringify(msg));
+}
+
+function playMessageSfx(msg) {
+  switch (msg && msg.t) {
+    case 'createRoom':
+    case 'createSolo':
+    case 'joinRoom':
+    case 'startGame':
+      sfx('join'); break;
+    case 'discard':
+      sfx('discard'); break;
+    case 'playCard':
+      sfx('peg'); break;
+    case 'ready':
+      sfx('ready'); break;
+    case 'buy':
+      sfx('buy'); break;
+    case 'sellJoker':
+    case 'sellTarot':
+      sfx('sell'); break;
+    case 'reroll':
+      sfx('reroll'); break;
+    case 'pickPack':
+      sfx('card'); break;
+    case 'useTarot':
+      sfx('tarot'); break;
+    case 'sync':
+      sfx('toast'); break;
+  }
 }
 
 async function hostTable() {
@@ -345,6 +475,7 @@ function showView(v) {
 }
 
 function toast(text) {
+  sfx(text && /error|lost|unavailable|failed|invalid|cannot|not enough/i.test(text) ? 'error' : 'toast');
   const t = $('toast');
   t.textContent = text;
   t.classList.remove('hidden');
@@ -357,6 +488,10 @@ function showInfo(title, body) {
   $('infoBody').innerHTML = body;
   $('infoOverlay').classList.remove('hidden');
 }
+
+document.addEventListener('click', e => {
+  if (e.target.closest('button, .card, .shop-item, .jtile, .sell-cell, .info-btn')) sfx('click');
+});
 
 $('infoClose').onclick = () => $('infoOverlay').classList.add('hidden');
 $('infoOverlay').onclick = e => {
@@ -1881,8 +2016,17 @@ function readyDots(st) {
 function runAnimations(prev, st) {
   if (!prev || prev === st) return;
 
+  if (prev.phase !== st.phase) {
+    if (st.phase === 'shop') sfx('shop');
+    else if (st.phase === 'scoring') sfx('score');
+    else if (st.phase === 'roundEnd') sfx('blind');
+    else if (st.phase === 'gameover') sfx('gameover');
+    else if (st.phase === 'discard') sfx('deal');
+  }
+
   const newDeal = prev.dealNumber !== st.dealNumber;
   if (newDeal && st.phase === 'discard') {
+    sfx('shuffle');
     const deckRect = $('deckPile').getBoundingClientRect();
     shuffleAnim(deckRect);
     const SHUFFLE_MS = 520 * ANIM;
@@ -1903,6 +2047,7 @@ function runAnimations(prev, st) {
   }
 
   if (st.starter && !prev.starter) {
+    sfx('card');
     const el = document.querySelector('#starterPile .card');
     if (el) el.classList.add('flip-in');
   }
@@ -1918,6 +2063,7 @@ function runAnimations(prev, st) {
         : document.querySelector(`.seat[data-seat="${p.seat}"] .backs`) ||
           document.querySelector(`.seat[data-seat="${p.seat}"]`);
       if (!fromEl) continue;
+      sfx('discard');
       const fromRect = fromEl.getBoundingClientRect();
       for (let i = 0; i < st.discardCount; i++) {
         setTimeout(() => {
@@ -1942,6 +2088,7 @@ function runAnimations(prev, st) {
       if (seatEl) fromRect = seatEl.getBoundingClientRect();
     }
     pendingFly = null;
+    sfx('peg');
     if (fromRect && target) flyCard(played, fromRect, target);
     pulse($('pegCount'));
 
@@ -1949,6 +2096,7 @@ function runAnimations(prev, st) {
     // off the count; if it was MY play, orbs stream into the Mult box.
     const gained = pegEvents(st.pegStack, st.pegCount).reduce((s, e) => s + e.pts, 0);
     if (gained > 0) {
+      sfx('mult');
       const pc = $('pegCount').getBoundingClientRect();
       floatRise(pc.left + pc.width / 2, pc.top - 6, `+${gained} Mult`, 'fx-mult');
       if (played.seat === st.mySeat && prev.you && st.you && st.you.dealMult > prev.you.dealMult) {
@@ -1966,12 +2114,14 @@ function runAnimations(prev, st) {
   // booster pack just opened — burst it before the picks rise in
   if (st.phase === 'shop' && st.you && st.you.pendingPack &&
       !(prev.you && prev.you.pendingPack)) {
+    sfx('pack');
     playPackOpen(st.you.pendingPack);
   }
 
   // a tarot was consumed — sparkle the tarot row and shimmer the edited hand
   if (prev.you && st.you && st.you.tarots && prev.you.tarots &&
       st.you.tarots.length < prev.you.tarots.length && st.phase === 'discard') {
+    sfx('tarot');
     const row = $('tarotRow').getBoundingClientRect();
     burstSparkles(row.left + row.width / 2, row.top + row.height / 2, 18, 275);
     flashEl($('tarotRow'));
@@ -1999,10 +2149,12 @@ function runAnimations(prev, st) {
   for (const p of st.players) {
     const pp = prev.players && prev.players.find(q => q.seat === p.seat);
     if (pp && p.score > pp.score) {
+      sfx('score');
       floatAtSeat(st, p.seat, `+${p.score - pp.score}`, 'fx-pts');
     }
   }
   if (prev.you && st.you && st.you.coins > prev.you.coins && st.phase !== 'shop') {
+    sfx('coin');
     floatAtSeat(st, st.mySeat, `+🪙${st.you.coins - prev.you.coins}`, 'fx-coin');
   }
 }
