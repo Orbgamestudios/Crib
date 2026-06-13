@@ -15,6 +15,7 @@ const P2P_LOBBY_BROKERS = [
 ];
 const P2P_ROOM_TOPIC_PREFIX = 'orbcrib-room-v1';
 const TOUCH = 'ontouchstart' in window;
+const ANIM = 1.9; // global animation slowdown — everything glides ~half speed
 
 // GitHub Pages (or any static host) has no WebSocket server: use P2P rooms.
 const P2P_MODE = location.hostname.endsWith('github.io') ||
@@ -335,6 +336,8 @@ function showView(v) {
   if (v !== 'game') {
     $('overlay').classList.add('hidden');
     lastState = prevState = null;
+    lastJokerSig = null;
+    lastOverlayPhase = 'none';
     document.body.classList.remove('my-turn');
   }
 }
@@ -843,11 +846,27 @@ function showCoinGain(amount) {
 
 // ---- joker slots (5 fixed, pointer-drag to reorder) ----
 
+let lastJokerSig = null;
+
 function renderJokerSlots(st) {
   const you = st.you;
   $('jokerCount').textContent = `${you.jokers.length}/5`;
 
   const slots = [...$('jokerRow').querySelectorAll('.jslot')];
+  const sig = you.jokers.map(j => j.id).join('|');
+
+  // Rebuilding the tiles restarts their foil/glow CSS animations every render
+  // (the 2.5s heartbeat, every tap, etc). When the joker set is unchanged,
+  // leave the DOM in place and only rebind handlers so the shimmer keeps going.
+  if (sig === lastJokerSig && slots.some(s => s.querySelector('.jtile'))) {
+    slots.forEach((slot, i) => {
+      const tile = slot.querySelector('.jtile');
+      if (tile) attachJokerPointer(tile, i, st);
+    });
+    return;
+  }
+  lastJokerSig = sig;
+
   slots.forEach((slot, i) => {
     slot.innerHTML = '';
     slot.className = 'jslot';
@@ -1352,45 +1371,88 @@ function toggleTarotTarget(cardId) {
 
 // ---- overlays: scoring, blind check, shop, game over ----
 
+let lastOverlayPhase = 'none';
+
 function renderOverlay(st) {
   const ov = $('overlay');
   const oc = $('overlayContent');
   const key = st.phase + '-' + st.dealNumber;
   if (key !== revealKey) { revealShown = -1; revealKey = key; }
 
-  if (st.phase === 'scoring') {
-    ov.classList.remove('hidden');
-    renderScoring(oc, st);
-  } else if (st.phase === 'roundEnd') {
-    ov.classList.remove('hidden');
-    renderRoundEnd(oc, st);
-  } else if (st.phase === 'shop') {
-    ov.classList.remove('hidden');
-    renderShop(oc, st);
-  } else if (st.phase === 'gameover') {
-    ov.classList.remove('hidden');
-    if (st.solo) {
-      const me = (st.standings || []).find(s => s.seat === st.mySeat) || { score: 0 };
-      oc.innerHTML = `<h2>Run Over</h2>` +
-        `<div class="run-summary">You reached <b>Round ${st.round}</b> against The House.<br>` +
-        `Final score: <b>${me.score}</b> · Blinds beaten: <b>${st.you.blindsPassed}</b></div>`;
-    } else {
-      oc.innerHTML = '<h2>Final Standings</h2>';
-      (st.standings || []).forEach((s, i) => {
-        const tag = s.eliminatedRound === null ? '🏆 winner' : `out round ${s.eliminatedRound}`;
-        oc.insertAdjacentHTML('beforeend',
-          `<div class="standing${i === 0 ? ' winner' : ''}"><span>${i + 1}. ${esc(s.name)}</span>` +
-          `<span class="standing-tag">${tag}</span><span>${s.score} pts</span></div>`);
-      });
-    }
-    const btn = document.createElement('button');
-    btn.className = 'btn primary';
-    btn.textContent = 'Back to Lobby';
-    btn.onclick = () => { if (P2P_MODE) leaveP2p(); else sendMsg({ t: 'backToLobby' }); };
-    oc.appendChild(btn);
-  } else {
-    ov.classList.add('hidden');
+  const phase = ['scoring', 'roundEnd', 'shop', 'gameover'].includes(st.phase) ? st.phase : 'none';
+  const build = () => {
+    if (st.phase === 'scoring') renderScoring(oc, st);
+    else if (st.phase === 'roundEnd') renderRoundEnd(oc, st);
+    else if (st.phase === 'shop') renderShop(oc, st);
+    else if (st.phase === 'gameover') renderGameover(oc, st);
+  };
+
+  if (phase === 'none') {
+    if (lastOverlayPhase !== 'none') slideOutOverlay(); // glide the panel away left
+    lastOverlayPhase = 'none';
+    return;
   }
+
+  ov.classList.remove('hidden');
+  if (phase !== lastOverlayPhase) slideOverlayTransition(build, lastOverlayPhase !== 'none');
+  else build();
+  lastOverlayPhase = phase;
+}
+
+function renderGameover(oc, st) {
+  if (st.solo) {
+    const me = (st.standings || []).find(s => s.seat === st.mySeat) || { score: 0 };
+    oc.innerHTML = `<h2>Run Over</h2>` +
+      `<div class="run-summary">You reached <b>Round ${st.round}</b> against The House.<br>` +
+      `Final score: <b>${me.score}</b> · Blinds beaten: <b>${st.you.blindsPassed}</b></div>`;
+  } else {
+    oc.innerHTML = '<h2>Final Standings</h2>';
+    (st.standings || []).forEach((s, i) => {
+      const tag = s.eliminatedRound === null ? '🏆 winner' : `out round ${s.eliminatedRound}`;
+      oc.insertAdjacentHTML('beforeend',
+        `<div class="standing${i === 0 ? ' winner' : ''}"><span>${i + 1}. ${esc(s.name)}</span>` +
+        `<span class="standing-tag">${tag}</span><span>${s.score} pts</span></div>`);
+    });
+  }
+  const btn = document.createElement('button');
+  btn.className = 'btn primary';
+  btn.textContent = 'Back to Lobby';
+  btn.onclick = () => { if (P2P_MODE) leaveP2p(); else sendMsg({ t: 'backToLobby' }); };
+  oc.appendChild(btn);
+}
+
+// Cross-slide: the outgoing screen flies left while the new one flies in
+// from the right. Used for scoring → shop → next deal, etc.
+function slideOverlayTransition(build, hadPrev) {
+  const oc = $('overlayContent');
+  if (hadPrev && oc.innerHTML.trim()) {
+    const rect = oc.getBoundingClientRect();
+    const ghost = oc.cloneNode(true);
+    ghost.removeAttribute('id');
+    ghost.classList.add('overlay-ghost');
+    ghost.style.cssText += `position:fixed;left:${rect.left}px;top:${rect.top}px;width:${rect.width}px;height:${rect.height}px;max-height:${rect.height}px;margin:0;`;
+    $('overlay').appendChild(ghost);
+    const a = ghost.animate(
+      [{ transform: 'translateX(0)', opacity: 1 }, { transform: 'translateX(-60vw)', opacity: 0 }],
+      { duration: 300 * ANIM, easing: 'cubic-bezier(.5,0,.3,1)', fill: 'forwards' });
+    const done = () => ghost.remove();
+    a.onfinish = done; a.oncancel = done;
+  }
+  build();
+  oc.animate(
+    [{ transform: 'translateX(60vw)', opacity: 0 }, { transform: 'translateX(0)', opacity: 1 }],
+    { duration: 320 * ANIM, easing: 'cubic-bezier(.2,.8,.3,1)' });
+}
+
+function slideOutOverlay() {
+  const oc = $('overlayContent');
+  const ov = $('overlay');
+  if (!oc.innerHTML.trim()) { ov.classList.add('hidden'); return; }
+  const a = oc.animate(
+    [{ transform: 'translateX(0)', opacity: 1 }, { transform: 'translateX(-60vw)', opacity: 0 }],
+    { duration: 300 * ANIM, easing: 'cubic-bezier(.5,0,.3,1)' });
+  const done = () => { ov.classList.add('hidden'); oc.style.transform = ''; };
+  a.onfinish = done; a.oncancel = done;
 }
 
 function renderScoring(oc, st) {
@@ -1598,7 +1660,7 @@ function renderPackOpen(oc, st) {
     const kindCls = opt.kind === 'card' ? 'standardcard' : opt.kind;
     div.className = `shop-item shiny pick ${kindCls}` + (opt.rarity ? ' r-' + opt.rarity : '') +
       (firstReveal ? ' pack-rise' : '');
-    if (firstReveal) div.style.animationDelay = (520 + idx * 150) + 'ms';
+    if (firstReveal) div.style.animationDelay = (900 + idx * 230) + 'ms';
     if (opt.kind === 'card') {
       div.innerHTML = `<div class="si-bigcard"></div><div class="si-name">${RANK_NAMES[opt.rank]}${SUIT_CHARS[opt.suit]} — add to your deck</div>`;
       div.querySelector('.si-bigcard').appendChild(cardEl(opt));
@@ -1660,20 +1722,20 @@ function runAnimations(prev, st) {
   if (newDeal && st.phase === 'discard') {
     const deckRect = $('deckPile').getBoundingClientRect();
     shuffleAnim(deckRect);
-    const SHUFFLE_MS = 520;
+    const SHUFFLE_MS = 520 * ANIM;
     document.querySelectorAll('#hand .card').forEach((el, i) => {
       const r = el.getBoundingClientRect();
       el.style.setProperty('--dx', (deckRect.left - r.left) + 'px');
       el.style.setProperty('--dy', (deckRect.top - r.top) + 'px');
       el.classList.add('deal-in');
-      el.style.animationDelay = (SHUFFLE_MS + i * 80) + 'ms';
+      el.style.animationDelay = (SHUFFLE_MS + i * 120) + 'ms';
     });
     document.querySelectorAll('.seat .backs .card').forEach((el, i) => {
       const r = el.getBoundingClientRect();
       el.style.setProperty('--dx', (deckRect.left - r.left) + 'px');
       el.style.setProperty('--dy', (deckRect.top - r.top) + 'px');
       el.classList.add('deal-in');
-      el.style.animationDelay = (SHUFFLE_MS + i * 40) + 'ms';
+      el.style.animationDelay = (SHUFFLE_MS + i * 70) + 'ms';
     });
   }
 
@@ -1765,9 +1827,9 @@ function runAnimations(prev, st) {
       clone.classList.add('sweep');
       clone.style.left = (area.left + i * 28) + 'px';
       clone.style.top = area.top + 'px';
-      clone.style.animationDelay = (i * 40) + 'ms';
+      clone.style.animationDelay = (i * 70) + 'ms';
       $('fx').appendChild(clone);
-      setTimeout(() => clone.remove(), 700 + i * 40);
+      setTimeout(() => clone.remove(), 1200 + i * 70);
     });
   }
 
@@ -1788,9 +1850,9 @@ function shuffleAnim(deckRect) {
     clone.classList.add('shuffling', i % 2 ? 'shuf-r' : 'shuf-l');
     clone.style.left = deckRect.left + 'px';
     clone.style.top = deckRect.top + 'px';
-    clone.style.animationDelay = (i * 45) + 'ms';
+    clone.style.animationDelay = (i * 70) + 'ms';
     $('fx').appendChild(clone);
-    setTimeout(() => clone.remove(), 700 + i * 45);
+    setTimeout(() => clone.remove(), 1100 + i * 70);
   }
 }
 
@@ -1811,7 +1873,7 @@ function flyClone(el, fromRect, toRect, ms = 440, opts = {}) {
     { transform: 'translate(0px,0px) rotate(0deg) scale(1)' },
     { transform: `translate(${dx * 0.5}px, ${dy * 0.5 + arc}px) rotate(${rot * 0.6}deg) scale(1.07)`, offset: 0.55 },
     { transform: `translate(${dx}px, ${dy}px) rotate(${rot}deg) scale(1)` },
-  ], { duration: ms, easing: 'cubic-bezier(.3,.8,.35,1)', fill: 'forwards' });
+  ], { duration: ms * ANIM, easing: 'cubic-bezier(.3,.85,.25,1)', fill: 'forwards' });
   const done = () => { el.remove(); if (opts.onfinish) opts.onfinish(); };
   anim.onfinish = done;
   anim.oncancel = done;
@@ -1854,7 +1916,7 @@ function flingOrbs(fromX, fromY, toX, toY, count, onArrive) {
       { transform: 'translate(-50%,-50%) scale(0.5)', opacity: 0.25 },
       { transform: `translate(calc(-50% + ${jx}px), calc(-50% + ${jy}px)) scale(1.15)`, opacity: 1, offset: 0.3 },
       { transform: `translate(calc(-50% + ${toX - fromX}px), calc(-50% + ${toY - fromY}px)) scale(0.35)`, opacity: 0.85 },
-    ], { duration: 520 + Math.random() * 240, delay: i * 55, easing: 'cubic-bezier(.45,.05,.55,1)', fill: 'forwards' });
+    ], { duration: (520 + Math.random() * 240) * ANIM, delay: i * 80, easing: 'cubic-bezier(.45,.05,.55,1)', fill: 'forwards' });
     const done = () => { orb.remove(); finishOne(); };
     anim.onfinish = done;
     anim.oncancel = done;
@@ -1874,7 +1936,7 @@ function burstSparkles(cx, cy, count, hue) {
     const anim = s.animate([
       { transform: 'translate(-50%,-50%) scale(1)', opacity: 1 },
       { transform: `translate(calc(-50% + ${Math.cos(ang) * dist}px), calc(-50% + ${Math.sin(ang) * dist}px)) scale(0.2)`, opacity: 0 },
-    ], { duration: 600 + Math.random() * 520, easing: 'cubic-bezier(.2,.6,.4,1)', fill: 'forwards' });
+    ], { duration: (600 + Math.random() * 520) * ANIM, easing: 'cubic-bezier(.2,.6,.4,1)', fill: 'forwards' });
     const done = () => s.remove();
     anim.onfinish = done;
     anim.oncancel = done;
@@ -1914,13 +1976,13 @@ function playPackOpen(pack) {
     { transform: 'translate(-50%,-50%) scale(1.08) rotate(5deg)', offset: 0.4 },
     { transform: 'translate(-50%,-50%) scale(1.16) rotate(-3deg)', offset: 0.55 },
     { transform: `translate(-50%, ${window.innerHeight * 0.75}px) scale(0.7) rotate(22deg)`, opacity: 0 },
-  ], { duration: 1150, easing: 'cubic-bezier(.4,0,.55,1)', fill: 'forwards' });
+  ], { duration: 1150 * ANIM, easing: 'cubic-bezier(.4,0,.55,1)', fill: 'forwards' });
   const done = () => packEl.remove();
   anim.onfinish = done;
   anim.oncancel = done;
   const hue = pack.type === 'arcana' ? 275 : pack.type === 'buffoon' ? 45 : 200;
-  setTimeout(() => burstSparkles(cx, cy, 26, hue), 470);
-  setTimeout(() => burstSparkles(cx, cy, 16, hue), 650);
+  setTimeout(() => burstSparkles(cx, cy, 26, hue), 470 * ANIM);
+  setTimeout(() => burstSparkles(cx, cy, 16, hue), 650 * ANIM);
 }
 
 function floatAtSeat(st, seat, text, cls) {
