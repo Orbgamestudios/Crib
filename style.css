@@ -31,8 +31,14 @@ body {
 #bg {
   position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none;
   background: radial-gradient(ellipse at center, var(--felt) 0%, var(--felt-dark) 100%);
-  transition: background 1.6s ease-in-out;
 }
+/* CSS can't tween between two gradients, so crossfade a blue layer's opacity */
+#bgTurn {
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse at center, #2f5c8a 0%, #142a4a 100%);
+  opacity: 0; transition: opacity 1.6s ease-in-out;
+}
+body.my-turn #bgTurn { opacity: 1; }
 #bgDrift, #bgRush {
   position: absolute; inset: -220px;
   background-image: var(--suit-tile);
@@ -43,8 +49,7 @@ body {
   opacity: 0; animation: bgRush 7s linear infinite;
   animation-play-state: paused; transition: opacity 1s ease;
 }
-/* your move: the felt shifts to blue and flows faster */
-body.my-turn #bg { background: radial-gradient(ellipse at center, #2f5c8a 0%, #142a4a 100%); }
+/* your move: the felt shifts to blue (via #bgTurn crossfade) and flows faster */
 body.my-turn #bgRush { opacity: 0.6; animation-play-state: running; }
 @keyframes bgDrift {
   0% { transform: translate(0, 0); }
@@ -113,7 +118,7 @@ body.my-turn #bgRush { opacity: 0.6; animation-play-state: running; }
 .tut-word { font-weight: 600; }
 
 #tutorialBar {
-  position: absolute; top: 8px; left: 50%; transform: translateX(-50%);
+  position: absolute; bottom: 6px; left: 50%; transform: translateX(-50%);
   max-width: min(560px, 92%); z-index: 45;
   background: linear-gradient(160deg, #2b3f24, #1c2c1a);
   border: 1px solid var(--gold); border-radius: 10px;
@@ -396,9 +401,14 @@ body.my-turn #bgRush { opacity: 0.6; animation-play-state: running; }
 #myInfo { width: 110px; font-size: 14px; display: flex; flex-direction: column; justify-content: center; flex-shrink: 0; }
 #myName { font-weight: 700; font-size: 15px; }
 #myScore { color: var(--gold); font-size: 20px; font-weight: 800; }
-#myMult { color: #ff5b5b; font-size: 14px; font-weight: 800; text-shadow: 0 1px 2px #0008; }
+#myMult {
+  align-self: flex-start; margin: 3px 0;
+  background: #c0392b; color: #fff; font-size: 13px; font-weight: 800;
+  border-radius: 6px; padding: 2px 9px;
+  box-shadow: inset 0 0 0 2px #ff7b6e66, 0 1px 3px #0008;
+}
 #myMult.boosted { animation: multThrob 1.4s ease-in-out infinite; }
-@keyframes multThrob { 0%,100% { transform: scale(1); } 50% { transform: scale(1.12); } }
+@keyframes multThrob { 0%,100% { transform: scale(1); } 50% { transform: scale(1.1); } }
 #myCoins { color: #ffd76e; font-size: 13px; }
 
 #myCenter { flex: 1; min-width: 0; display: flex; flex-direction: column; }
