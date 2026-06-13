@@ -1,9 +1,9 @@
-const CACHE = 'crib-v24';
+const CACHE = 'crib-v25';
 const SHELL = [
   './',
   'index.html',
-  'style.css?v=19',
-  'client.js?v=23',
+  'style.css?v=20',
+  'client.js?v=24',
   'icons.js?v=2',
   'lib/cards.js',
   'lib/scoring.js',

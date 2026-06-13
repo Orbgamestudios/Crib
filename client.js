@@ -357,6 +357,71 @@ $('infoOverlay').onclick = e => {
   if (e.target === $('infoOverlay')) $('infoOverlay').classList.add('hidden');
 };
 
+function showHowToPlay() {
+  showInfo('How to Play', `<div class="howto">
+    <h4>The goal</h4>
+    <p>Cribbage as a roguelike. Each <b>round</b> you must score at least the
+    round's <b>blind</b> or you're knocked out. Blinds climb fast, so you build
+    an engine of jokers and tarots to keep up. Multiplayer: last player standing
+    wins. Solo vs The House: see how many rounds you can survive.</p>
+
+    <h4>A deal, step by step</h4>
+    <ol>
+      <li><b>Discard</b> to the crib (the dealer's bonus hand).</li>
+      <li><b>Cut</b> a starter card - shared by every hand.</li>
+      <li><b>Pegging</b> - take turns laying cards, keeping the running count at 31 or under.</li>
+      <li><b>The show</b> - hands are counted, then the crib.</li>
+    </ol>
+
+    <h4>Scoring - Points x Mult</h4>
+    <p>Your hand's combos are <span class="chip-blue">Points</span> (blue):
+    fifteens 2, pairs 2, runs 1 per card, flush, and His Nobs (Jack matching the
+    starter's suit).</p>
+    <p>Everything you peg becomes <span class="chip-red">Mult</span> (red).
+    Each hand starts at <b>x2</b>, and every pegging point (15s, 31s, pairs,
+    runs, go, His Heels) adds to it.</p>
+    <p>At the show, <b>Points x Mult = the deal's score</b>. The dealer's crib is
+    scored with the dealer's Mult too. So a fat hand with a big pegging Mult
+    snowballs - that's how you beat late blinds.</p>
+
+    <h4>Pegging points</h4>
+    <ul>
+      <li>Count reaches <b>15</b> or <b>31</b>: +2 Mult</li>
+      <li>Pairs / trips / quads as you lay them: +2 / +6 / +12</li>
+      <li>Runs of 3+ in a row: +1 per card</li>
+      <li><b>Go</b> / last card when nobody else can play: +1</li>
+    </ul>
+
+    <h4>Your deck</h4>
+    <p>You own a personal deck (starts as a normal 52) and are dealt from it.
+    It's permanent - tarots and packs change the actual cards in it. Tap
+    <b>Deck</b> any time to view it.</p>
+
+    <h4>Jokers</h4>
+    <p>Passive cards bought in the shop. They sit beside your hand and boost your
+    Points or Mult automatically - e.g. fifteens worth 3, doubled pegging, a +50%
+    crib. Hold up to 5; drag to reorder (<i>Blueprint</i> copies the joker to its
+    right).</p>
+
+    <h4>Tarots</h4>
+    <p>One-shot cards (hold up to 2), played <b>during the discard phase before
+    you discard</b>. They permanently edit your deck - change a card's rank or
+    suit, copy or destroy cards, add a copy, redraw your hand, or grab coins.</p>
+
+    <h4>Booster packs &amp; the shop</h4>
+    <p>After every deal you earn coins and the shop opens. Buy jokers, tarots, or
+    <b>booster packs</b> - open a pack to pick 1 of 3 (jokers, tarots, or cards
+    to add to your deck). Tap a shop card to flip it and read it, tap again to
+    buy. Reroll for fresh stock.</p>
+
+    <h4>Controls</h4>
+    <p>Tap a card to lift it, tap again or <b>drag</b> it onto the crib/pile to
+    play. Toggle <b>Tips</b> (top bar) for in-game hints.</p>
+  </div>`);
+}
+
+$('howToBtn').onclick = () => showHowToPlay();
+
 function addLog(text) {
   const log = $('log');
   const div = document.createElement('div');

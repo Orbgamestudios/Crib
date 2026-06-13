@@ -24,6 +24,26 @@ body {
   padding: env(safe-area-inset-top) env(safe-area-inset-right) 0 env(safe-area-inset-left);
 }
 
+.panel,
+.btn,
+input,
+.room-item,
+#waitPlayers .wp,
+#tutorialBar,
+#tutorialText,
+#infoPanel,
+#infoBody,
+.shop-item,
+.shop-back-desc,
+.shop-item .si-name,
+.shop-item .si-desc,
+.jtile .tip,
+.standing,
+.blind-row {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
 /* ---- living felt background ---- */
 :root {
   --suit-tile: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cg stroke='%23ffffff' stroke-opacity='0.05' stroke-width='1.2' fill='none'%3E%3Cpath d='M0 0L140 140M0 70L70 140M70 0L140 70M0 70L70 0M0 140L140 0M70 140L140 70'/%3E%3C/g%3E%3Cg fill='%23ffffff' fill-opacity='0.055' font-size='30' text-anchor='middle' font-family='Georgia,serif'%3E%3Ctext x='35' y='46'%3E♥%3C/text%3E%3Ctext x='105' y='46'%3E♦%3C/text%3E%3Ctext x='35' y='116'%3E♣%3C/text%3E%3Ctext x='105' y='116'%3E♠%3C/text%3E%3C/g%3E%3C/svg%3E");
@@ -96,7 +116,7 @@ body.my-turn #bgRush { opacity: 0.6; animation-play-state: running; }
 .btn {
   padding: 10px 18px; border-radius: 8px; border: 1px solid #ffffff33;
   background: var(--panel-light); color: var(--cream); font-size: 15px;
-  cursor: pointer; white-space: nowrap; transition: filter 0.15s, transform 0.1s;
+  cursor: pointer; transition: filter 0.15s, transform 0.1s;
 }
 .btn:hover { filter: brightness(1.2); }
 .btn:active { transform: scale(0.97); }
@@ -119,12 +139,13 @@ body.my-turn #bgRush { opacity: 0.6; animation-play-state: running; }
 
 #tutorialBar {
   position: absolute; bottom: 6px; left: 50%; transform: translateX(-50%);
-  max-width: min(560px, 92%); z-index: 45;
+  width: min(840px, calc(100vw - 20px)); max-width: calc(100vw - 20px); z-index: 45;
   background: linear-gradient(160deg, #2b3f24, #1c2c1a);
   border: 1px solid var(--gold); border-radius: 10px;
   padding: 9px 34px 9px 14px; font-size: 13px; line-height: 1.4;
   color: var(--cream); box-shadow: 0 6px 20px #0008; pointer-events: auto;
 }
+#tutorialText { display: block; }
 #tutorialBar.flash { animation: tutPop 0.4s ease-out; }
 @keyframes tutPop {
   0% { opacity: 0; transform: translate(-50%, -10px) scale(0.96); }
@@ -496,7 +517,7 @@ body.my-turn #bgRush { opacity: 0.6; animation-play-state: running; }
 .jtile.tarot:hover { background: linear-gradient(160deg, #46315e, #2c1d40); }
 .jtile .tip {
   display: none; position: absolute; bottom: 108%; left: 50%; transform: translateX(-50%);
-  background: #000000ee; padding: 8px 10px; border-radius: 6px; width: 180px;
+  background: #000000ee; padding: 8px 10px; border-radius: 6px; width: min(270px, calc(100vw - 32px));
   font-size: 12px; z-index: 30; pointer-events: none;
 }
 .jtile:hover .tip { display: block; }
@@ -525,6 +546,15 @@ body.my-turn #bgRush { opacity: 0.6; animation-play-state: running; }
 #infoPanel h2 { color: var(--gold); }
 #infoBody { font-size: 14px; line-height: 1.45; }
 #infoBody p { margin-bottom: 10px; }
+.howto h4 { color: var(--gold); margin: 12px 0 5px; }
+.howto ol, .howto ul { padding-left: 20px; margin: 0 0 10px; }
+.howto li { margin-bottom: 5px; }
+.chip-blue, .chip-red {
+  display: inline-block; border-radius: 5px; padding: 1px 6px;
+  color: #fff; font-weight: 800;
+}
+.chip-blue { background: #2a6db0; }
+.chip-red { background: #c0392b; }
 .starter-row { margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
 .counting-hint { opacity: 0.6; font-style: italic; padding: 6px 0; }
 
@@ -587,7 +617,7 @@ body.my-turn #bgRush { opacity: 0.6; animation-play-state: running; }
   background: var(--panel-light); border-radius: 8px; padding: 12px; border: 1px solid #ffffff22;
   display: flex; flex-direction: column; gap: 6px; align-items: flex-start;
   transition: transform 0.15s ease, box-shadow 0.15s ease, outline-color 0.15s ease;
-  position: relative; cursor: pointer;
+  position: relative; cursor: pointer; overflow: hidden;
 }
 .shop-item:not(.sold):hover { transform: translateY(-3px); }
 .shop-item.selected {
@@ -676,7 +706,7 @@ body.my-turn #bgRush { opacity: 0.6; animation-play-state: running; }
   position: fixed; inset: 0; background: #000000aa; z-index: 90;
   display: flex; align-items: center; justify-content: center; padding: 16px;
 }
-#deckPanel { width: min(760px, 95vw); max-height: 86vh; overflow-y: auto; }
+#deckPanel { width: min(760px, 95vw); max-height: 86vh; overflow-y: auto; overflow-wrap: anywhere; }
 #deckPanel h2 { color: var(--gold); }
 .deck-row { display: flex; gap: 10px; align-items: flex-start; margin-top: 12px; }
 .deck-suit { font-size: 20px; width: 44px; text-align: center; flex-shrink: 0; padding-top: 8px; }
