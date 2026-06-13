@@ -56,16 +56,17 @@ function act(b) {
       if (card) b.ws.send(JSON.stringify({ t: 'playCard', card: card.id }));
     } else if ((st.phase === 'scoring' || st.phase === 'shop' || st.phase === 'roundEnd') && !you.ready) {
       if (st.phase === 'shop' && you.pendingPack) {
-        const ok = you.pendingPack.options.findIndex(o =>
-          o.kind === 'joker' ? you.jokers.length < 5 :
-          o.kind === 'tarot' ? you.tarots.length < 3 : true);
-        b.ws.send(JSON.stringify({ t: 'pickPack', idx: ok }));
+        const opts = you.pendingPack.options;
+        let idx = opts.findIndex(o => o.kind === 'joker' && you.jokers.length < 5);
+        if (idx === -1) idx = opts.findIndex(o => o.kind === 'card');
+        if (idx === -1) idx = opts.findIndex(o => o.kind === 'tarot' && you.tarots.length < 2);
+        b.ws.send(JSON.stringify({ t: 'pickPack', idx })); // -1 skips
         return;
       }
       if (st.phase === 'shop' && you.shopOffer) {
         const idx = you.shopOffer.findIndex(it => !it.sold && it.cost <= you.coins &&
           (it.kind === 'joker' ? you.jokers.length < 5 :
-           it.kind === 'tarot' ? you.tarots.length < 3 : true));
+           it.kind === 'tarot' ? you.tarots.length < 2 : true));
         if (idx >= 0 && Math.random() < 0.7) {
           b.ws.send(JSON.stringify({ t: 'buy', idx }));
           return; // next state update re-triggers act

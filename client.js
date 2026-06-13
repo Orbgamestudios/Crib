@@ -42,6 +42,18 @@ let raisedCardId = null;
 let selectedShopIdx = -1;
 let pointerCardDrag = null;
 let lastCoinPopKey = '';
+let deferredRender = false; // a state update arrived mid-drag; apply on release
+
+function isDragging() {
+  return !!((pointerCardDrag && pointerCardDrag.dragging) || (jokerDrag && jokerDrag.dragging));
+}
+
+function flushDeferredRender() {
+  if (deferredRender && lastState) {
+    deferredRender = false;
+    renderGame(lastState); // no animation on the catch-up frame
+  }
+}
 
 // Joker drag state (pointer-based, works on touch + mouse)
 let jokerDrag = null;
@@ -282,9 +294,12 @@ function handle(msg) {
     case 'state':
       stopMqttSync();
       showView('game');
+      if (msg.state.phase !== 'shop') selectedShopIdx = -1;
+      // Don't rebuild the table mid-drag — that yanks the card out of your
+      // hand ("let go randomly"). Stash it and catch up when the drag ends.
+      if (isDragging()) { lastState = msg.state; deferredRender = true; break; }
       prevState = lastState;
       lastState = msg.state;
-      if (msg.state.phase !== 'shop') selectedShopIdx = -1;
       renderGame(msg.state);
       runAnimations(prevState, msg.state);
       break;
@@ -699,6 +714,15 @@ function renderMyArea(st) {
   const me = st.players.find(p => p.seat === st.mySeat);
   $('myName').innerHTML = `${esc(me.name)} ${me.isDealer && me.active ? '<span class="dealer-chip">D</span>' : ''}`;
   $('myScore').textContent = `${you.score} pts`;
+  const mult = you.dealMult || 1;
+  const myMult = $('myMult');
+  if ((st.phase === 'discard' || st.phase === 'pegging') && you.active) {
+    myMult.textContent = `✕${mult} Mult`;
+    myMult.classList.toggle('boosted', mult > 1);
+    myMult.style.display = '';
+  } else {
+    myMult.style.display = 'none';
+  }
   $('myCoins').textContent = `🪙 ${you.coins}`;
   const coinKey = `${st.dealNumber}:${st.phase}:${you.coins}`;
   if (prevState && prevState.you && you.coins > prevState.you.coins && coinKey !== lastCoinPopKey) {
@@ -791,16 +815,18 @@ function attachJokerPointer(tile, idx, st) {
     [...$('jokerRow').querySelectorAll('.jslot')].forEach(s => s.classList.remove('drag-over'));
     if (!drag.dragging) {
       showItemInfo('joker', st.you.jokers[idx]); // a tap just opens info
+      flushDeferredRender();
       return;
     }
     const toIdx = jokerSlotAt(e.clientX, e.clientY);
-    if (toIdx == null || toIdx === drag.idx) return;
+    if (toIdx == null || toIdx === drag.idx) { flushDeferredRender(); return; }
     const jokers = st.you.jokers.slice();
     const [moved] = jokers.splice(drag.idx, 1);
     jokers.splice(Math.min(toIdx, jokers.length), 0, moved);
     st.you.jokers = jokers;
     renderJokerSlots(st);
     sendMsg({ t: 'reorderJokers', order: jokers.map(j => j.id) });
+    deferredRender = false; // the reorder ack will re-render us
   };
   tile.onpointerup = finish;
   tile.onpointercancel = finish;
@@ -1054,12 +1080,13 @@ function finishPointerCardDrag(e, el) {
   for (const drop of [$('cribPile'), $('pegArea'), $('pegStack')]) drop.classList.remove('drop-ready');
   if (drag.ghost) drag.ghost.remove();
   el.classList.remove('drag-source');
-  if (!drag.dragging) return;
+  if (!drag.dragging) { flushDeferredRender(); return; }
   el.dataset.dragged = '1';
   const target = cardDropTargetAt(e.clientX, e.clientY);
-  if (!target) return;
+  if (!target) { flushDeferredRender(); return; }
   if (target.id === 'cribPile') dropHandCard(drag.cardId);
   else playHandCard(drag.cardId);
+  flushDeferredRender();
 }
 
 function cardDropTargetAt(x, y) {
@@ -1275,36 +1302,59 @@ function scoreBlock(r, st, fresh) {
   const title = r.kind === 'crib'
     ? `👑 ${esc(r.name)} — Crib`
     : esc(r.name) + (r.seat === st.mySeat ? ' (you)' : '');
-  div.innerHTML = `<div class="sb-head"><span>${title}</span><span class="sb-total">+${r.total}</span></div>`;
+  div.innerHTML = `<div class="sb-head"><span>${title}</span></div>`;
+
+  // hand cards + the shared starter (shows how the hand is scored)
   const cards = document.createElement('div');
   cards.className = 'sb-cards';
   r.cards.forEach((c, i) => {
     const el = cardEl(c, { small: true });
-    if (fresh) { el.classList.add('deal-in'); el.style.animationDelay = (i * 90) + 'ms'; }
+    if (fresh) { el.classList.add('deal-in'); el.style.animationDelay = (i * 80) + 'ms'; }
     cards.appendChild(el);
   });
+  if (r.starter) {
+    cards.insertAdjacentHTML('beforeend', '<span class="sb-plus">+</span>');
+    const sEl = cardEl(r.starter, { small: true });
+    sEl.classList.add('sb-starter');
+    sEl.title = 'Starter';
+    if (fresh) { sEl.classList.add('deal-in'); sEl.style.animationDelay = (r.cards.length * 80) + 'ms'; }
+    cards.appendChild(sEl);
+  }
   div.appendChild(cards);
+
+  // chip lines
   r.lines.forEach((line, i) => {
     const lineEl = document.createElement('div');
     lineEl.className = 'sb-line' + (fresh ? ' anim' : '');
-    if (fresh) lineEl.style.animationDelay = (250 + i * 150) + 'ms';
+    if (fresh) lineEl.style.animationDelay = (250 + i * 130) + 'ms';
     lineEl.innerHTML = `<span>${esc(line.label)}</span><span>${line.pts == null ? '' : '+' + line.pts}</span>`;
     div.appendChild(lineEl);
   });
   if (!r.lines.length) {
-    div.insertAdjacentHTML('beforeend', '<div class="sb-line"><span>Nineteen! (nothing)</span><span>+0</span></div>');
+    div.insertAdjacentHTML('beforeend', '<div class="sb-line"><span>Nothing scored</span><span>+0</span></div>');
   }
-  if (fresh && r.total > 0) {
-    countUp(div.querySelector('.sb-total'), r.total, 250 + r.lines.length * 150);
-  }
+
+  // Points × Mult = Total  (Balatro-style)
+  const eqDelay = 300 + r.lines.length * 130;
+  const eq = document.createElement('div');
+  eq.className = 'sb-equation' + (fresh ? ' anim' : '');
+  if (fresh) eq.style.animationDelay = eqDelay + 'ms';
+  eq.innerHTML =
+    `<span class="chips" title="Hand points">${r.points}</span>` +
+    `<span class="eq-op">×</span>` +
+    `<span class="mult" title="Pegging multiplier">${r.mult}</span>` +
+    `<span class="eq-op">=</span>` +
+    `<span class="eq-total">${r.total}</span>`;
+  div.appendChild(eq);
+  if (fresh) countUp(eq.querySelector('.eq-total'), r.total, eqDelay + 250);
   return div;
 }
 
-function countUp(el, total, duration) {
+function countUp(el, total, duration, prefix = '') {
   const start = performance.now();
   function tick(now) {
     const t = Math.min(1, (now - start) / duration);
-    el.textContent = '+' + Math.round(t * total);
+    el.textContent = prefix + Math.round(t * total);
     if (t < 1 && el.isConnected) requestAnimationFrame(tick);
   }
   requestAnimationFrame(tick);
@@ -1431,14 +1481,20 @@ function renderPackOpen(oc, st) {
     addInfoButton(div, opt.name || cardLabel(opt), opt.kind === 'card'
       ? `<p>Adds this exact ${cardLabel(opt)} to your permanent deck.</p>`
       : `<p>${esc(opt.desc)}</p><p>${opt.kind === 'joker' ? 'Passive once taken.' : 'Consumable before discard once taken.'}</p>`);
+    const full = (opt.kind === 'joker' && st.you.jokers.length >= 5) ||
+      (opt.kind === 'tarot' && st.you.tarots.length >= 2);
     const btn = document.createElement('button');
     btn.className = 'btn small primary';
-    btn.textContent = 'Take';
-    btn.onclick = e => {
-      e.stopPropagation();
+    btn.textContent = full ? (opt.kind === 'joker' ? 'Jokers full' : 'Tarots full') : 'Take';
+    btn.disabled = full;
+    const take = e => {
+      if (e) e.stopPropagation();
+      if (full) return;
       sendMsg({ t: 'pickPack', idx });
     };
-    div.onclick = () => sendMsg({ t: 'pickPack', idx });
+    btn.onclick = take;
+    div.onclick = take;
+    if (full) div.classList.add('sold');
     div.appendChild(btn);
     grid.appendChild(div);
   });
@@ -1643,16 +1699,16 @@ function tutorialMessage(st) {
         : { key: 'discardWait', text: 'Everyone secretly throws to the crib. Waiting for the other players…' };
     case 'pegging':
       return st.turnSeat === st.mySeat
-        ? { key: 'pegMine', text: 'Your turn to peg! Tap a card to lift it, then tap again or drag it onto the pile to play. Keep the running count at 31 or under — score 15s, 31s, pairs and runs.' }
-        : { key: 'pegWait', text: 'Pegging — players take turns laying cards on the pile. Watch the running count and wait for your turn.' };
+        ? { key: 'pegMine', text: 'Your turn to peg! Every pegging point (15s, 31s, pairs, runs, go) adds to your red MULT for this deal. Keep the count at 31 or under. Tap a card to lift it, tap again or drag it to the pile.' }
+        : { key: 'pegWait', text: 'Pegging — players take turns laying cards. Pegging points build your red MULT, applied to your hand at the show.' };
     case 'scoring':
-      return { key: 'scoring', text: 'Counting the hands — left of the dealer first, the dealer next, the crib last. A 🃏 on a line means one of your jokers boosted it.' };
+      return { key: 'scoring', text: 'The show — your hand Points × your pegging Mult = the deal total. Hands count left of the dealer first, dealer next, crib last (crib uses the dealer\'s Mult).' };
     case 'roundEnd':
       return { key: 'round', text: st.solo
         ? 'Blind check — beat the blind score or your run ends. The House can never knock you out.'
         : "Blind check — beat this round's blind score or you're eliminated to the rail." };
     case 'shop':
-      return { key: 'shop', text: 'Shop — tap a card to flip it over and read what it does, then tap again to buy. The “i” button explains how jokers, tarots and packs work. Reroll for fresh stock.' };
+      return { key: 'shop', text: 'Shop — jokers boost your hand Points or pegging Mult. Tap a card to flip it and read what it does, tap again to buy. The “i” button explains each type. Reroll for fresh stock.' };
     case 'gameover':
       return { key: 'over', text: 'The run is over — start another from the lobby!' };
   }
