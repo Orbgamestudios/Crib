@@ -31,7 +31,7 @@ body {
 #bg {
   position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none;
   background: radial-gradient(ellipse at center, var(--felt) 0%, var(--felt-dark) 100%);
-  transition: background 1s ease;
+  transition: background 1.6s ease-in-out;
 }
 #bgDrift, #bgRush {
   position: absolute; inset: -220px;
@@ -43,8 +43,8 @@ body {
   opacity: 0; animation: bgRush 7s linear infinite;
   animation-play-state: paused; transition: opacity 1s ease;
 }
-/* your move: the felt turns red and flows faster */
-body.my-turn #bg { background: radial-gradient(ellipse at center, #8a2f2a 0%, #45100d 100%); }
+/* your move: the felt shifts to blue and flows faster */
+body.my-turn #bg { background: radial-gradient(ellipse at center, #2f5c8a 0%, #142a4a 100%); }
 body.my-turn #bgRush { opacity: 0.6; animation-play-state: running; }
 @keyframes bgDrift {
   0% { transform: translate(0, 0); }

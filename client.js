@@ -657,8 +657,8 @@ function renderSeats(st) {
   opponents.forEach((p, i) => {
     const k = opponents.length;
     const ang = (180 + (i + 1) * 180 / (k + 1)) * Math.PI / 180;
-    const x = 50 + 42 * Math.cos(ang);
-    const y = 52 + 46 * Math.sin(ang);
+    const x = 50 + 40 * Math.cos(ang);
+    const y = 54 + 38 * Math.sin(ang); // ring lowered so top seats clear the tip banner
     const seat = document.createElement('div');
     seat.className = 'seat' + (p.seat === st.turnSeat ? ' turn' : '')
       + (p.connected ? '' : ' off') + (p.active ? '' : ' out');
@@ -671,6 +671,19 @@ function renderSeats(st) {
     plaque.innerHTML =
       `<span class="nm">${esc(p.name)}${p.isBot ? ' 🤖' : ''}</span> ${p.isDealer && p.active ? '<span class="dealer-chip">D</span>' : ''}`;
     seat.appendChild(plaque);
+
+    // the backs of their hand (and any cards they've played to the pile)
+    const backs = document.createElement('div');
+    backs.className = 'backs';
+    for (let c = 0; c < p.handCount; c++) backs.appendChild(backEl(true));
+    seat.appendChild(backs);
+
+    if (p.played && p.played.length) {
+      const played = document.createElement('div');
+      played.className = 'played';
+      for (const c of p.played) played.appendChild(cardEl(c, { small: true }));
+      seat.appendChild(played);
+    }
     el.appendChild(seat);
   });
 }
