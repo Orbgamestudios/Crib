@@ -820,3 +820,93 @@ body.my-turn #bgRush { opacity: 0.6; animation-play-state: running; }
   .jtile .jt-icon { width: 22px; height: 22px; }
   .hud-chip b { font-size: 20px; }
 }
+
+/* ===== rarity foil + animation FX ===== */
+.jt-foil { position: absolute; inset: 0; border-radius: inherit; pointer-events: none; opacity: 0; }
+.jtile.r-rare .jt-foil, .jtile.r-ultra .jt-foil { opacity: 1; mix-blend-mode: screen; background-size: 250% 250%; }
+.jtile.r-rare .jt-foil {
+  background-image: linear-gradient(115deg, transparent 35%, #7fd0ff55 47%, #b9f0ff99 52%, transparent 66%);
+  animation: foilSheen 3.4s linear infinite;
+}
+.jtile.r-ultra .jt-foil {
+  background-image: linear-gradient(115deg, transparent 28%, #ffd76e66 42%, #ff9bf099 50%, #8fe7ff88 58%, transparent 72%);
+  animation: foilSheen 2.3s linear infinite;
+}
+@keyframes foilSheen { 0% { background-position: 140% 0; } 100% { background-position: -140% 0; } }
+.jtile.r-rare { border-color: #7fd0ff; box-shadow: 0 0 9px #7fd0ff55, 0 2px 5px #0007; }
+.jtile.r-ultra { border-color: #ffd76e; animation: ultraGlow 2.2s ease-in-out infinite; }
+@keyframes ultraGlow {
+  0%, 100% { box-shadow: 0 0 9px #ffce5b77, 0 2px 6px #0008; }
+  50% { box-shadow: 0 0 19px #ffd76ee0, 0 2px 6px #0008; }
+}
+
+/* shop card rarity */
+.shop-card.r-rare { border-color: #7fd0ff !important; box-shadow: 0 0 12px #7fd0ff44; }
+.shop-card.r-ultra { border-color: #ffd76e !important; box-shadow: 0 0 16px #ffce5b66; }
+.rar-pill {
+  align-self: center; font-size: 10px; font-weight: 800; letter-spacing: .5px;
+  text-transform: uppercase; border-radius: 999px; padding: 1px 9px; margin-top: 3px;
+}
+.rar-pill.rare { background: #1d3a55; color: #9fe0ff; box-shadow: inset 0 0 0 1px #7fd0ff88; }
+.rar-pill.ultra { background: #4a3a12; color: #ffd76e; box-shadow: inset 0 0 0 1px #ffd76e; }
+.jtile .tip .rar { opacity: .8; font-style: italic; }
+
+/* rising +Mult label (reuses .fx-float / floatUp) */
+.fx-mult { color: #ff6b6b; font-size: 20px; text-shadow: 0 2px 6px #000; }
+
+/* orbs streaming into the Mult box */
+.fx-orb {
+  position: fixed; width: 13px; height: 13px; border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #fff, #ff6b6b 55%, #a51d1d);
+  box-shadow: 0 0 10px #ff6b6bcc; pointer-events: none; z-index: 105;
+}
+/* sparkles */
+.fx-spark {
+  position: fixed; width: 8px; height: 8px; border-radius: 50%;
+  background: #ffe9a8; box-shadow: 0 0 9px #ffd76e; pointer-events: none; z-index: 106;
+}
+/* falling booster pack */
+.fx-pack {
+  position: fixed; width: 124px; height: 124px; pointer-events: none; z-index: 104;
+  filter: drop-shadow(0 10px 18px #000a);
+}
+.fx-pack svg { width: 100%; height: 100%; }
+
+/* Mult box bump when orbs land */
+#myMult.bump { animation: multBump 0.5s cubic-bezier(.3,1.4,.5,1); }
+@keyframes multBump {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.32); box-shadow: 0 0 20px #ff5b5bcc; }
+  100% { transform: scale(1); }
+}
+
+/* element flash (joker / tarot rows) */
+.fx-flash { animation: fxFlash 0.6s ease-out; }
+@keyframes fxFlash {
+  0% { filter: brightness(2.1) saturate(1.5); }
+  100% { filter: none; }
+}
+.card.tarot-flash { animation: tarotFlash 0.7s ease-out; }
+@keyframes tarotFlash {
+  0% { box-shadow: 0 2px 4px #00000055; }
+  35% { box-shadow: 0 0 20px 5px #b48be0; filter: brightness(1.45); }
+  100% { box-shadow: 0 2px 4px #00000055; }
+}
+
+/* booster pick entrance */
+.pack-rise { animation: packRise 0.6s cubic-bezier(.2,.9,.3,1) backwards; }
+@keyframes packRise {
+  0% { opacity: 0; transform: translateY(64px) scale(0.6); }
+  60% { opacity: 1; }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* reveal: joker-boosted lines glow, Mult pops in */
+.score-block .sb-line.joker-line { color: var(--gold); opacity: 1; text-shadow: 0 0 8px #e8c35a77; }
+.score-block .sb-line.joker-line span:last-child { color: var(--gold); }
+.sb-equation.anim .mult { animation: multReveal 0.55s ease-out 0.12s backwards; }
+@keyframes multReveal {
+  0% { transform: scale(0.4); filter: brightness(2.2); }
+  60% { transform: scale(1.28); }
+  100% { transform: scale(1); }
+}

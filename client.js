@@ -1,4 +1,4 @@
-import { JOKER_ICONS, TAROT_ICONS, PACK_ICONS } from './icons.js?v=3';
+import { JOKER_ICONS, TAROT_ICONS, PACK_ICONS } from './icons.js?v=4';
 import { cardValue } from './lib/cards.js';
 import { pegEvents, scoreBreakdown } from './lib/scoring.js';
 import { aggregateMods, buildScore } from './lib/jokers.js';
@@ -781,10 +781,13 @@ function renderCenter(st) {
 // joker/tarot rendered as a little card tile, Balatro-row style
 function jtile(kind, def, opts = {}) {
   const d = document.createElement('div');
-  d.className = 'jtile ' + kind;
+  const rarity = kind === 'joker' ? (def.rarity || 'common') : '';
+  d.className = 'jtile ' + kind + (rarity ? ' r-' + rarity : '');
   const icon = (kind === 'joker' ? JOKER_ICONS : TAROT_ICONS)[def.id] || '';
-  d.innerHTML = `<span class="jt-icon">${icon}</span><span class="jt-name">${esc(def.name)}</span>` +
-    `<div class="tip">${esc(def.desc)}${opts.tipExtra || ''}</div>`;
+  const rarityTag = rarity && rarity !== 'common' ? ` <i class="rar">(${rarity})</i>` : '';
+  d.innerHTML = `<span class="jt-foil"></span><span class="jt-icon">${icon}</span>` +
+    `<span class="jt-name">${esc(def.name)}</span>` +
+    `<div class="tip">${esc(def.desc)}${rarityTag}${opts.tipExtra || ''}</div>`;
   return d;
 }
 
@@ -1442,7 +1445,8 @@ function scoreBlock(r, st, fresh) {
   // chip lines
   r.lines.forEach((line, i) => {
     const lineEl = document.createElement('div');
-    lineEl.className = 'sb-line' + (fresh ? ' anim' : '');
+    const isJoker = typeof line.label === 'string' && line.label.indexOf('🃏') >= 0;
+    lineEl.className = 'sb-line' + (fresh ? ' anim' : '') + (isJoker ? ' joker-line' : '');
     if (fresh) lineEl.style.animationDelay = (250 + i * 130) + 'ms';
     lineEl.innerHTML = `<span>${esc(line.label)}</span><span>${line.pts == null ? '' : '+' + line.pts}</span>`;
     div.appendChild(lineEl);
@@ -1525,7 +1529,8 @@ function renderShop(oc, st) {
     const affordable = !item.sold && you.coins >= item.cost && !you.ready;
     const div = document.createElement('div');
     div.className = `shop-item shop-card ${item.kind}` + (item.sold ? ' sold' : '') +
-      (item.kind === 'pack' ? ' shiny' : '') + (flipped ? ' flipped' : '');
+      (item.kind === 'pack' ? ' shiny' : '') + (item.rarity ? ' r-' + item.rarity : '') +
+      (flipped ? ' flipped' : '');
 
     const flip = document.createElement('div');
     flip.className = 'shop-flip';
@@ -1534,7 +1539,9 @@ function renderShop(oc, st) {
     front.className = 'shop-face shop-front';
     front.appendChild(shopCardFace(item));
     front.insertAdjacentHTML('beforeend',
-      `<div class="si-name">${esc(item.name)}</div><div class="shop-price">🪙${item.cost}</div>`);
+      `<div class="si-name">${esc(item.name)}</div>` +
+      (item.rarity && item.rarity !== 'common' ? `<div class="rar-pill ${item.rarity}">${item.rarity}</div>` : '') +
+      `<div class="shop-price">🪙${item.cost}</div>`);
 
     const back = document.createElement('div');
     back.className = `shop-face shop-back ${item.kind}`;
@@ -1581,13 +1588,17 @@ function renderShop(oc, st) {
 
 function renderPackOpen(oc, st) {
   const pack = st.you.pendingPack;
+  // first time we see this pack? sync the pick entrance with the burst FX
+  const firstReveal = !(prevState && prevState.you && prevState.you.pendingPack);
   oc.innerHTML = `<h2>✨ ${esc(pack.name)}</h2><div class="hint">Pick one:</div>`;
   const grid = document.createElement('div');
   grid.className = 'shop-grid pack-grid';
   pack.options.forEach((opt, idx) => {
     const div = document.createElement('div');
     const kindCls = opt.kind === 'card' ? 'standardcard' : opt.kind;
-    div.className = `shop-item shiny pick ${kindCls}`;
+    div.className = `shop-item shiny pick ${kindCls}` + (opt.rarity ? ' r-' + opt.rarity : '') +
+      (firstReveal ? ' pack-rise' : '');
+    if (firstReveal) div.style.animationDelay = (520 + idx * 150) + 'ms';
     if (opt.kind === 'card') {
       div.innerHTML = `<div class="si-bigcard"></div><div class="si-name">${RANK_NAMES[opt.rank]}${SUIT_CHARS[opt.suit]} — add to your deck</div>`;
       div.querySelector('.si-bigcard').appendChild(cardEl(opt));
@@ -1686,7 +1697,7 @@ function runAnimations(prev, st) {
       for (let i = 0; i < st.discardCount; i++) {
         setTimeout(() => {
           const tgt = document.querySelector('#cribPile .card');
-          if (tgt) flyClone(backEl(), fromRect, tgt.getBoundingClientRect(), 420, p.seat === st.mySeat ? -8 : 8);
+          if (tgt) flyClone(backEl(), fromRect, tgt.getBoundingClientRect(), 460, { rot: p.seat === st.mySeat ? -8 : 8 });
         }, i * 110);
       }
     }
@@ -1708,6 +1719,40 @@ function runAnimations(prev, st) {
     pendingFly = null;
     if (fromRect && target) flyCard(played, fromRect, target);
     pulse($('pegCount'));
+
+    // how much pegging Mult this play earned (raw event points), shown rising
+    // off the count; if it was MY play, orbs stream into the Mult box.
+    const gained = pegEvents(st.pegStack, st.pegCount).reduce((s, e) => s + e.pts, 0);
+    if (gained > 0) {
+      const pc = $('pegCount').getBoundingClientRect();
+      floatRise(pc.left + pc.width / 2, pc.top - 6, `+${gained} Mult`, 'fx-mult');
+      if (played.seat === st.mySeat && prev.you && st.you && st.you.dealMult > prev.you.dealMult) {
+        const b = $('myMult').querySelector('b');
+        if (b) b.textContent = 'x' + prev.you.dealMult; // hold old until orbs land
+        const mb = $('myMult').getBoundingClientRect();
+        flingOrbs(pc.left + pc.width / 2, pc.top + pc.height / 2,
+          mb.left + mb.width / 2, mb.top + mb.height / 2,
+          Math.min(9, 3 + gained), () => bumpMult(st.you.dealMult));
+        if (st.you.jokers && st.you.jokers.length) flashEl($('jokerRow'));
+      }
+    }
+  }
+
+  // booster pack just opened — burst it before the picks rise in
+  if (st.phase === 'shop' && st.you && st.you.pendingPack &&
+      !(prev.you && prev.you.pendingPack)) {
+    playPackOpen(st.you.pendingPack);
+  }
+
+  // a tarot was consumed — sparkle the tarot row and shimmer the edited hand
+  if (prev.you && st.you && st.you.tarots && prev.you.tarots &&
+      st.you.tarots.length < prev.you.tarots.length && st.phase === 'discard') {
+    const row = $('tarotRow').getBoundingClientRect();
+    burstSparkles(row.left + row.width / 2, row.top + row.height / 2, 18, 275);
+    flashEl($('tarotRow'));
+    document.querySelectorAll('#hand .card').forEach(c => {
+      c.classList.remove('tarot-flash'); void c.offsetWidth; c.classList.add('tarot-flash');
+    });
   }
 
   // a finished 31/go count sweeps off the table
@@ -1749,24 +1794,133 @@ function shuffleAnim(deckRect) {
   }
 }
 
-function flyClone(el, fromRect, toRect, ms = 380, rot = 0) {
+// Smooth arced flight via the Web Animations API. WAAPI runs off the main
+// thread and always fires onfinish, so cards glide the whole way instead of
+// teleporting when a rAF/transition gets pre-empted.
+function flyClone(el, fromRect, toRect, ms = 440, opts = {}) {
   el.classList.add('flying');
   el.style.left = fromRect.left + 'px';
   el.style.top = fromRect.top + 'px';
-  el.style.transitionDuration = ms + 'ms';
   $('fx').appendChild(el);
-  requestAnimationFrame(() => {
-    el.style.transform =
-      `translate(${toRect.left - fromRect.left}px, ${toRect.top - fromRect.top}px) rotate(${rot}deg)`;
-  });
-  setTimeout(() => el.remove(), ms + 60);
+  const dx = toRect.left - fromRect.left;
+  const dy = toRect.top - fromRect.top;
+  const dist = Math.hypot(dx, dy);
+  const arc = opts.arc != null ? opts.arc : -Math.min(150, dist * 0.3);
+  const rot = opts.rot || 0;
+  const anim = el.animate([
+    { transform: 'translate(0px,0px) rotate(0deg) scale(1)' },
+    { transform: `translate(${dx * 0.5}px, ${dy * 0.5 + arc}px) rotate(${rot * 0.6}deg) scale(1.07)`, offset: 0.55 },
+    { transform: `translate(${dx}px, ${dy}px) rotate(${rot}deg) scale(1)` },
+  ], { duration: ms, easing: 'cubic-bezier(.3,.8,.35,1)', fill: 'forwards' });
+  const done = () => { el.remove(); if (opts.onfinish) opts.onfinish(); };
+  anim.onfinish = done;
+  anim.oncancel = done;
+  return anim;
 }
 
-function flyCard(card, fromRect, target) {
+function flyCard(card, fromRect, target, opts = {}) {
   const toRect = target.getBoundingClientRect();
   target.style.visibility = 'hidden';
-  flyClone(cardEl(card), fromRect, toRect, 380, 0);
-  setTimeout(() => { target.style.visibility = ''; }, 400);
+  flyClone(cardEl(card), fromRect, toRect, opts.ms || 440, {
+    rot: opts.rot || 0,
+    onfinish: () => { target.style.visibility = ''; if (opts.onfinish) opts.onfinish(); },
+  });
+}
+
+// ---- particle / burst helpers ----
+
+function floatRise(x, y, text, cls) {
+  const div = document.createElement('div');
+  div.className = 'fx-float ' + (cls || '');
+  div.textContent = text;
+  div.style.left = x + 'px';
+  div.style.top = y + 'px';
+  $('fx').appendChild(div);
+  div.addEventListener('animationend', () => div.remove());
+}
+
+function flingOrbs(fromX, fromY, toX, toY, count, onArrive) {
+  let landed = 0;
+  const finishOne = () => { if (++landed >= count && onArrive) onArrive(); };
+  for (let i = 0; i < count; i++) {
+    const orb = document.createElement('div');
+    orb.className = 'fx-orb';
+    orb.style.left = fromX + 'px';
+    orb.style.top = fromY + 'px';
+    $('fx').appendChild(orb);
+    const jx = (Math.random() - 0.5) * 70;
+    const jy = (Math.random() - 0.5) * 50 - 24;
+    const anim = orb.animate([
+      { transform: 'translate(-50%,-50%) scale(0.5)', opacity: 0.25 },
+      { transform: `translate(calc(-50% + ${jx}px), calc(-50% + ${jy}px)) scale(1.15)`, opacity: 1, offset: 0.3 },
+      { transform: `translate(calc(-50% + ${toX - fromX}px), calc(-50% + ${toY - fromY}px)) scale(0.35)`, opacity: 0.85 },
+    ], { duration: 520 + Math.random() * 240, delay: i * 55, easing: 'cubic-bezier(.45,.05,.55,1)', fill: 'forwards' });
+    const done = () => { orb.remove(); finishOne(); };
+    anim.onfinish = done;
+    anim.oncancel = done;
+  }
+}
+
+function burstSparkles(cx, cy, count, hue) {
+  for (let i = 0; i < count; i++) {
+    const s = document.createElement('div');
+    s.className = 'fx-spark';
+    s.style.left = cx + 'px';
+    s.style.top = cy + 'px';
+    if (hue != null) s.style.background = `hsl(${hue + (Math.random() - 0.5) * 50}, 95%, 66%)`;
+    $('fx').appendChild(s);
+    const ang = Math.random() * Math.PI * 2;
+    const dist = 50 + Math.random() * 150;
+    const anim = s.animate([
+      { transform: 'translate(-50%,-50%) scale(1)', opacity: 1 },
+      { transform: `translate(calc(-50% + ${Math.cos(ang) * dist}px), calc(-50% + ${Math.sin(ang) * dist}px)) scale(0.2)`, opacity: 0 },
+    ], { duration: 600 + Math.random() * 520, easing: 'cubic-bezier(.2,.6,.4,1)', fill: 'forwards' });
+    const done = () => s.remove();
+    anim.onfinish = done;
+    anim.oncancel = done;
+  }
+}
+
+function flashEl(el) {
+  if (!el) return;
+  el.classList.remove('fx-flash');
+  void el.offsetWidth;
+  el.classList.add('fx-flash');
+  el.addEventListener('animationend', () => el.classList.remove('fx-flash'), { once: true });
+}
+
+function bumpMult(toValue) {
+  const m = $('myMult');
+  const b = m.querySelector('b');
+  if (b && toValue != null) b.textContent = 'x' + toValue;
+  m.classList.remove('bump');
+  void m.offsetWidth;
+  m.classList.add('bump');
+  setTimeout(() => m.classList.remove('bump'), 540);
+}
+
+function playPackOpen(pack) {
+  const cx = window.innerWidth / 2;
+  const cy = window.innerHeight / 2 - 30;
+  const packEl = document.createElement('div');
+  packEl.className = 'fx-pack';
+  packEl.innerHTML = PACK_ICONS[pack.type] || '';
+  packEl.style.left = cx + 'px';
+  packEl.style.top = cy + 'px';
+  $('fx').appendChild(packEl);
+  const anim = packEl.animate([
+    { transform: 'translate(-50%,-50%) scale(0.6) rotate(0deg)', opacity: 0 },
+    { transform: 'translate(-50%,-50%) scale(1.15) rotate(-5deg)', opacity: 1, offset: 0.22 },
+    { transform: 'translate(-50%,-50%) scale(1.08) rotate(5deg)', offset: 0.4 },
+    { transform: 'translate(-50%,-50%) scale(1.16) rotate(-3deg)', offset: 0.55 },
+    { transform: `translate(-50%, ${window.innerHeight * 0.75}px) scale(0.7) rotate(22deg)`, opacity: 0 },
+  ], { duration: 1150, easing: 'cubic-bezier(.4,0,.55,1)', fill: 'forwards' });
+  const done = () => packEl.remove();
+  anim.onfinish = done;
+  anim.oncancel = done;
+  const hue = pack.type === 'arcana' ? 275 : pack.type === 'buffoon' ? 45 : 200;
+  setTimeout(() => burstSparkles(cx, cy, 26, hue), 470);
+  setTimeout(() => burstSparkles(cx, cy, 16, hue), 650);
 }
 
 function floatAtSeat(st, seat, text, cls) {

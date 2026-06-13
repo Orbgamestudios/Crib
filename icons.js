@@ -235,6 +235,36 @@ export const JOKER_ICONS = {
     `<path d="M31 24l3 1-2 3z" fill="${C}"/>` +
     txt(24, 45.5, 'COPY →', 6, '#9fc4e8')
   ),
+  obelisk: svg(
+    `<path d="M20 9l4-5 4 5 1.5 29h-11z" fill="${G}" stroke="${D}" stroke-width="1.5"/>` +
+    `<rect x="15" y="38" width="18" height="4" rx="1" fill="${D}"/>` +
+    `<path d="M24 4v34" stroke="${D}" stroke-width="0.8" opacity=".4"/>` +
+    txt(24, 30, '+8', 10, D)
+  ),
+  the_duo: svg(
+    card(8, 11, -12) + card(24, 11, 12) +
+    txt(16, 27, 'K', 12, R, 'transform="rotate(-12 16 23)"') +
+    txt(32, 27, 'K', 12, R, 'transform="rotate(12 32 23)"') +
+    txt(24, 44, '×5', 8, G)
+  ),
+  steel_crib: svg(
+    `<path d="M9 20h30l-3 17a3 3 0 01-3 2H15a3 3 0 01-3-2z" fill="#a9b6c2" stroke="${D}" stroke-width="1.5"/>` +
+    `<path d="M9 20l4-9h22l4 9" fill="none" stroke="#a9b6c2" stroke-width="2.6" stroke-linejoin="round"/>` +
+    `<path d="M16 22l2 14M24 22v14M32 22l-2 14" stroke="${D}" stroke-width="0.9" opacity=".5"/>` +
+    txt(24, 33, '×2', 9, D)
+  ),
+  overclock: svg(
+    `<circle cx="24" cy="24" r="16" fill="${BL}" stroke="${D}" stroke-width="1.5"/>` +
+    `<path d="M11 27a13 13 0 0126 0" fill="none" stroke="${C}" stroke-width="2"/>` +
+    `<path d="M24 24l9-6" stroke="${R}" stroke-width="2.6" stroke-linecap="round"/>` +
+    `<circle cx="24" cy="24" r="2.6" fill="${R}"/>` +
+    txt(24, 40, '×3', 8, G)
+  ),
+  holo_fifteen: svg(
+    `<path d="M24 4l3 7 7-2-3 7 7 4-7 2 1 8-7-5-6 6-2-9-7-1 6-5-4-7 8 2z" fill="${G}" stroke="${D}" stroke-width="1.3"/>` +
+    txt(24, 28, '15', 11, P) +
+    `<circle cx="37" cy="12" r="1.9" fill="${C}"/><circle cx="11" cy="33" r="1.5" fill="${C}"/>`
+  ),
 };
 
 const tarotFrame = (roman, inner) =>
