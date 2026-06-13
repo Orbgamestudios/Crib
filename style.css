@@ -419,8 +419,6 @@ body.my-turn #bgRush { opacity: 0.6; animation-play-state: running; }
   align-items: stretch; height: calc(302px + env(safe-area-inset-bottom)); flex-shrink: 0;
   padding-bottom: calc(10px + env(safe-area-inset-bottom));
 }
-#myMult.boosted { animation: multThrob 1.4s ease-in-out infinite; }
-@keyframes multThrob { 0%,100% { transform: scale(1); } 50% { transform: scale(1.1); } }
 #myCoins { color: #ffd76e; font-size: 14px; font-weight: 800; white-space: nowrap; }
 
 #myCenter { flex: 1; min-width: 0; display: flex; flex-direction: column; }
@@ -764,36 +762,37 @@ body.my-turn #bgRush { opacity: 0.6; animation-play-state: running; }
   .card .suit { font-size: 13px; }
 
   #bottombar {
-    height: calc(258px + env(safe-area-inset-bottom));
-    padding: 6px 8px calc(8px + env(safe-area-inset-bottom));
+    height: calc(312px + env(safe-area-inset-bottom));
+    padding: 8px 10px calc(10px + env(safe-area-inset-bottom));
   }
   #myCenter { width: 100%; }
   #blindProgress { margin-bottom: 4px; }
   #blindBarOuter { height: 20px; }
   #blindBarLabel { font-size: 11px; }
-  #hand .card { width: 48px; height: 67px; font-size: 15px; margin: 0 -4px; }
-  #hand .card .suit { font-size: 17px; }
-  #hand { gap: 0; height: 76px; }
-  #myCards { min-height: 100px; }
-  #actionRow { min-height: 44px; margin-bottom: 4px; }
+  #hand .card { width: 54px; height: 76px; font-size: 17px; margin: 0 -5px; }
+  #hand .card .suit { font-size: 19px; }
+  #hand { gap: 0; height: 91px; padding-bottom: 6px; }
+  #myCards { min-height: 142px; }
+  #actionRow { min-height: 45px; margin-bottom: 6px; justify-content: space-between; padding: 0 4px; }
+  #prompt { flex: 1; min-width: 0; text-align: left; }
   #pegCount { font-size: 24px; min-width: 40px; }
 
-  #hudRow { gap: 6px; min-height: 51px; margin-top: 2px; }
-  #scoreHud { gap: 5px; flex: 1 1 132px; }
-  .hud-chip { min-width: 60px; padding: 4px 6px; }
+  #hudRow { gap: 7px; min-height: 62px; margin-top: 8px; }
+  #scoreHud { gap: 6px; flex: 1 1 142px; }
+  .hud-chip { min-width: 64px; padding: 6px 7px; }
   .hud-chip span { font-size: 9px; }
-  .hud-chip b { font-size: 20px; }
-  #utilityPanel { flex-basis: 58px; gap: 3px; }
+  .hud-chip b { font-size: 23px; }
+  #utilityPanel { flex-basis: 62px; gap: 5px; }
   #myCoins { font-size: 12px; text-align: center; }
-  .slot-panel { padding: 4px 5px; }
-  #myStuff { margin-top: 4px; }
+  .slot-panel { padding: 5px 6px; }
+  #myStuff { margin-top: 9px; }
   #myStuff .stuff-label, #tarotPanel .stuff-label { font-size: 9px; margin-bottom: 2px; }
-  #jokerRow { gap: 4px; }
-  #tarotRow { flex-shrink: 0; gap: 3px; }
-  .jslot, .tslot { width: 36px; height: 50px; }
+  #jokerRow { gap: 6px; }
+  #tarotRow { flex-shrink: 0; gap: 4px; }
+  .jslot, .tslot { width: 40px; height: 55px; }
   .jslot.empty::after, .tslot.empty::after { font-size: 14px; }
-  .jtile { width: 36px; height: 50px; }
-  .jtile .jt-icon { width: 22px; height: 22px; }
+  .jtile { width: 40px; height: 55px; }
+  .jtile .jt-icon { width: 24px; height: 24px; }
   .jtile .jt-name { display: none; }
 
   #log { display: none; }
@@ -810,14 +809,14 @@ body.my-turn #bgRush { opacity: 0.6; animation-play-state: running; }
 @media (max-height: 720px) and (max-width: 700px) {
   #topbar { padding-top: 4px; padding-bottom: 4px; }
   #center { top: 32%; transform: translate(-50%, -50%) scale(0.92); }
-  #bottombar { height: calc(244px + env(safe-area-inset-bottom)); }
-  #myCards { min-height: 92px; }
-  #hand { height: 68px; }
-  #hand .card { width: 44px; height: 62px; font-size: 14px; margin: 0 -4px; }
-  #hand .card .suit { font-size: 16px; }
-  #actionRow { min-height: 34px; }
-  .jslot, .tslot { width: 34px; height: 47px; }
-  .jtile { width: 34px; height: 47px; }
-  .jtile .jt-icon { width: 20px; height: 20px; }
-  .hud-chip b { font-size: 18px; }
+  #bottombar { height: calc(292px + env(safe-area-inset-bottom)); }
+  #myCards { min-height: 126px; }
+  #hand { height: 80px; }
+  #hand .card { width: 49px; height: 69px; font-size: 15px; margin: 0 -5px; }
+  #hand .card .suit { font-size: 17px; }
+  #actionRow { min-height: 40px; }
+  .jslot, .tslot { width: 37px; height: 51px; }
+  .jtile { width: 37px; height: 51px; }
+  .jtile .jt-icon { width: 22px; height: 22px; }
+  .hud-chip b { font-size: 20px; }
 }

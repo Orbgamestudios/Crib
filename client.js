@@ -1459,12 +1459,13 @@ function renderRoundEnd(oc, st) {
   }
   for (const row of d.rows) {
     const pct = Math.min(100, Math.round(100 * row.roundScore / d.blind));
+    const bonus = row.bonusCoins > 0 ? ` +${row.bonusCoins} coin${row.bonusCoins === 1 ? '' : 's'}` : '';
     oc.insertAdjacentHTML('beforeend',
       `<div class="blind-row${row.passed ? '' : ' failed'}">` +
       `<span class="br-name">${esc(row.name)}${row.seat === st.mySeat ? ' (you)' : ''}</span>` +
       `<div class="br-bar"><div class="br-fill${row.passed ? ' pass' : ''}" style="width:${pct}%"></div></div>` +
       `<span class="br-score">${row.roundScore}/${d.blind}</span>` +
-      `<span class="br-tag">${row.passed ? '✅ SAFE' : '☠ ELIMINATED'}</span></div>`);
+      `<span class="br-tag">${row.passed ? 'SAFE' + bonus : 'ELIMINATED'}</span></div>`);
   }
   const left = st.players.filter(p => p.active).length;
   if (st.solo) {
