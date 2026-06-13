@@ -1,4 +1,6 @@
 import { JOKER_ICONS, TAROT_ICONS, PACK_ICONS } from './icons.js';
+import { cardValue } from './lib/cards.js';
+import { pegEvents } from './lib/scoring.js';
 
 const $ = id => document.getElementById(id);
 const SUIT_CHARS = ['♥', '♦', '♣', '♠']; // H D C S
@@ -36,6 +38,8 @@ let pendingFly = null;    // { cardId, rect } captured when I click a peg card
 let revealShown = -1;     // last scoring result index already animated
 let revealKey = '';
 let deckOpen = false;     // deck viewer overlay
+let raisedCardId = null;
+let selectedShopIdx = -1;
 
 // Joker drag state
 let dragJokerIdx = -1;
@@ -258,6 +262,7 @@ function handle(msg) {
       showView('game');
       prevState = lastState;
       lastState = msg.state;
+      if (msg.state.phase !== 'shop') selectedShopIdx = -1;
       renderGame(msg.state);
       runAnimations(prevState, msg.state);
       break;
@@ -304,6 +309,17 @@ function toast(text) {
   t._timer = setTimeout(() => t.classList.add('hidden'), 3000);
 }
 
+function showInfo(title, body) {
+  $('infoTitle').textContent = title;
+  $('infoBody').innerHTML = body;
+  $('infoOverlay').classList.remove('hidden');
+}
+
+$('infoClose').onclick = () => $('infoOverlay').classList.add('hidden');
+$('infoOverlay').onclick = e => {
+  if (e.target === $('infoOverlay')) $('infoOverlay').classList.add('hidden');
+};
+
 function addLog(text) {
   const log = $('log');
   const div = document.createElement('div');
@@ -312,6 +328,20 @@ function addLog(text) {
   log.appendChild(div);
   while (log.children.length > 60) log.removeChild(log.firstChild);
   log.scrollTop = log.scrollHeight;
+}
+
+function addInfoButton(el, title, body) {
+  const btn = document.createElement('button');
+  btn.className = 'info-btn';
+  btn.type = 'button';
+  btn.textContent = 'i';
+  btn.onclick = e => {
+    e.stopPropagation();
+    e.preventDefault();
+    showInfo(title, body);
+  };
+  el.appendChild(btn);
+  return btn;
 }
 
 // ---- lobby ----
@@ -649,6 +679,10 @@ function jtile(kind, def, opts = {}) {
   const icon = (kind === 'joker' ? JOKER_ICONS : TAROT_ICONS)[def.id] || '';
   d.innerHTML = `<span class="jt-icon">${icon}</span><span class="jt-name">${esc(def.name)}</span>` +
     `<div class="tip">${esc(def.desc)}${opts.tipExtra || ''}</div>`;
+  const timing = kind === 'joker'
+    ? 'Jokers are passive. They trigger automatically whenever their condition is met.'
+    : 'Tarots are one-shot cards. Use them before you discard, then pick the required target card(s).';
+  addInfoButton(d, def.name, `<p>${esc(def.desc)}</p><p>${timing}</p>`);
   return d;
 }
 
@@ -723,15 +757,12 @@ function renderJokerSlots(st) {
       const fromIdx = dragJokerIdx;
       const toIdx = i;
       if (fromIdx < 0 || fromIdx === toIdx) return;
-      if (fromIdx < you.jokers.length && toIdx < you.jokers.length) {
-        // Swap jokers in the state
-        const jokers = you.jokers;
-        const temp = jokers[fromIdx];
-        jokers[fromIdx] = jokers[toIdx];
-        jokers[toIdx] = temp;
-        // Re-render
+      if (fromIdx < you.jokers.length) {
+        const jokers = you.jokers.slice();
+        const [moved] = jokers.splice(fromIdx, 1);
+        jokers.splice(Math.min(toIdx, jokers.length), 0, moved);
+        you.jokers = jokers;
         renderJokerSlots(st);
-        // Notify server of reorder
         sendMsg({ t: 'reorderJokers', order: jokers.map(j => j.id) });
       }
       dragJokerIdx = -1;
@@ -773,10 +804,20 @@ function renderHand(st) {
   const myTurn = st.phase === 'pegging' && st.turnSeat === st.mySeat;
 
   selected = selected.filter(id => you.hand.some(c => c.id === id));
+  if (!you.hand.some(c => c.id === raisedCardId)) raisedCardId = null;
   if (tarotMode) tarotMode.targets = tarotMode.targets.filter(id => you.hand.some(c => c.id === id));
 
-  for (const c of you.hand) {
+  setupCardDropTargets(st);
+
+  const mid = (you.hand.length - 1) / 2;
+  you.hand.forEach((c, idx) => {
     const el = cardEl(c);
+    const preview = myTurn ? peggingPreview(c, st) : null;
+    el.dataset.cardId = c.id;
+    el.style.setProperty('--fan-rot', `${(idx - mid) * 5}deg`);
+    el.style.setProperty('--fan-y', `${Math.abs(idx - mid) * 3}px`);
+    el.style.zIndex = String(20 + idx);
+    addInfoButton(el, cardLabel(c), cardInfo(c, st, preview));
     if (tarotMode) {
       el.classList.add('clickable');
       const pos = tarotMode.targets.indexOf(c.id);
@@ -787,6 +828,8 @@ function renderHand(st) {
       el.onclick = () => toggleTarotTarget(c.id);
     } else if (you.canDiscard) {
       el.classList.add('clickable');
+      el.draggable = true;
+      el.addEventListener('dragstart', e => startCardDrag(e, c.id));
       if (selected.includes(c.id)) el.classList.add('selected');
       el.onclick = () => {
         const i = selected.indexOf(c.id);
@@ -798,16 +841,26 @@ function renderHand(st) {
       const legal = st.pegCount + Math.min(c.rank, 10) <= 31;
       if (legal) {
         el.classList.add('clickable');
+        el.draggable = true;
+        el.addEventListener('dragstart', e => startCardDrag(e, c.id));
+        if (raisedCardId === c.id) el.classList.add('raised');
+        if (preview && preview.points > 0) {
+          el.classList.add('scores');
+          el.insertAdjacentHTML('beforeend', `<span class="scoretag">+${preview.points}</span>`);
+        }
         el.onclick = () => {
-          pendingFly = { cardId: c.id, rect: el.getBoundingClientRect() };
-          sendMsg({ t: 'playCard', card: c.id });
+          if (raisedCardId === c.id) playHandCard(c.id);
+          else {
+            raisedCardId = c.id;
+            renderGame(lastState);
+          }
         };
       } else {
         el.classList.add('dim');
       }
     }
     handEl.appendChild(el);
-  }
+  });
 
   const prompt = $('prompt');
   const btn = $('actionBtn');
@@ -848,6 +901,109 @@ function renderHand(st) {
       prompt.textContent = 'Waiting for your turn…';
     }
   }
+}
+
+function setupCardDropTargets(st) {
+  const clear = el => {
+    el.ondragover = null;
+    el.ondragleave = null;
+    el.ondrop = null;
+    el.classList.remove('drop-ready');
+  };
+  const crib = $('cribPile');
+  const peg = $('pegArea');
+  const stack = $('pegStack');
+  [crib, peg, stack].forEach(clear);
+
+  if (st.you.canDiscard) {
+    setupDropTarget(crib, cardId => dropHandCard(cardId));
+  }
+  if (st.phase === 'pegging' && st.turnSeat === st.mySeat) {
+    setupDropTarget(peg, cardId => playHandCard(cardId));
+    setupDropTarget(stack, cardId => playHandCard(cardId));
+  }
+}
+
+function setupDropTarget(el, onDrop) {
+  el.ondragover = e => {
+    e.preventDefault();
+    el.classList.add('drop-ready');
+  };
+  el.ondragleave = () => el.classList.remove('drop-ready');
+  el.ondrop = e => {
+    e.preventDefault();
+    el.classList.remove('drop-ready');
+    const cardId = e.dataTransfer.getData('text/plain');
+    if (cardId) onDrop(cardId);
+  };
+}
+
+function startCardDrag(e, cardId) {
+  e.dataTransfer.effectAllowed = 'move';
+  e.dataTransfer.setData('text/plain', cardId);
+}
+
+function dropHandCard(cardId) {
+  const st = lastState;
+  if (!st || !st.you.canDiscard) return;
+  if (!selected.includes(cardId)) selected.push(cardId);
+  selected = selected.slice(-st.discardCount);
+  if (selected.length === st.discardCount) {
+    sendMsg({ t: 'discard', cards: selected });
+    selected = [];
+  } else {
+    renderGame(st);
+  }
+}
+
+function playHandCard(cardId) {
+  const st = lastState;
+  const card = st && st.you.hand.find(c => c.id === cardId);
+  if (!st || !card || st.phase !== 'pegging' || st.turnSeat !== st.mySeat) return;
+  if (st.pegCount + cardValue(card.rank) > 31) return;
+  const el = [...document.querySelectorAll('#hand .card')].find(card => card.dataset.cardId === cardId);
+  pendingFly = { cardId, rect: el ? el.getBoundingClientRect() : null };
+  raisedCardId = null;
+  sendMsg({ t: 'playCard', card: cardId });
+}
+
+function peggingPreview(card, st) {
+  const count = st.pegCount + cardValue(card.rank);
+  if (count > 31) return { legal: false, points: 0, events: [] };
+  const events = pegEvents(st.pegStack.concat([card]), count);
+  return {
+    legal: true,
+    points: events.reduce((sum, e) => sum + e.pts, 0),
+    events,
+  };
+}
+
+function cardLabel(card) {
+  return `${RANK_NAMES[card.rank]}${SUIT_CHARS[card.suit]}`;
+}
+
+function cardInfo(card, st, preview) {
+  const value = cardValue(card.rank);
+  const bits = [`<p>${cardLabel(card)} counts as ${value} while pegging.</p>`];
+  if (st.phase === 'discard' && st.you.canDiscard) bits.push('<p>Discard phase: select it or drag it to the crib pile.</p>');
+  if (st.phase === 'pegging') {
+    if (preview && preview.legal) {
+      const events = preview.events.map(e => e.type === 'thirtyone' ? '31' : e.type).join(', ');
+      bits.push(`<p>Pegging now: playing it makes the count ${st.pegCount + value}${preview.points ? ` and scores ${preview.points} (${events})` : ' with no immediate points'}.</p>`);
+    } else {
+      bits.push('<p>Pegging now: this card would push the count over 31, so it cannot be played.</p>');
+    }
+  }
+  return bits.join('');
+}
+
+function shopInfo(item) {
+  const when = item.kind === 'joker'
+    ? 'Jokers are passive. Buy one and it works automatically from your joker row.'
+    : item.kind === 'tarot'
+      ? 'Tarots are consumables. Buy one, then use it before you discard on a later deal.'
+      : 'Packs open immediately. Pick one reward from the choices, or skip.';
+  return `<p>${esc(item.desc)}</p><p>${when}</p><p>Cost: ${item.cost} coins.</p>`;
 }
 
 function dealerName(st) {
@@ -1041,6 +1197,7 @@ function renderShop(oc, st) {
     return;
   }
   if (you.pendingPack) return renderPackOpen(oc, st);
+  if (!you.shopOffer || !you.shopOffer[selectedShopIdx] || you.shopOffer[selectedShopIdx].sold) selectedShopIdx = -1;
 
   oc.innerHTML = `<h2>Shop</h2><div class="row spread"><span class="shop-coins">🪙 ${you.coins}</span>` +
     `<span style="opacity:.7;font-size:13px">Jokers ${you.jokers.length}/5 · Tarots ${you.tarots.length}/2 · Deck ${you.deck.length}</span></div>`;
@@ -1048,17 +1205,35 @@ function renderShop(oc, st) {
   grid.className = 'shop-grid';
   (you.shopOffer || []).forEach((item, idx) => {
     const div = document.createElement('div');
-    div.className = `shop-item ${item.kind}` + (item.sold ? ' sold' : '') + (item.kind === 'pack' ? ' shiny' : '');
+    div.className = `shop-item ${item.kind}` + (item.sold ? ' sold' : '') +
+      (item.kind === 'pack' ? ' shiny' : '') + (selectedShopIdx === idx ? ' selected' : '');
     const icon = item.kind === 'joker' ? JOKER_ICONS[item.id]
       : item.kind === 'tarot' ? TAROT_ICONS[item.id]
       : PACK_ICONS[item.id];
     div.innerHTML = `<div class="si-icon">${icon || ''}</div><div class="si-name">${esc(item.name)}</div>` +
       `<div class="si-desc">${esc(item.desc)}</div>`;
+    addInfoButton(div, item.name, shopInfo(item));
     const btn = document.createElement('button');
     btn.className = 'btn small primary';
     btn.textContent = item.sold ? (item.kind === 'pack' ? 'Opened' : 'Sold') : `Buy 🪙${item.cost}`;
     btn.disabled = item.sold || you.coins < item.cost || you.ready;
-    btn.onclick = () => sendMsg({ t: 'buy', idx });
+    const buy = () => {
+      if (item.sold || you.coins < item.cost || you.ready) return;
+      sendMsg({ t: 'buy', idx });
+      selectedShopIdx = -1;
+    };
+    btn.onclick = e => {
+      e.stopPropagation();
+      buy();
+    };
+    div.onclick = () => {
+      if (item.sold || you.coins < item.cost || you.ready) return;
+      if (selectedShopIdx === idx) buy();
+      else {
+        selectedShopIdx = idx;
+        renderGame(lastState);
+      }
+    };
     div.appendChild(btn);
     grid.appendChild(div);
   });
@@ -1093,10 +1268,17 @@ function renderPackOpen(oc, st) {
       div.innerHTML = `<div class="si-icon">${icon}</div><div class="si-name">${esc(opt.name)}</div>` +
         `<div class="si-desc">${esc(opt.desc)}</div>`;
     }
+    addInfoButton(div, opt.name || cardLabel(opt), opt.kind === 'card'
+      ? `<p>Adds this exact ${cardLabel(opt)} to your permanent deck.</p>`
+      : `<p>${esc(opt.desc)}</p><p>${opt.kind === 'joker' ? 'Passive once taken.' : 'Consumable before discard once taken.'}</p>`);
     const btn = document.createElement('button');
     btn.className = 'btn small primary';
     btn.textContent = 'Take';
-    btn.onclick = () => sendMsg({ t: 'pickPack', idx });
+    btn.onclick = e => {
+      e.stopPropagation();
+      sendMsg({ t: 'pickPack', idx });
+    };
+    div.onclick = () => sendMsg({ t: 'pickPack', idx });
     div.appendChild(btn);
     grid.appendChild(div);
   });

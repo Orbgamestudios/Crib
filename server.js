@@ -232,6 +232,9 @@ function handleMessage(ws, msg) {
     case 'ready':
       if (gp) fail(ws, game.setReady(gp));
       break;
+    case 'reorderJokers':
+      if (gp) fail(ws, game.reorderJokers(gp, msg.order));
+      break;
     case 'backToLobby':
       leaveRoom(ws);
       send(ws, { t: 'left', rooms: openRooms() });

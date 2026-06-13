@@ -174,6 +174,7 @@ export class HostSession {
       case 'reroll': if (gp) this.fail(conn, game.reroll(gp)); break;
       case 'pickPack': if (gp) this.fail(conn, game.pickPack(gp, msg.idx)); break;
       case 'ready': if (gp) this.fail(conn, game.setReady(gp)); break;
+      case 'reorderJokers': if (gp) this.fail(conn, game.reorderJokers(gp, msg.order)); break;
       case 'sync': this.broadcastRoom(); break;
       case 'leaveRoom':
       case 'backToLobby':

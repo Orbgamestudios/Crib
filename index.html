@@ -12,7 +12,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Crib">
-<link rel="stylesheet" href="style.css?v=12">
+<link rel="stylesheet" href="style.css?v=13">
 <script src="https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js" defer></script>
 <script src="https://unpkg.com/mqtt/dist/mqtt.min.js" defer></script>
 </head>
@@ -143,9 +143,19 @@
   </div>
 </div>
 
+<div id="infoOverlay" class="hidden">
+  <div id="infoPanel" class="panel">
+    <div class="row spread">
+      <h2 id="infoTitle"></h2>
+      <button id="infoClose" class="btn small">×</button>
+    </div>
+    <div id="infoBody"></div>
+  </div>
+</div>
+
 <div id="fx"></div>
 <div id="toast" class="hidden"></div>
 
-<script type="module" src="client.js?v=16"></script>
+<script type="module" src="client.js?v=18"></script>
 </body>
 </html>
