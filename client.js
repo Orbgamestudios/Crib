@@ -40,6 +40,7 @@ let revealKey = '';
 let deckOpen = false;     // deck viewer overlay
 let raisedCardId = null;
 let selectedShopIdx = -1;
+let pointerCardDrag = null;
 
 // Joker drag state
 let dragJokerIdx = -1;
@@ -342,6 +343,23 @@ function addInfoButton(el, title, body) {
   };
   el.appendChild(btn);
   return btn;
+}
+
+function showItemInfo(kind, def, action) {
+  const timing = kind === 'joker'
+    ? 'Jokers are passive. They trigger automatically whenever their condition is met.'
+    : 'Tarots are one-shot cards. Use them before you discard, then pick the required target card(s).';
+  showInfo(def.name, `<p>${esc(def.desc)}</p><p>${timing}</p>`);
+  if (action) {
+    const btn = document.createElement('button');
+    btn.className = 'btn primary';
+    btn.textContent = `Use ${def.name}`;
+    btn.onclick = () => {
+      $('infoOverlay').classList.add('hidden');
+      action();
+    };
+    $('infoBody').appendChild(btn);
+  }
 }
 
 // ---- lobby ----
@@ -679,10 +697,6 @@ function jtile(kind, def, opts = {}) {
   const icon = (kind === 'joker' ? JOKER_ICONS : TAROT_ICONS)[def.id] || '';
   d.innerHTML = `<span class="jt-icon">${icon}</span><span class="jt-name">${esc(def.name)}</span>` +
     `<div class="tip">${esc(def.desc)}${opts.tipExtra || ''}</div>`;
-  const timing = kind === 'joker'
-    ? 'Jokers are passive. They trigger automatically whenever their condition is met.'
-    : 'Tarots are one-shot cards. Use them before you discard, then pick the required target card(s).';
-  addInfoButton(d, def.name, `<p>${esc(def.desc)}</p><p>${timing}</p>`);
   return d;
 }
 
@@ -722,6 +736,7 @@ function renderJokerSlots(st) {
       tile.draggable = true;
       tile.addEventListener('dragstart', (e) => {
         dragJokerIdx = i;
+        tile.dataset.dragged = '1';
         tile.classList.add('dragging');
         e.dataTransfer.effectAllowed = 'move';
         e.dataTransfer.setData('text/plain', String(i));
@@ -731,10 +746,13 @@ function renderJokerSlots(st) {
         dragJokerIdx = -1;
         // Clear all drag-over highlights
         slots.forEach(s => s.classList.remove('drag-over'));
+        setTimeout(() => { tile.dataset.dragged = ''; }, 150);
       });
 
-      // Touch-based drag info
-      if (TOUCH) tile.onclick = () => toast(`${j.name}: ${j.desc}`);
+      tile.onclick = () => {
+        if (tile.dataset.dragged === '1') return;
+        showItemInfo('joker', j);
+      };
 
       slot.appendChild(tile);
     } else {
@@ -788,8 +806,7 @@ function renderTarotSlots(st) {
       const tile = jtile('tarot', t, {
         tipExtra: you.canDiscard ? '<br><i>Click to use</i>' : '<br><i>Usable before you discard</i>',
       });
-      if (you.canDiscard) tile.onclick = () => startTarot(i, t);
-      else if (TOUCH) tile.onclick = () => toast(`${t.name}: ${t.desc} (usable before you discard)`);
+      tile.onclick = () => showItemInfo('tarot', t, you.canDiscard ? () => startTarot(i, t) : null);
       slot.appendChild(tile);
     } else {
       slot.classList.add('empty');
@@ -817,7 +834,6 @@ function renderHand(st) {
     el.style.setProperty('--fan-rot', `${(idx - mid) * 5}deg`);
     el.style.setProperty('--fan-y', `${Math.abs(idx - mid) * 3}px`);
     el.style.zIndex = String(20 + idx);
-    addInfoButton(el, cardLabel(c), cardInfo(c, st, preview));
     if (tarotMode) {
       el.classList.add('clickable');
       const pos = tarotMode.targets.indexOf(c.id);
@@ -828,10 +844,13 @@ function renderHand(st) {
       el.onclick = () => toggleTarotTarget(c.id);
     } else if (you.canDiscard) {
       el.classList.add('clickable');
-      el.draggable = true;
-      el.addEventListener('dragstart', e => startCardDrag(e, c.id));
+      addPointerCardDrag(el, c.id);
       if (selected.includes(c.id)) el.classList.add('selected');
       el.onclick = () => {
+        if (el.dataset.dragged === '1') {
+          el.dataset.dragged = '';
+          return;
+        }
         const i = selected.indexOf(c.id);
         if (i >= 0) selected.splice(i, 1);
         else if (selected.length < st.discardCount) selected.push(c.id);
@@ -841,14 +860,17 @@ function renderHand(st) {
       const legal = st.pegCount + Math.min(c.rank, 10) <= 31;
       if (legal) {
         el.classList.add('clickable');
-        el.draggable = true;
-        el.addEventListener('dragstart', e => startCardDrag(e, c.id));
+        addPointerCardDrag(el, c.id);
         if (raisedCardId === c.id) el.classList.add('raised');
         if (preview && preview.points > 0) {
           el.classList.add('scores');
           el.insertAdjacentHTML('beforeend', `<span class="scoretag">+${preview.points}</span>`);
         }
         el.onclick = () => {
+          if (el.dataset.dragged === '1') {
+            el.dataset.dragged = '';
+            return;
+          }
           if (raisedCardId === c.id) playHandCard(c.id);
           else {
             raisedCardId = c.id;
@@ -938,9 +960,79 @@ function setupDropTarget(el, onDrop) {
   };
 }
 
-function startCardDrag(e, cardId) {
-  e.dataTransfer.effectAllowed = 'move';
-  e.dataTransfer.setData('text/plain', cardId);
+function addPointerCardDrag(el, cardId) {
+  el.onpointerdown = e => {
+    if (e.button && e.button !== 0) return;
+    pointerCardDrag = {
+      cardId,
+      el,
+      startX: e.clientX,
+      startY: e.clientY,
+      x: e.clientX,
+      y: e.clientY,
+      dragging: false,
+      ghost: null,
+    };
+    el.setPointerCapture(e.pointerId);
+  };
+  el.onpointermove = e => {
+    if (!pointerCardDrag || pointerCardDrag.el !== el) return;
+    pointerCardDrag.x = e.clientX;
+    pointerCardDrag.y = e.clientY;
+    const dx = e.clientX - pointerCardDrag.startX;
+    const dy = e.clientY - pointerCardDrag.startY;
+    if (!pointerCardDrag.dragging && Math.hypot(dx, dy) > 8) {
+      pointerCardDrag.dragging = true;
+      pointerCardDrag.ghost = el.cloneNode(true);
+      pointerCardDrag.ghost.classList.add('drag-ghost');
+      pointerCardDrag.ghost.style.width = `${el.offsetWidth}px`;
+      pointerCardDrag.ghost.style.height = `${el.offsetHeight}px`;
+      document.body.appendChild(pointerCardDrag.ghost);
+      el.classList.add('drag-source');
+    }
+    if (pointerCardDrag.dragging) {
+      e.preventDefault();
+      movePointerGhost(pointerCardDrag);
+      highlightPointerDropTarget(e.clientX, e.clientY);
+    }
+  };
+  el.onpointerup = e => finishPointerCardDrag(e, el);
+  el.onpointercancel = e => finishPointerCardDrag(e, el);
+}
+
+function movePointerGhost(drag) {
+  drag.ghost.style.left = `${drag.x}px`;
+  drag.ghost.style.top = `${drag.y}px`;
+}
+
+function highlightPointerDropTarget(x, y) {
+  for (const el of [$('cribPile'), $('pegArea'), $('pegStack')]) el.classList.remove('drop-ready');
+  const target = cardDropTargetAt(x, y);
+  if (target) target.classList.add('drop-ready');
+}
+
+function finishPointerCardDrag(e, el) {
+  if (!pointerCardDrag || pointerCardDrag.el !== el) return;
+  const drag = pointerCardDrag;
+  pointerCardDrag = null;
+  try { el.releasePointerCapture(e.pointerId); } catch { /* not captured */ }
+  for (const drop of [$('cribPile'), $('pegArea'), $('pegStack')]) drop.classList.remove('drop-ready');
+  if (drag.ghost) drag.ghost.remove();
+  el.classList.remove('drag-source');
+  if (!drag.dragging) return;
+  el.dataset.dragged = '1';
+  const target = cardDropTargetAt(e.clientX, e.clientY);
+  if (!target) return;
+  if (target.id === 'cribPile') dropHandCard(drag.cardId);
+  else playHandCard(drag.cardId);
+}
+
+function cardDropTargetAt(x, y) {
+  const targets = [$('cribPile'), $('pegStack'), $('pegArea')];
+  return targets.find(el => {
+    const r = el.getBoundingClientRect();
+    return x >= r.left && x <= r.right && y >= r.top && y <= r.bottom && !!el.ondrop;
+  });
 }
 
 function dropHandCard(cardId) {

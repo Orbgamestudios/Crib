@@ -176,7 +176,7 @@ body.my-turn #bgRush { opacity: 0.55; animation-play-state: running; }
 }
 .card.small { width: 32px; height: 44px; font-size: 11px; padding: 2px 3px; }
 .card.small .suit { font-size: 12px; }
-.card.clickable { cursor: pointer; }
+.card.clickable { cursor: pointer; touch-action: none; }
 .card.clickable:hover {
   transform: translateY(calc(var(--fan-y, 0px) - 10px)) rotate(var(--fan-rot, 0deg));
   animation: wobble 1.8s ease-in-out infinite;
@@ -363,7 +363,7 @@ body.my-turn #bgRush { opacity: 0.55; animation-play-state: running; }
 /* ---- bottom bar ---- */
 #bottombar {
   display: flex; gap: 12px; padding: 8px 12px 10px; background: #00000055;
-  align-items: stretch; height: 190px; flex-shrink: 0;
+  align-items: stretch; height: 205px; flex-shrink: 0;
   padding-bottom: calc(10px + env(safe-area-inset-bottom));
 }
 #myInfo { width: 110px; font-size: 14px; display: flex; flex-direction: column; justify-content: center; flex-shrink: 0; }
@@ -375,10 +375,10 @@ body.my-turn #bgRush { opacity: 0.55; animation-play-state: running; }
 #myCards { flex: 1; text-align: center; display: flex; flex-direction: column; justify-content: flex-end; }
 #hand {
   display: flex; justify-content: center; gap: 0;
-  height: 84px; align-items: flex-end;
+  height: 98px; align-items: flex-end;
 }
-#hand .card { width: 56px; height: 78px; font-size: 18px; margin: 0 -2px; }
-#hand .card .suit { font-size: 21px; }
+#hand .card { width: 64px; height: 90px; font-size: 20px; margin: 0 -3px; }
+#hand .card .suit { font-size: 23px; }
 #actionRow { min-height: 36px; margin-bottom: 6px; display: flex; justify-content: center; gap: 10px; align-items: center; flex-wrap: wrap; flex-shrink: 0; }
 #prompt { font-size: 14px; opacity: 0.85; }
 
@@ -422,6 +422,12 @@ body.my-turn #bgRush { opacity: 0.55; animation-play-state: running; }
 #cribPile.drop-ready, #pegArea.drop-ready, #pegStack.drop-ready {
   outline: 3px solid #61e88f;
   box-shadow: 0 0 18px #61e88f88;
+}
+.card.drag-source { opacity: 0.35; }
+.card.drag-ghost {
+  position: fixed; transform: translate(-50%, -50%) scale(1.05) rotate(var(--fan-rot, 0deg));
+  pointer-events: none; z-index: 200; opacity: 0.95;
+  box-shadow: 0 16px 26px #000000aa;
 }
 
 .jslot .jtile, .tslot .jtile {
@@ -598,9 +604,9 @@ body.my-turn #bgRush { opacity: 0.55; animation-play-state: running; }
   #blindProgress { margin-bottom: 4px; }
   #blindBarOuter { height: 20px; }
   #blindBarLabel { font-size: 11px; }
-  #hand .card { width: 42px; height: 58px; font-size: 14px; }
-  #hand .card .suit { font-size: 15px; }
-  #hand { gap: 2px; height: 64px; }
+  #hand .card { width: 48px; height: 67px; font-size: 15px; margin: 0 -4px; }
+  #hand .card .suit { font-size: 17px; }
+  #hand { gap: 0; height: 76px; }
   #actionRow { min-height: 44px; margin-bottom: 4px; }
   #pegCount { font-size: 24px; min-width: 40px; }
 
