@@ -2,7 +2,12 @@
 const G = '#e8c35a', R = '#d6453a', C = '#f4ead8', D = '#1c2730', P = '#b48be0', BL = '#2f3d4a';
 
 function svg(inner) {
-  return `<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">${inner}</svg>`;
+  return `<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">` +
+    `<defs><radialGradient id="aura" cx="50%" cy="28%" r="68%"><stop offset="0" stop-color="#fff4b8" stop-opacity=".55"/><stop offset=".55" stop-color="#6a4b86" stop-opacity=".18"/><stop offset="1" stop-color="#111820" stop-opacity=".18"/></radialGradient></defs>` +
+    `<rect x="2.5" y="2.5" width="43" height="43" rx="8" fill="url(#aura)" stroke="#ffffff28" stroke-width="1"/>` +
+    `<path d="M8 38c8-4 24-4 32 0" fill="none" stroke="#ffffff20" stroke-width="2" stroke-linecap="round"/>` +
+    inner +
+    `</svg>`;
 }
 const card = (x, y, rot, fill = C) =>
   `<g transform="rotate(${rot} ${x + 8} ${y + 11})"><rect x="${x}" y="${y}" width="16" height="22" rx="2.5" fill="${fill}" stroke="${D}" stroke-width="1.4"/></g>`;

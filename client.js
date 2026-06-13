@@ -1,4 +1,4 @@
-import { JOKER_ICONS, TAROT_ICONS, PACK_ICONS } from './icons.js';
+import { JOKER_ICONS, TAROT_ICONS, PACK_ICONS } from './icons.js?v=2';
 import { cardValue } from './lib/cards.js';
 import { pegEvents } from './lib/scoring.js';
 
@@ -41,6 +41,7 @@ let deckOpen = false;     // deck viewer overlay
 let raisedCardId = null;
 let selectedShopIdx = -1;
 let pointerCardDrag = null;
+let lastCoinPopKey = '';
 
 // Joker drag state
 let dragJokerIdx = -1;
@@ -628,40 +629,11 @@ function renderSeats(st) {
     seat.style.left = x + '%';
     seat.style.top = y + '%';
 
-    const badges = [];
-    if (!p.active) {
-      badges.push(`☠ out round ${p.eliminatedRound}`);
-    } else {
-      badges.push(`🎯${p.roundScore}/${st.blind}`);
-      if (p.jokers.length) badges.push(`🃏${p.jokers.length}`);
-      if (p.tarotCount) badges.push(`🔮${p.tarotCount}`);
-      badges.push(`🪙${p.coins}`);
-      if (st.phase === 'discard') badges.push(p.discarded ? '✓' : '…');
-      if ((st.phase === 'scoring' || st.phase === 'shop' || st.phase === 'roundEnd') && p.ready) badges.push('✓');
-    }
-
     const plaque = document.createElement('div');
     plaque.className = 'plaque';
     plaque.innerHTML =
-      `<span class="nm">${esc(p.name)}${p.isBot ? ' 🤖' : ''}</span> ${p.isDealer && p.active ? '<span class="dealer-chip">D</span>' : ''}` +
-      ` <span class="sc">${p.score}</span><div class="badges">${badges.join(' ')}</div>`;
-    if (p.jokers.length) {
-      plaque.title = 'Jokers: ' + p.jokers.join(', ');
-      if (TOUCH) plaque.onclick = () => toast(`${p.name}'s jokers: ${p.jokers.join(', ')}`);
-    }
+      `<span class="nm">${esc(p.name)}${p.isBot ? ' 🤖' : ''}</span> ${p.isDealer && p.active ? '<span class="dealer-chip">D</span>' : ''}`;
     seat.appendChild(plaque);
-
-    const backs = document.createElement('div');
-    backs.className = 'backs';
-    for (let c = 0; c < p.handCount; c++) backs.appendChild(backEl(true));
-    seat.appendChild(backs);
-
-    if (p.played && p.played.length) {
-      const played = document.createElement('div');
-      played.className = 'played';
-      for (const c of p.played) played.appendChild(cardEl(c, { small: true }));
-      seat.appendChild(played);
-    }
     el.appendChild(seat);
   });
 }
@@ -706,12 +678,29 @@ function renderMyArea(st) {
   $('myName').innerHTML = `${esc(me.name)} ${me.isDealer && me.active ? '<span class="dealer-chip">D</span>' : ''}`;
   $('myScore').textContent = `${you.score} pts`;
   $('myCoins').textContent = `🪙 ${you.coins}`;
+  const coinKey = `${st.dealNumber}:${st.phase}:${you.coins}`;
+  if (prevState && prevState.you && you.coins > prevState.you.coins && coinKey !== lastCoinPopKey) {
+    lastCoinPopKey = coinKey;
+    showCoinGain(you.coins - prevState.you.coins);
+  }
   $('deckBtn').textContent = `🂠 ${you.deck.length}`;
 
   renderJokerSlots(st);
   renderTarotSlots(st);
   renderHand(st);
   if (deckOpen) renderDeckOverlay(st);
+}
+
+function showCoinGain(amount) {
+  const target = $('myCoins').getBoundingClientRect();
+  const pop = document.createElement('div');
+  pop.className = 'coin-pop';
+  pop.textContent = `+${amount} 🪙`;
+  pop.style.left = `${target.left + target.width / 2}px`;
+  pop.style.top = `${target.top}px`;
+  $('fx').appendChild(pop);
+  setTimeout(() => pop.remove(), 1200);
+  pulse($('myCoins'));
 }
 
 // ---- joker slots (5 fixed, drag-to-reorder) ----
@@ -1094,8 +1083,24 @@ function shopInfo(item) {
     ? 'Jokers are passive. Buy one and it works automatically from your joker row.'
     : item.kind === 'tarot'
       ? 'Tarots are consumables. Buy one, then use it before you discard on a later deal.'
-      : 'Packs open immediately. Pick one reward from the choices, or skip.';
+      : item.kind === 'card'
+        ? 'Playing cards are added permanently to your deck.'
+        : 'Packs open immediately. Pick one reward from the choices, or skip.';
   return `<p>${esc(item.desc)}</p><p>${when}</p><p>Cost: ${item.cost} coins.</p>`;
+}
+
+function shopCardFace(item) {
+  const face = document.createElement('div');
+  face.className = `shop-card-face ${item.kind}`;
+  if (item.kind === 'card') {
+    face.appendChild(cardEl(item));
+    return face;
+  }
+  const icon = item.kind === 'joker' ? JOKER_ICONS[item.id]
+    : item.kind === 'tarot' ? TAROT_ICONS[item.id]
+    : PACK_ICONS[item.id];
+  face.innerHTML = `<div class="shop-art">${icon || ''}</div>`;
+  return face;
 }
 
 function dealerName(st) {
@@ -1294,29 +1299,23 @@ function renderShop(oc, st) {
   oc.innerHTML = `<h2>Shop</h2><div class="row spread"><span class="shop-coins">🪙 ${you.coins}</span>` +
     `<span style="opacity:.7;font-size:13px">Jokers ${you.jokers.length}/5 · Tarots ${you.tarots.length}/2 · Deck ${you.deck.length}</span></div>`;
   const grid = document.createElement('div');
-  grid.className = 'shop-grid';
+  grid.className = 'shop-grid shop-grid-market';
   (you.shopOffer || []).forEach((item, idx) => {
     const div = document.createElement('div');
-    div.className = `shop-item ${item.kind}` + (item.sold ? ' sold' : '') +
-      (item.kind === 'pack' ? ' shiny' : '') + (selectedShopIdx === idx ? ' selected' : '');
-    const icon = item.kind === 'joker' ? JOKER_ICONS[item.id]
-      : item.kind === 'tarot' ? TAROT_ICONS[item.id]
-      : PACK_ICONS[item.id];
-    div.innerHTML = `<div class="si-icon">${icon || ''}</div><div class="si-name">${esc(item.name)}</div>` +
-      `<div class="si-desc">${esc(item.desc)}</div>`;
-    addInfoButton(div, item.name, shopInfo(item));
-    const btn = document.createElement('button');
-    btn.className = 'btn small primary';
-    btn.textContent = item.sold ? (item.kind === 'pack' ? 'Opened' : 'Sold') : `Buy 🪙${item.cost}`;
-    btn.disabled = item.sold || you.coins < item.cost || you.ready;
+    const selected = selectedShopIdx === idx;
+    div.className = `shop-item shop-card ${item.kind}` + (item.sold ? ' sold' : '') +
+      (item.kind === 'pack' ? ' shiny' : '') + (selected ? ' selected' : '');
+    div.appendChild(shopCardFace(item));
+    div.insertAdjacentHTML('beforeend',
+      `<div class="si-name">${esc(item.name)}</div><div class="shop-price">🪙${item.cost}</div>`);
+    if (selected) {
+      div.insertAdjacentHTML('beforeend',
+        `<div class="shop-detail">${shopInfo(item)}<div class="shop-confirm">Click again to buy</div></div>`);
+    }
     const buy = () => {
       if (item.sold || you.coins < item.cost || you.ready) return;
       sendMsg({ t: 'buy', idx });
       selectedShopIdx = -1;
-    };
-    btn.onclick = e => {
-      e.stopPropagation();
-      buy();
     };
     div.onclick = () => {
       if (item.sold || you.coins < item.cost || you.ready) return;
@@ -1326,7 +1325,6 @@ function renderShop(oc, st) {
         renderGame(lastState);
       }
     };
-    div.appendChild(btn);
     grid.appendChild(div);
   });
   oc.appendChild(grid);
