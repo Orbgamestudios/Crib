@@ -2173,6 +2173,17 @@ $('tutClose').onclick = () => $('tutorialBar').classList.add('hidden');
 
 function tutorialMessage(st) {
   if (!st.you) return null;
+  if (st.phase === 'scoring') {
+    return { key: 'scoring', text: "Scoring reveal - each hand is counted in order, then the dealer's crib scores last. Your deal total is hand Points times your red Mult, and any coins you earn will pop in before the shop." };
+  }
+  if (st.phase === 'roundEnd') {
+    return { key: 'round', text: st.solo
+      ? 'Blind check - your round score is compared to the target blind. Beat it to keep the run alive; The House can score points, but it cannot knock you out.'
+      : 'Blind check - everyone compares their round score to the target blind. Players who cleared it survive and earn bonus coins; anyone short is eliminated.' };
+  }
+  if (st.phase === 'shop') {
+    return { key: 'shop', text: 'Shop - spend coins before the next deal. Tap a card once to enlarge it and read the effect, tap it again to buy; jokers stay passive, tarots are single-use, and packs let you choose one reward.' };
+  }
   if (!st.you.active && st.phase !== 'gameover') {
     return { key: 'spectate', text: "You've busted out — sit back and watch the rest of the table." };
   }
