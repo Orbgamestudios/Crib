@@ -127,6 +127,40 @@ body.my-turn #bgRush { opacity: 0.6; animation-play-state: running; }
 .btn.wide { width: 100%; }
 .btn.ghost { background: transparent; border-color: #ffffff22; opacity: 0.65; }
 .btn:disabled { opacity: 0.4; cursor: default; }
+.ready-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 12px;
+}
+.ready-wait { opacity: 0.7; }
+.ready-dots {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 18px;
+}
+.ready-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #ffffff2b;
+  border: 1px solid #ffffff55;
+  box-shadow: inset 0 1px 2px #00000055;
+}
+.ready-dot.on {
+  background: #59e184;
+  border-color: #b8ffd0;
+  box-shadow: 0 0 8px #59e18488;
+}
+.ready-dot.off {
+  background: #596270;
+  border-color: #87909b;
+  opacity: 0.55;
+}
 #syncBtn { margin-left: 8px; }
 .run-summary { font-size: 17px; line-height: 1.8; margin-bottom: 14px; }
 

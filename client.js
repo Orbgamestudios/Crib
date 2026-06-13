@@ -1849,7 +1849,7 @@ function renderPackOpen(oc, st) {
 
 function appendReadyBtn(oc, st, label) {
   const div = document.createElement('div');
-  div.style.marginTop = '12px';
+  div.className = 'ready-box';
   if (st.you.ready) {
     const waiting = st.players.filter(p => p.active && !p.ready && p.connected).map(p => p.name);
     div.innerHTML = `<span style="opacity:.7">Waiting for ${esc(waiting.join(', ') || '…')}</span>`;
@@ -1860,7 +1860,20 @@ function appendReadyBtn(oc, st, label) {
     btn.onclick = () => sendMsg({ t: 'ready' });
     div.appendChild(btn);
   }
+  div.appendChild(readyDots(st));
   oc.appendChild(div);
+}
+
+function readyDots(st) {
+  const wrap = document.createElement('div');
+  wrap.className = 'ready-dots';
+  for (const p of st.players.filter(p => p.active)) {
+    const dot = document.createElement('span');
+    dot.className = 'ready-dot' + (p.ready ? ' on' : '') + (!p.connected ? ' off' : '');
+    dot.title = `${p.name}: ${p.ready ? 'ready' : p.connected ? 'waiting' : 'offline'}`;
+    wrap.appendChild(dot);
+  }
+  return wrap;
 }
 
 // ---- animations ----
