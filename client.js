@@ -498,6 +498,7 @@ function toast(text) {
   sfx(text && /error|lost|unavailable|failed|invalid|cannot|not enough/i.test(text) ? 'error' : 'toast');
   const t = $('toast');
   t.textContent = text;
+  sanitizeIcons(t);
   t.classList.remove('hidden');
   clearTimeout(t._timer);
   t._timer = setTimeout(() => t.classList.add('hidden'), 3000);
@@ -507,11 +508,18 @@ function showInfo(title, body) {
   $('infoTitle').textContent = title;
   $('infoBody').innerHTML = body;
   $('infoOverlay').classList.remove('hidden');
+  sanitizeIcons($('infoOverlay'));
 }
 
 document.addEventListener('click', e => {
   if (e.target.closest('button, .card, .shop-item, .jtile, .sell-cell, .info-btn')) sfx('click');
 });
+
+$('howToBtn').innerHTML = icon('info', 'How to Play');
+$('soloBtn').innerHTML = icon('bot', 'Play Solo vs The House');
+$('syncBtn').innerHTML = icon('refresh');
+$('deckBtn').innerHTML = icon('deck', 'Deck');
+sanitizeIcons(document.body);
 
 $('infoClose').onclick = () => $('infoOverlay').classList.add('hidden');
 $('infoOverlay').onclick = e => {
@@ -588,6 +596,7 @@ function addLog(text) {
   const div = document.createElement('div');
   if (text.startsWith('---') || text.startsWith('===')) div.className = 'hl';
   div.textContent = text;
+  sanitizeIcons(div);
   log.appendChild(div);
   while (log.children.length > 60) log.removeChild(log.firstChild);
   log.scrollTop = log.scrollHeight;
@@ -767,6 +776,48 @@ function esc(s) {
   return d.innerHTML;
 }
 
+function icon(name, label = '') {
+  return `<span class="ui-icon icon-${name}" aria-hidden="true"></span>${label}`;
+}
+
+function chip(amount = '') {
+  return `<span class="ui-icon icon-chip" aria-hidden="true"></span>${amount}`;
+}
+
+function cleanLabel(label) {
+  return String(label || '').replace(new RegExp(`\\s*${String.fromCodePoint(0x1F0CF)}`, 'gu'), ' [Joker]');
+}
+
+function sanitizeIcons(root = document.body) {
+  const cp = n => String.fromCodePoint(n);
+  const reps = [
+    [cp(0x1FA99), chip()],
+    [cp(0x1F916), icon('bot')],
+    [cp(0x1F3C6), icon('winner')],
+    [cp(0x1F451), icon('crown')],
+    [cp(0x2728), icon('spark')],
+    [cp(0x1F0A0), icon('deck')],
+    [cp(0x24D8), icon('info')],
+    [cp(0x1F504), icon('refresh')],
+    ['⟳', icon('refresh')],
+    [cp(0x1F0CF), icon('joker')],
+    [cp(0x1F52E), icon('tarot')],
+  ];
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  const nodes = [];
+  while (walker.nextNode()) {
+    const n = walker.currentNode;
+    if (reps.some(([token]) => n.nodeValue.includes(token))) nodes.push(n);
+  }
+  for (const node of nodes) {
+    let html = esc(node.nodeValue);
+    for (const [token, replacement] of reps) html = html.split(esc(token)).join(replacement);
+    const frag = document.createElement('span');
+    frag.innerHTML = html;
+    node.replaceWith(...frag.childNodes);
+  }
+}
+
 // ---- waiting room ----
 
 function renderWaiting(msg) {
@@ -817,7 +868,7 @@ function renderGame(st) {
   $('phaseInfo').textContent = phaseLabel(st);
   const turnP = st.players.find(p => p.seat === st.turnSeat);
   $('turnInfo').textContent =
-    st.phase === 'pegging' && turnP ? (turnP.seat === st.mySeat ? '▶ Your turn' : `▶ ${turnP.name}'s turn`) : '';
+    st.phase === 'pegging' && turnP ? (turnP.seat === st.mySeat ? 'Your turn' : `${turnP.name}'s turn`) : '';
 
   const myMove = !!st.you && st.you.active &&
     ((st.phase === 'pegging' && st.turnSeat === st.mySeat) || st.you.canDiscard);
@@ -829,6 +880,7 @@ function renderGame(st) {
   renderMyArea(st);
   renderOverlay(st);
   renderTutorial(st);
+  sanitizeIcons($('game'));
 }
 
 function phaseLabel(st) {
@@ -895,7 +947,11 @@ function renderSeats(st) {
     const plaque = document.createElement('div');
     plaque.className = 'plaque';
     plaque.innerHTML =
-      `<span class="nm">${esc(p.name)}${p.isBot ? ' 🤖' : ''}</span> ${p.isDealer && p.active ? '<span class="dealer-chip">D</span>' : ''}`;
+      `<span class="nm">${esc(p.name)}${p.isBot ? ' ' + icon('bot') : ''}</span> ${p.isDealer && p.active ? '<span class="dealer-chip">D</span>' : ''}`;
+    if (p.isBot) {
+      const nm = plaque.querySelector('.nm');
+      if (nm) nm.innerHTML = `${esc(p.name)} ${icon('bot')}`;
+    }
     seat.appendChild(plaque);
 
     // the backs of their hand (and any cards they've played to the pile)
@@ -958,14 +1014,16 @@ function renderMyArea(st) {
   const myMult = $('myMult');
   myMult.innerHTML = `<span>Mult</span><b>x${mult}</b>`;
   myMult.classList.toggle('boosted', mult > 1);
-  $('myCoins').textContent = `🪙 ${you.coins}`;
+  $('myCoins').innerHTML = chip(you.coins);
+  $('myCoins').innerHTML = chip(you.coins);
   const coinKey = `${st.dealNumber}:${st.phase}:${you.coins}`;
   if (prevState && prevState.you && you.coins > prevState.you.coins && coinKey !== lastCoinPopKey) {
     lastCoinPopKey = coinKey;
     showCoinGain(you.coins - prevState.you.coins);
   }
-  $('deckBtn').textContent = `🂠 ${you.deck.length}`;
+  $('deckBtn').innerHTML = icon('deck', you.deck.length);
 
+  $('deckBtn').innerHTML = icon('deck', you.deck.length);
   renderJokerSlots(st);
   renderTarotSlots(st);
   renderHand(st);
@@ -993,7 +1051,8 @@ function showCoinGain(amount) {
   const target = $('myCoins').getBoundingClientRect();
   const pop = document.createElement('div');
   pop.className = 'coin-pop';
-  pop.textContent = `+${amount} 🪙`;
+  pop.innerHTML = `+${chip(amount)}`;
+  pop.innerHTML = `+${chip(amount)}`;
   pop.style.left = `${target.left + target.width / 2}px`;
   pop.style.top = `${target.top}px`;
   $('fx').appendChild(pop);
@@ -1542,7 +1601,7 @@ function renderGameover(oc, st) {
   } else {
     oc.innerHTML = '<h2>Final Standings</h2>';
     (st.standings || []).forEach((s, i) => {
-      const tag = s.eliminatedRound === null ? '🏆 winner' : `out round ${s.eliminatedRound}`;
+      const tag = s.eliminatedRound === null ? `${icon('winner')} winner` : `out round ${s.eliminatedRound}`;
       oc.insertAdjacentHTML('beforeend',
         `<div class="standing${i === 0 ? ' winner' : ''}"><span>${i + 1}. ${esc(s.name)}</span>` +
         `<span class="standing-tag">${tag}</span><span>${s.score} pts</span></div>`);
@@ -1603,7 +1662,7 @@ function renderScoring(oc, st) {
 
   if (done) {
     oc.insertAdjacentHTML('beforeend',
-      `<div style="margin:8px 0">You earned <b style="color:#ffd76e">🪙 ${st.you.coinGain}</b> this deal.</div>`);
+      `<div style="margin:8px 0">You earned <b style="color:#ffd76e">${chip(st.you.coinGain)}</b> this deal.</div>`);
     const last = st.dealIndexInRound >= st.dealsInRound;
     if (st.you.active) appendReadyBtn(oc, st, last ? 'Blind Check' : 'To the Shop');
   } else {
@@ -1616,7 +1675,7 @@ function scoreBlock(r, st, fresh) {
   const div = document.createElement('div');
   div.className = 'score-block' + (fresh ? ' reveal' : '');
   const title = r.kind === 'crib'
-    ? `👑 ${esc(r.name)} — Crib`
+    ? `${icon('crown')} ${esc(r.name)} — Crib`
     : esc(r.name) + (r.seat === st.mySeat ? ' (you)' : '');
   div.innerHTML = `<div class="sb-head"><span>${title}</span></div>`;
 
@@ -1641,10 +1700,11 @@ function scoreBlock(r, st, fresh) {
   // chip lines
   r.lines.forEach((line, i) => {
     const lineEl = document.createElement('div');
-    const isJoker = typeof line.label === 'string' && line.label.indexOf('🃏') >= 0;
+    const lineLabel = cleanLabel(line.label);
+    const isJoker = lineLabel.includes('[Joker]');
     lineEl.className = 'sb-line' + (fresh ? ' anim' : '') + (isJoker ? ' joker-line' : '');
     if (fresh) lineEl.style.animationDelay = (250 + i * 130) + 'ms';
-    lineEl.innerHTML = `<span>${esc(line.label)}</span><span>${line.pts == null ? '' : '+' + line.pts}</span>`;
+    lineEl.innerHTML = `<span>${esc(lineLabel)}</span><span>${line.pts == null ? '' : '+' + line.pts}</span>`;
     div.appendChild(lineEl);
   });
   if (!r.lines.length) {
@@ -1687,7 +1747,7 @@ function renderRoundEnd(oc, st) {
   }
   for (const row of d.rows) {
     const pct = Math.min(100, Math.round(100 * row.roundScore / d.blind));
-    const bonus = row.bonusCoins > 0 ? ` +${row.bonusCoins}🪙` : '';
+    const bonus = row.bonusCoins > 0 ? ` +${chip(row.bonusCoins)}` : '';
     const place = row.passed && row.place ? `<span class="br-place">#${row.place}</span> ` : '';
     oc.insertAdjacentHTML('beforeend',
       `<div class="blind-row${row.passed ? '' : ' failed'}">` +
@@ -1716,7 +1776,7 @@ function renderShop(oc, st) {
   }
   if (you.pendingPack) return renderPackOpen(oc, st);
 
-  oc.innerHTML = `<h2>Shop</h2><div class="row spread"><span class="shop-coins">🪙 ${you.coins}</span>` +
+  oc.innerHTML = `<h2>Shop</h2><div class="row spread"><span class="shop-coins">${chip(you.coins)}</span>` +
     `<span style="opacity:.7;font-size:13px">Jokers ${you.jokers.length}/5 · Tarots ${you.tarots.length}/2 · Deck ${you.deck.length}</span></div>`;
   const grid = document.createElement('div');
   grid.className = 'shop-grid shop-grid-market';
@@ -1728,7 +1788,7 @@ function renderShop(oc, st) {
     div.insertAdjacentHTML('beforeend',
       `<div class="si-name">${esc(item.name)}</div>` +
       (item.rarity && item.rarity !== 'common' ? `<div class="rar-pill ${item.rarity}">${item.rarity}</div>` : '') +
-      `<div class="shop-price">🪙${item.cost}</div>`);
+      `<div class="shop-price">${chip(item.cost)}</div>`);
     addInfoButton(div, shopKindTitle(item.kind), shopKindHelp(item.kind));
     div.onclick = () => {
       if (item.sold || you.ready) return;
@@ -1762,7 +1822,7 @@ function renderShop(oc, st) {
   row.className = 'row';
   const reroll = document.createElement('button');
   reroll.className = 'btn';
-  reroll.textContent = 'Reroll 🪙2';
+  reroll.innerHTML = `Reroll ${chip(2)}`;
   reroll.disabled = you.coins < 2 || you.ready;
   reroll.onclick = () => sendMsg({ t: 'reroll' });
   row.appendChild(reroll);
@@ -1788,14 +1848,15 @@ function openShopFocus(item, idx, you) {
   buy.className = 'btn primary focus-buy';
   buy.textContent = item.sold ? 'Sold'
     : you.ready ? 'Locked in'
-    : you.coins < item.cost ? `Need 🪙${item.cost}`
-    : `Buy · 🪙${item.cost}`;
+    : you.coins < item.cost ? `Need ${chip(item.cost)}`
+    : `Buy · ${chip(item.cost)}`;
   buy.disabled = !canAfford;
   buy.onclick = e => { e.stopPropagation(); sendMsg({ t: 'buy', idx }); closeFocus(); };
   card.appendChild(buy);
 
   wrap.appendChild(card);
   document.body.appendChild(wrap);
+  sanitizeIcons(wrap);
   requestAnimationFrame(() => fitText(card.querySelector('.focus-desc')));
 }
 
@@ -1837,6 +1898,7 @@ function openOwnedFocus(kind, def, idx, st, targetMode = false) {
 
   wrap.appendChild(card);
   document.body.appendChild(wrap);
+  sanitizeIcons(wrap);
   requestAnimationFrame(() => fitText(card.querySelector('.focus-desc')));
 }
 
@@ -1861,7 +1923,7 @@ function addOwnedActions(card, kind, def, idx, st) {
     const refund = Math.max(1, Math.floor((def.cost || 2) / 2));
     const sell = document.createElement('button');
     sell.className = 'btn focus-btn';
-    sell.textContent = `Sell · 🪙${refund}`;
+    sell.innerHTML = `Sell · ${chip(refund)}`;
     sell.onclick = e => {
       e.stopPropagation();
       sendMsg({ t: kind === 'joker' ? 'sellJoker' : 'sellTarot', idx });
@@ -1957,7 +2019,7 @@ function renderPackOpen(oc, st) {
   const pack = st.you.pendingPack;
   // first time we see this pack? sync the pick entrance with the burst FX
   const firstReveal = !(prevState && prevState.you && prevState.you.pendingPack);
-  oc.innerHTML = `<h2>✨ ${esc(pack.name)}</h2><div class="hint">Pick one:</div>`;
+  oc.innerHTML = `<h2>${icon('spark')} ${esc(pack.name)}</h2><div class="hint">Pick one:</div>`;
   const grid = document.createElement('div');
   grid.className = 'shop-grid pack-grid';
   pack.options.forEach((opt, idx) => {
@@ -2175,7 +2237,7 @@ function runAnimations(prev, st) {
   }
   if (prev.you && st.you && st.you.coins > prev.you.coins && st.phase !== 'shop') {
     sfx('coin');
-    floatAtSeat(st, st.mySeat, `+🪙${st.you.coins - prev.you.coins}`, 'fx-coin');
+    floatAtSeat(st, st.mySeat, `+${st.you.coins - prev.you.coins} coin`, 'fx-coin');
   }
 }
 
@@ -2331,7 +2393,8 @@ function floatAtSeat(st, seat, text, cls) {
   }
   const div = document.createElement('div');
   div.className = 'fx-float ' + cls;
-  div.textContent = text;
+  if (cls === 'fx-coin') div.innerHTML = `+${chip(String(text).replace(/\D/g, ''))}`;
+  else div.textContent = text;
   div.style.left = (rect.left + rect.width / 2) + 'px';
   div.style.top = rect.top + 'px';
   $('fx').appendChild(div);

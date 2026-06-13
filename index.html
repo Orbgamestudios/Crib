@@ -12,7 +12,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Crib">
-<link rel="stylesheet" href="style.css?v=28">
+<link rel="stylesheet" href="style.css?v=29">
 <script src="https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js" defer></script>
 <script src="https://unpkg.com/mqtt/dist/mqtt.min.js" defer></script>
 </head>
@@ -23,7 +23,7 @@
 <div id="lobby" class="view">
   <h1>♠ CRIB ♥</h1>
   <p class="tagline">Roguelike cribbage — beat the blind or bust out</p>
-  <button id="howToBtn" class="btn small">ⓘ How to Play</button>
+  <button id="howToBtn" class="btn small"><span class="ui-icon icon-info" aria-hidden="true"></span>How to Play</button>
   <div class="panel">
     <label>Your name</label>
     <input id="nameInput" maxlength="16" placeholder="e.g. Slinde" autocomplete="off">
@@ -42,7 +42,7 @@
         One player clicks <b>Host a Table</b> and shares the 5-letter code. Others enter the code and click <b>Join</b>.
       </div>
     </div>
-    <button id="soloBtn" class="btn wide" style="margin-top:10px">🤖 Play Solo vs The House</button>
+    <button id="soloBtn" class="btn wide" style="margin-top:10px"><span class="ui-icon icon-bot" aria-hidden="true"></span>Play Solo vs The House</button>
   </div>
   <div class="panel" id="roomsPanel">
     <div class="row spread">
@@ -127,7 +127,7 @@
         </div>
         <div id="utilityPanel">
           <div id="myCoins"></div>
-          <button id="deckBtn" class="btn small">🂠 Deck</button>
+          <button id="deckBtn" class="btn small"><span class="ui-icon icon-deck" aria-hidden="true"></span>Deck</button>
         </div>
       </div>
       <div id="myStuff" class="slot-panel">
@@ -172,6 +172,6 @@
 <div id="fx"></div>
 <div id="toast" class="hidden"></div>
 
-<script type="module" src="client.js?v=36"></script>
+<script type="module" src="client.js?v=37"></script>
 </body>
 </html>
