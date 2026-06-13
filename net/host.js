@@ -173,6 +173,8 @@ export class HostSession {
       case 'buy': if (gp) this.fail(conn, game.buyItem(gp, msg.idx)); break;
       case 'reroll': if (gp) this.fail(conn, game.reroll(gp)); break;
       case 'pickPack': if (gp) this.fail(conn, game.pickPack(gp, msg.idx)); break;
+      case 'sellJoker': if (gp) this.fail(conn, game.sellJoker(gp, msg.idx)); break;
+      case 'sellTarot': if (gp) this.fail(conn, game.sellTarot(gp, msg.idx)); break;
       case 'ready': if (gp) this.fail(conn, game.setReady(gp)); break;
       case 'reorderJokers': if (gp) this.fail(conn, game.reorderJokers(gp, msg.order)); break;
       case 'sync': this.broadcastRoom(); break;

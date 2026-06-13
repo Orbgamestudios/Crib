@@ -229,6 +229,12 @@ function handleMessage(ws, msg) {
     case 'pickPack':
       if (gp) fail(ws, game.pickPack(gp, msg.idx));
       break;
+    case 'sellJoker':
+      if (gp) fail(ws, game.sellJoker(gp, msg.idx));
+      break;
+    case 'sellTarot':
+      if (gp) fail(ws, game.sellTarot(gp, msg.idx));
+      break;
     case 'ready':
       if (gp) fail(ws, game.setReady(gp));
       break;

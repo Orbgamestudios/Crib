@@ -1553,13 +1553,14 @@ function renderRoundEnd(oc, st) {
   }
   for (const row of d.rows) {
     const pct = Math.min(100, Math.round(100 * row.roundScore / d.blind));
-    const bonus = row.bonusCoins > 0 ? ` +${row.bonusCoins} coin${row.bonusCoins === 1 ? '' : 's'}` : '';
+    const bonus = row.bonusCoins > 0 ? ` +${row.bonusCoins}🪙` : '';
+    const place = row.passed && row.place ? `<span class="br-place">#${row.place}</span> ` : '';
     oc.insertAdjacentHTML('beforeend',
       `<div class="blind-row${row.passed ? '' : ' failed'}">` +
       `<span class="br-name">${esc(row.name)}${row.seat === st.mySeat ? ' (you)' : ''}</span>` +
       `<div class="br-bar"><div class="br-fill${row.passed ? ' pass' : ''}" style="width:${pct}%"></div></div>` +
       `<span class="br-score">${row.roundScore}/${d.blind}</span>` +
-      `<span class="br-tag">${row.passed ? 'SAFE' + bonus : 'ELIMINATED'}</span></div>`);
+      `<span class="br-tag">${row.passed ? place + 'SAFE' + bonus : 'ELIMINATED'}</span></div>`);
   }
   const left = st.players.filter(p => p.active).length;
   if (st.solo) {
@@ -1635,6 +1636,33 @@ function renderShop(oc, st) {
     grid.appendChild(div);
   });
   oc.appendChild(grid);
+
+  // your collection — sell jokers / tarots back for coins
+  if ((you.jokers && you.jokers.length) || (you.tarots && you.tarots.length)) {
+    const sell = document.createElement('div');
+    sell.className = 'shop-sell';
+    sell.innerHTML = '<div class="sell-label">Your collection — sell for coins</div>';
+    const sellRow = document.createElement('div');
+    sellRow.className = 'sell-row';
+    const addCell = (kind, def, idx) => {
+      const cell = document.createElement('div');
+      cell.className = 'sell-cell';
+      cell.appendChild(jtile(kind, def));
+      const refund = Math.max(1, Math.floor((def.cost || 2) / 2));
+      const b = document.createElement('button');
+      b.className = 'btn small sell-btn';
+      b.textContent = `Sell 🪙${refund}`;
+      b.disabled = you.ready;
+      b.onclick = () => sendMsg({ t: kind === 'joker' ? 'sellJoker' : 'sellTarot', idx });
+      cell.appendChild(b);
+      sellRow.appendChild(cell);
+    };
+    (you.jokers || []).forEach((j, idx) => addCell('joker', j, idx));
+    (you.tarots || []).forEach((t, idx) => addCell('tarot', t, idx));
+    sell.appendChild(sellRow);
+    oc.appendChild(sell);
+  }
+
   const row = document.createElement('div');
   row.className = 'row';
   const reroll = document.createElement('button');
