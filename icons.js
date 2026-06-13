@@ -265,6 +265,19 @@ export const JOKER_ICONS = {
     txt(24, 28, '15', 11, P) +
     `<circle cx="37" cy="12" r="1.9" fill="${C}"/><circle cx="11" cy="33" r="1.5" fill="${C}"/>`
   ),
+  crib_diviner: svg(
+    `<path d="M9 23h30l-3 15a3 3 0 01-3 2H15a3 3 0 01-3-2z" fill="${G}" stroke="${D}" stroke-width="1.5"/>` +
+    `<path d="M9 23c0-6 7-10 15-10s15 4 15 10" fill="none" stroke="${G}" stroke-width="2.4"/>` +
+    `<path d="M30 5l1.7 4.4 4.7.3-3.6 3 1.2 4.6L30 18.7 25.9 21.3l1.2-4.6-3.6-3 4.7-.3z" fill="${P}" stroke="${D}" stroke-width="0.8"/>` +
+    `<circle cx="39" cy="14" r="1.5" fill="${C}"/>`
+  ),
+  card_smith: svg(
+    `<rect x="12" y="8" width="24" height="33" rx="4" fill="#1d3a5c" stroke="#7fb4d8" stroke-width="2"/>` +
+    `<path d="M12 17q12 5 24 0" fill="none" stroke="#7fb4d8" stroke-width="1.5"/>` +
+    `<g transform="rotate(-10 21 29)"><rect x="16" y="22" width="11" height="15" rx="1.6" fill="${C}" stroke="${D}" stroke-width="1"/></g>` +
+    `<g transform="rotate(10 29 29)"><rect x="23" y="22" width="11" height="15" rx="1.6" fill="${C}" stroke="${D}" stroke-width="1"/></g>` +
+    txt(24, 47, 'FREE', 6, '#9fd0ee')
+  ),
 };
 
 const tarotFrame = (roman, inner) =>

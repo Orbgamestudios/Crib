@@ -1,4 +1,4 @@
-import { JOKER_ICONS, TAROT_ICONS, PACK_ICONS } from './icons.js?v=4';
+import { JOKER_ICONS, TAROT_ICONS, PACK_ICONS } from './icons.js?v=5';
 import { cardValue } from './lib/cards.js';
 import { pegEvents, scoreBreakdown } from './lib/scoring.js';
 import { aggregateMods, buildScore } from './lib/jokers.js';
@@ -959,6 +959,15 @@ function renderSeats(st) {
     if (p.isBot) {
       const nm = plaque.querySelector('.nm');
       if (nm) nm.innerHTML = `${esc(p.name)} ${icon('bot')}`;
+    }
+    // how far this player is toward the round's blind
+    if (p.active && st.blind) {
+      const pct = Math.min(100, Math.round(100 * p.roundScore / st.blind));
+      const done = p.roundScore >= st.blind;
+      plaque.insertAdjacentHTML('beforeend',
+        `<div class="seat-blind${done ? ' done' : ''}">` +
+        `<div class="seat-blind-fill" style="width:${pct}%"></div>` +
+        `<span class="seat-blind-label">${p.roundScore}/${st.blind}</span></div>`);
     }
     seat.appendChild(plaque);
 
