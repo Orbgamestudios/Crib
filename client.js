@@ -33,6 +33,7 @@ const p2pRooms = new Map();
 let myRoomId = null;
 let lastState = null;
 let prevState = null;
+let lastStateJson = '';
 let selected = [];        // card ids picked for discard
 let tarotMode = null;     // { idx, def, targets: [] }
 let view = 'lobby';
@@ -447,14 +448,20 @@ function handle(msg) {
     case 'state':
       stopMqttSync();
       showView('game');
+      {
+        const stateJson = JSON.stringify(msg.state);
+        if (stateJson === lastStateJson) break;
+        lastStateJson = stateJson;
+      }
       if (msg.state.phase !== 'shop') selectedShopIdx = -1;
       // Don't rebuild the table mid-drag — that yanks the card out of your
       // hand ("let go randomly"). Stash it and catch up when the drag ends.
       if (isDragging()) { lastState = msg.state; deferredRender = true; break; }
       prevState = lastState;
       lastState = msg.state;
+      const animRefs = captureAnimationRefs(prevState, msg.state);
       renderGame(msg.state);
-      runAnimations(prevState, msg.state);
+      runAnimations(prevState, msg.state, animRefs);
       break;
     case 'log':
       addLog(msg.text);
@@ -488,6 +495,7 @@ function showView(v) {
     $('overlay').classList.add('hidden');
     closeFocus();
     lastState = prevState = null;
+    lastStateJson = '';
     lastJokerSig = null;
     lastOverlayPhase = 'none';
     document.body.classList.remove('my-turn');
@@ -2095,7 +2103,36 @@ function readyDots(st) {
 
 // ---- animations ----
 
-function runAnimations(prev, st) {
+function captureAnimationRefs(prev, st) {
+  const refs = { discardFrom: new Map(), pegFrom: null };
+  if (!prev || !st) return refs;
+
+  if (prev.dealNumber === st.dealNumber && prev.players) {
+    for (const p of st.players || []) {
+      const pp = prev.players.find(q => q.seat === p.seat);
+      if (!pp || pp.discarded || !p.discarded || !p.active) continue;
+      const fromEl = p.seat === st.mySeat
+        ? $('hand')
+        : document.querySelector(`.seat[data-seat="${p.seat}"] .backs`) ||
+          document.querySelector(`.seat[data-seat="${p.seat}"]`);
+      if (fromEl) refs.discardFrom.set(p.seat, fromEl.getBoundingClientRect());
+    }
+  }
+
+  if (st.phase === 'pegging' && prev.dealNumber === st.dealNumber &&
+      Array.isArray(prev.pegStack) && st.pegStack.length > prev.pegStack.length) {
+    const played = st.pegStack[st.pegStack.length - 1];
+    if (pendingFly && pendingFly.cardId === played.id) refs.pegFrom = pendingFly.rect;
+    else {
+      const seatEl = document.querySelector(`.seat[data-seat="${played.seat}"] .backs`) ||
+        document.querySelector(`.seat[data-seat="${played.seat}"]`);
+      if (seatEl) refs.pegFrom = seatEl.getBoundingClientRect();
+    }
+  }
+  return refs;
+}
+
+function runAnimations(prev, st, refs = {}) {
   if (!prev || prev === st) return;
 
   if (prev.phase !== st.phase) {
@@ -2140,13 +2177,16 @@ function runAnimations(prev, st) {
     for (const p of st.players) {
       const pp = prev.players.find(q => q.seat === p.seat);
       if (!pp || pp.discarded || !p.discarded || !p.active || !cribCard) continue;
-      const fromEl = p.seat === st.mySeat
-        ? $('hand')
-        : document.querySelector(`.seat[data-seat="${p.seat}"] .backs`) ||
-          document.querySelector(`.seat[data-seat="${p.seat}"]`);
-      if (!fromEl) continue;
+      let fromRect = refs.discardFrom && refs.discardFrom.get(p.seat);
+      if (!fromRect) {
+        const fallback = p.seat === st.mySeat
+          ? $('hand')
+          : document.querySelector(`.seat[data-seat="${p.seat}"] .backs`) ||
+            document.querySelector(`.seat[data-seat="${p.seat}"]`);
+        if (fallback) fromRect = fallback.getBoundingClientRect();
+      }
+      if (!fromRect) continue;
       sfx('discard');
-      const fromRect = fromEl.getBoundingClientRect();
       for (let i = 0; i < st.discardCount; i++) {
         setTimeout(() => {
           const tgt = document.querySelector('#cribPile .card');
@@ -2161,10 +2201,8 @@ function runAnimations(prev, st) {
     const played = st.pegStack[st.pegStack.length - 1];
     const stackCards = document.querySelectorAll('#pegStack .card');
     const target = stackCards[stackCards.length - 1];
-    let fromRect = null;
-    if (pendingFly && pendingFly.cardId === played.id) {
-      fromRect = pendingFly.rect;
-    } else {
+    let fromRect = refs.pegFrom || null;
+    if (!fromRect) {
       const seatEl = document.querySelector(`.seat[data-seat="${played.seat}"] .backs`) ||
         document.querySelector(`.seat[data-seat="${played.seat}"]`);
       if (seatEl) fromRect = seatEl.getBoundingClientRect();
