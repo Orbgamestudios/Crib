@@ -1,6 +1,7 @@
 import { JOKER_ICONS, TAROT_ICONS, PACK_ICONS } from './icons.js?v=2';
 import { cardValue } from './lib/cards.js';
-import { pegEvents } from './lib/scoring.js';
+import { pegEvents, scoreBreakdown } from './lib/scoring.js';
+import { aggregateMods, buildScore } from './lib/jokers.js';
 
 const $ = id => document.getElementById(id);
 const SUIT_CHARS = ['♥', '♦', '♣', '♠']; // H D C S
@@ -789,18 +790,11 @@ function jtile(kind, def, opts = {}) {
 
 function renderMyArea(st) {
   const you = st.you;
-  const me = st.players.find(p => p.seat === st.mySeat);
-  $('myName').innerHTML = `${esc(me.name)} ${me.isDealer && me.active ? '<span class="dealer-chip">D</span>' : ''}`;
-  $('myScore').textContent = `${you.score} pts`;
   const mult = you.dealMult || 1;
+  renderHandScore(st);
   const myMult = $('myMult');
-  if ((st.phase === 'discard' || st.phase === 'pegging') && you.active) {
-    myMult.textContent = `✕${mult} Mult`;
-    myMult.classList.toggle('boosted', mult > 1);
-    myMult.style.display = '';
-  } else {
-    myMult.style.display = 'none';
-  }
+  myMult.innerHTML = `<span>Mult</span><b>x${mult}</b>`;
+  myMult.classList.toggle('boosted', mult > 1);
   $('myCoins').textContent = `🪙 ${you.coins}`;
   const coinKey = `${st.dealNumber}:${st.phase}:${you.coins}`;
   if (prevState && prevState.you && you.coins > prevState.you.coins && coinKey !== lastCoinPopKey) {
@@ -813,6 +807,23 @@ function renderMyArea(st) {
   renderTarotSlots(st);
   renderHand(st);
   if (deckOpen) renderDeckOverlay(st);
+}
+
+function renderHandScore(st) {
+  const you = st.you;
+  let cards = [];
+  if (st.phase === 'discard' && you.canDiscard) {
+    cards = you.hand.filter(c => !selected.includes(c.id));
+  } else if (you.kept && you.kept.length) {
+    cards = you.kept;
+  } else {
+    cards = you.hand || [];
+  }
+  const jokerIds = (you.jokers || []).map(j => j.id);
+  const mods = aggregateMods(jokerIds);
+  const bd = scoreBreakdown(cards, st.starter || null, false, { shortcut: mods.shortcut });
+  const score = buildScore(bd, mods, 'hand', cards, { starter: st.starter || null, coins: you.coins }).total;
+  $('myScore').innerHTML = `<span>Hand</span><b>${score}</b>`;
 }
 
 function showCoinGain(amount) {

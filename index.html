@@ -12,7 +12,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Crib">
-<link rel="stylesheet" href="style.css?v=20">
+<link rel="stylesheet" href="style.css?v=21">
 <script src="https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js" defer></script>
 <script src="https://unpkg.com/mqtt/dist/mqtt.min.js" defer></script>
 </head>
@@ -98,13 +98,6 @@
     </div>
   </div>
   <div id="bottombar">
-    <div id="myInfo">
-      <div id="myName"></div>
-      <div id="myScore"></div>
-      <div id="myMult"></div>
-      <div id="myCoins"></div>
-      <button id="deckBtn" class="btn small">🂠 Deck</button>
-    </div>
     <div id="myCenter">
       <div id="blindProgress">
         <div id="blindBarOuter">
@@ -120,20 +113,32 @@
         </div>
         <div id="hand"></div>
       </div>
-    </div>
-    <div id="myStuff">
-      <div class="stuff-label">Jokers <span id="jokerCount"></span></div>
-      <div id="jokerRow">
-        <div class="jslot empty" data-slot="0"></div>
-        <div class="jslot empty" data-slot="1"></div>
-        <div class="jslot empty" data-slot="2"></div>
-        <div class="jslot empty" data-slot="3"></div>
-        <div class="jslot empty" data-slot="4"></div>
+      <div id="hudRow">
+        <div id="tarotPanel" class="slot-panel">
+          <div class="stuff-label">Tarots <span id="tarotCount"></span></div>
+          <div id="tarotRow">
+            <div class="tslot empty" data-slot="0"></div>
+            <div class="tslot empty" data-slot="1"></div>
+          </div>
+        </div>
+        <div id="scoreHud">
+          <div id="myScore" class="hud-chip hand-chip"></div>
+          <div id="myMult" class="hud-chip mult-chip"></div>
+        </div>
+        <div id="utilityPanel">
+          <div id="myCoins"></div>
+          <button id="deckBtn" class="btn small">🂠 Deck</button>
+        </div>
       </div>
-      <div class="stuff-label">Tarots <span id="tarotCount"></span></div>
-      <div id="tarotRow">
-        <div class="tslot empty" data-slot="0"></div>
-        <div class="tslot empty" data-slot="1"></div>
+      <div id="myStuff" class="slot-panel">
+        <div class="stuff-label">Jokers <span id="jokerCount"></span></div>
+        <div id="jokerRow">
+          <div class="jslot empty" data-slot="0"></div>
+          <div class="jslot empty" data-slot="1"></div>
+          <div class="jslot empty" data-slot="2"></div>
+          <div class="jslot empty" data-slot="3"></div>
+          <div class="jslot empty" data-slot="4"></div>
+        </div>
       </div>
     </div>
   </div>
@@ -167,6 +172,6 @@
 <div id="fx"></div>
 <div id="toast" class="hidden"></div>
 
-<script type="module" src="client.js?v=24"></script>
+<script type="module" src="client.js?v=25"></script>
 </body>
 </html>
