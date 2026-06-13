@@ -998,7 +998,11 @@ function renderCenter(st) {
 
   const stack = $('pegStack');
   stack.innerHTML = '';
-  for (const c of st.pegStack) stack.appendChild(cardEl(c));
+  for (const c of st.pegStack) {
+    const el = cardEl(c);
+    el.dataset.cardId = c.id;
+    stack.appendChild(el);
+  }
   $('pegCount').textContent = st.phase === 'pegging' ? st.pegCount : '';
 }
 
@@ -1854,7 +1858,7 @@ function openShopFocus(item, idx, you) {
   const canAfford = !item.sold && you.coins >= item.cost && !you.ready;
   const buy = document.createElement('button');
   buy.className = 'btn primary focus-buy';
-  buy.textContent = item.sold ? 'Sold'
+  buy.innerHTML = item.sold ? 'Sold'
     : you.ready ? 'Locked in'
     : you.coins < item.cost ? `Need ${chip(item.cost)}`
     : `Buy · ${chip(item.cost)}`;
@@ -2085,7 +2089,7 @@ function appendReadyBtn(oc, st, label) {
     btn.onclick = () => sendMsg({ t: 'ready' });
     div.appendChild(btn);
   }
-  div.appendChild(readyDots(st));
+  if (label !== 'To the Shop') div.appendChild(readyDots(st));
   oc.appendChild(div);
 }
 
@@ -2104,7 +2108,7 @@ function readyDots(st) {
 // ---- animations ----
 
 function captureAnimationRefs(prev, st) {
-  const refs = { discardFrom: new Map(), pegFrom: null };
+  const refs = { discardFrom: new Map(), pegFrom: null, playAnimFrom: null };
   if (!prev || !st) return refs;
 
   if (prev.dealNumber === st.dealNumber && prev.players) {
@@ -2119,7 +2123,20 @@ function captureAnimationRefs(prev, st) {
     }
   }
 
-  if (st.phase === 'pegging' && prev.dealNumber === st.dealNumber &&
+  const playAnim = st.lastPlayAnim &&
+    (!prev.lastPlayAnim || st.lastPlayAnim.seq !== prev.lastPlayAnim.seq)
+    ? st.lastPlayAnim.card
+    : null;
+  if (playAnim) {
+    if (pendingFly && pendingFly.cardId === playAnim.id) refs.playAnimFrom = pendingFly.rect;
+    else {
+      const seatEl = document.querySelector(`.seat[data-seat="${playAnim.seat}"] .backs`) ||
+        document.querySelector(`.seat[data-seat="${playAnim.seat}"]`);
+      if (seatEl) refs.playAnimFrom = seatEl.getBoundingClientRect();
+    }
+  }
+
+  if (!playAnim && st.phase === 'pegging' && prev.dealNumber === st.dealNumber &&
       Array.isArray(prev.pegStack) && st.pegStack.length > prev.pegStack.length) {
     const played = st.pegStack[st.pegStack.length - 1];
     if (pendingFly && pendingFly.cardId === played.id) refs.pegFrom = pendingFly.rect;
@@ -2196,7 +2213,34 @@ function runAnimations(prev, st, refs = {}) {
     }
   }
 
-  if (st.phase === 'pegging' && prev.dealNumber === st.dealNumber &&
+  const playAnim = st.lastPlayAnim &&
+    (!prev.lastPlayAnim || st.lastPlayAnim.seq !== prev.lastPlayAnim.seq)
+    ? st.lastPlayAnim.card
+    : null;
+  if (playAnim) {
+    let fromRect = refs.playAnimFrom || null;
+    if (!fromRect) {
+      const seatEl = document.querySelector(`.seat[data-seat="${playAnim.seat}"] .backs`) ||
+        document.querySelector(`.seat[data-seat="${playAnim.seat}"]`);
+      if (seatEl) fromRect = seatEl.getBoundingClientRect();
+    }
+    pendingFly = null;
+    sfx('peg');
+    if (fromRect) {
+      const stackCards = [...document.querySelectorAll('#pegStack .card')];
+      const target = stackCards.find(el => el.dataset.cardId === playAnim.id) ||
+        stackCards[stackCards.length - 1];
+      if (target) flyCard(playAnim, fromRect, target);
+      else {
+        const area = $('pegArea').getBoundingClientRect();
+        flyClone(cardEl(playAnim), fromRect, {
+          left: area.left + area.width / 2 - 34,
+          top: area.top + area.height / 2 - 46,
+        }, 440, { rot: 5 });
+      }
+    }
+    pulse($('pegCount'));
+  } else if (st.phase === 'pegging' && prev.dealNumber === st.dealNumber &&
       Array.isArray(prev.pegStack) && st.pegStack.length > prev.pegStack.length) {
     const played = st.pegStack[st.pegStack.length - 1];
     const stackCards = document.querySelectorAll('#pegStack .card');
