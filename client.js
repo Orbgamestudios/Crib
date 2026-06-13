@@ -43,8 +43,28 @@ let selectedShopIdx = -1;
 let pointerCardDrag = null;
 let lastCoinPopKey = '';
 
-// Joker drag state
-let dragJokerIdx = -1;
+// Joker drag state (pointer-based, works on touch + mouse)
+let jokerDrag = null;
+
+// Tutorial mode
+let tutorialOn = localStorage.getItem('crib_tutorial') !== '0'; // default on
+let lastTutKey = '';
+
+// Remove any drag ghost left orphaned by a re-render that happened mid-gesture
+// (the heartbeat re-broadcasts state every 2.5s and rebuilds the hand, which
+// would otherwise strand the fixed-position clone on screen forever).
+function sweepStrayFx() {
+  if (pointerCardDrag && pointerCardDrag.el && !pointerCardDrag.el.isConnected) {
+    if (pointerCardDrag.ghost) pointerCardDrag.ghost.remove();
+    pointerCardDrag = null;
+  }
+  if (jokerDrag && jokerDrag.tile && !jokerDrag.tile.isConnected) {
+    if (jokerDrag.ghost) jokerDrag.ghost.remove();
+    jokerDrag = null;
+  }
+  const keep = (pointerCardDrag && pointerCardDrag.ghost) || (jokerDrag && jokerDrag.ghost) || null;
+  document.querySelectorAll('.drag-ghost').forEach(g => { if (g !== keep) g.remove(); });
+}
 
 // ---- transport ----
 
@@ -551,6 +571,7 @@ function backEl(small) {
 // ---- game rendering ----
 
 function renderGame(st) {
+  sweepStrayFx();
   $('dealInfo').textContent = `Round ${st.round} · Deal ${st.dealIndexInRound}/${st.dealsInRound}`;
   $('phaseInfo').textContent = phaseLabel(st);
   const turnP = st.players.find(p => p.seat === st.turnSeat);
@@ -566,6 +587,7 @@ function renderGame(st) {
   renderCenter(st);
   renderMyArea(st);
   renderOverlay(st);
+  renderTutorial(st);
 }
 
 function phaseLabel(st) {
@@ -703,78 +725,102 @@ function showCoinGain(amount) {
   pulse($('myCoins'));
 }
 
-// ---- joker slots (5 fixed, drag-to-reorder) ----
+// ---- joker slots (5 fixed, pointer-drag to reorder) ----
 
 function renderJokerSlots(st) {
   const you = st.you;
   $('jokerCount').textContent = `${you.jokers.length}/5`;
 
-  const slots = $('jokerRow').querySelectorAll('.jslot');
+  const slots = [...$('jokerRow').querySelectorAll('.jslot')];
   slots.forEach((slot, i) => {
-    // Clear previous content
     slot.innerHTML = '';
     slot.className = 'jslot';
     slot.dataset.slot = i;
 
     if (i < you.jokers.length) {
-      const j = you.jokers[i];
       slot.classList.add('filled');
-      const tile = jtile('joker', j);
-
-      // Drag-and-drop for reordering
-      tile.draggable = true;
-      tile.addEventListener('dragstart', (e) => {
-        dragJokerIdx = i;
-        tile.dataset.dragged = '1';
-        tile.classList.add('dragging');
-        e.dataTransfer.effectAllowed = 'move';
-        e.dataTransfer.setData('text/plain', String(i));
-      });
-      tile.addEventListener('dragend', () => {
-        tile.classList.remove('dragging');
-        dragJokerIdx = -1;
-        // Clear all drag-over highlights
-        slots.forEach(s => s.classList.remove('drag-over'));
-        setTimeout(() => { tile.dataset.dragged = ''; }, 150);
-      });
-
-      tile.onclick = () => {
-        if (tile.dataset.dragged === '1') return;
-        showItemInfo('joker', j);
-      };
-
+      const tile = jtile('joker', you.jokers[i]);
+      tile.dataset.jokerIdx = i;
+      attachJokerPointer(tile, i, st);
       slot.appendChild(tile);
     } else {
       slot.classList.add('empty');
     }
-
-    // Drop target handlers
-    slot.addEventListener('dragover', (e) => {
-      if (dragJokerIdx < 0) return;
-      e.preventDefault();
-      e.dataTransfer.dropEffect = 'move';
-      slot.classList.add('drag-over');
-    });
-    slot.addEventListener('dragleave', () => {
-      slot.classList.remove('drag-over');
-    });
-    slot.addEventListener('drop', (e) => {
-      e.preventDefault();
-      slot.classList.remove('drag-over');
-      const fromIdx = dragJokerIdx;
-      const toIdx = i;
-      if (fromIdx < 0 || fromIdx === toIdx) return;
-      if (fromIdx < you.jokers.length) {
-        const jokers = you.jokers.slice();
-        const [moved] = jokers.splice(fromIdx, 1);
-        jokers.splice(Math.min(toIdx, jokers.length), 0, moved);
-        you.jokers = jokers;
-        renderJokerSlots(st);
-        sendMsg({ t: 'reorderJokers', order: jokers.map(j => j.id) });
-      }
-      dragJokerIdx = -1;
-    });
   });
+}
+
+function attachJokerPointer(tile, idx, st) {
+  tile.style.touchAction = 'none';
+  tile.onpointerdown = e => {
+    if (e.button && e.button !== 0) return;
+    jokerDrag = {
+      idx, tile, startX: e.clientX, startY: e.clientY,
+      x: e.clientX, y: e.clientY, dragging: false, ghost: null,
+    };
+    try { tile.setPointerCapture(e.pointerId); } catch { /* ignore */ }
+  };
+  tile.onpointermove = e => {
+    if (!jokerDrag || jokerDrag.tile !== tile) return;
+    jokerDrag.x = e.clientX; jokerDrag.y = e.clientY;
+    const dx = e.clientX - jokerDrag.startX;
+    const dy = e.clientY - jokerDrag.startY;
+    if (!jokerDrag.dragging && Math.hypot(dx, dy) > 7) {
+      jokerDrag.dragging = true;
+      const g = tile.cloneNode(true);
+      g.classList.add('drag-ghost');
+      g.style.width = `${tile.offsetWidth}px`;
+      g.style.height = `${tile.offsetHeight}px`;
+      document.body.appendChild(g);
+      jokerDrag.ghost = g;
+      tile.classList.add('dragging');
+    }
+    if (jokerDrag.dragging) {
+      e.preventDefault();
+      jokerDrag.ghost.style.left = `${jokerDrag.x}px`;
+      jokerDrag.ghost.style.top = `${jokerDrag.y}px`;
+      highlightJokerSlot(e.clientX, e.clientY);
+    }
+  };
+  const finish = e => {
+    if (!jokerDrag || jokerDrag.tile !== tile) return;
+    const drag = jokerDrag;
+    jokerDrag = null;
+    try { tile.releasePointerCapture(e.pointerId); } catch { /* ignore */ }
+    tile.classList.remove('dragging');
+    if (drag.ghost) drag.ghost.remove();
+    [...$('jokerRow').querySelectorAll('.jslot')].forEach(s => s.classList.remove('drag-over'));
+    if (!drag.dragging) {
+      showItemInfo('joker', st.you.jokers[idx]); // a tap just opens info
+      return;
+    }
+    const toIdx = jokerSlotAt(e.clientX, e.clientY);
+    if (toIdx == null || toIdx === drag.idx) return;
+    const jokers = st.you.jokers.slice();
+    const [moved] = jokers.splice(drag.idx, 1);
+    jokers.splice(Math.min(toIdx, jokers.length), 0, moved);
+    st.you.jokers = jokers;
+    renderJokerSlots(st);
+    sendMsg({ t: 'reorderJokers', order: jokers.map(j => j.id) });
+  };
+  tile.onpointerup = finish;
+  tile.onpointercancel = finish;
+}
+
+function highlightJokerSlot(x, y) {
+  const slots = [...$('jokerRow').querySelectorAll('.jslot')];
+  slots.forEach(s => s.classList.remove('drag-over'));
+  const idx = jokerSlotAt(x, y);
+  if (idx != null && slots[idx]) slots[idx].classList.add('drag-over');
+}
+
+function jokerSlotAt(x, y) {
+  const slots = [...$('jokerRow').querySelectorAll('.jslot')];
+  const M = 10;
+  for (let i = 0; i < slots.length; i++) {
+    const r = slots[i].getBoundingClientRect();
+    if (x >= r.left - M && x <= r.right + M && y >= r.top - M && y <= r.bottom + M) return i;
+  }
+  return null;
 }
 
 // ---- tarot slots (2 fixed) ----
@@ -1017,10 +1063,13 @@ function finishPointerCardDrag(e, el) {
 }
 
 function cardDropTargetAt(x, y) {
+  // generous hit area so cards don't need to land precisely on the small pile
+  const M = 90;
   const targets = [$('cribPile'), $('pegStack'), $('pegArea')];
   return targets.find(el => {
+    if (!el.ondrop) return false;
     const r = el.getBoundingClientRect();
-    return x >= r.left && x <= r.right && y >= r.top && y <= r.bottom && !!el.ondrop;
+    return x >= r.left - M && x <= r.right + M && y >= r.top - M && y <= r.bottom + M;
   });
 }
 
@@ -1078,15 +1127,18 @@ function cardInfo(card, st, preview) {
   return bits.join('');
 }
 
-function shopInfo(item) {
-  const when = item.kind === 'joker'
-    ? 'Jokers are passive. Buy one and it works automatically from your joker row.'
-    : item.kind === 'tarot'
-      ? 'Tarots are consumables. Buy one, then use it before you discard on a later deal.'
-      : item.kind === 'card'
-        ? 'Playing cards are added permanently to your deck.'
-        : 'Packs open immediately. Pick one reward from the choices, or skip.';
-  return `<p>${esc(item.desc)}</p><p>${when}</p><p>Cost: ${item.cost} coins.</p>`;
+function shopKindTitle(kind) {
+  return kind === 'joker' ? 'About Jokers'
+    : kind === 'tarot' ? 'About Tarots'
+    : kind === 'pack' ? 'About Booster Packs'
+    : 'About Playing Cards';
+}
+
+function shopKindHelp(kind) {
+  if (kind === 'joker') return '<p><b>Jokers</b> are permanent, passive upgrades. Once bought they sit in your joker row and boost your scoring automatically every hand — they\'re never used up. Drag them to reorder (order matters for Blueprint).</p>';
+  if (kind === 'tarot') return '<p><b>Tarots</b> are one-time cards. Buy one, then play it during the discard phase before you throw to the crib. Most permanently change cards in your own deck.</p>';
+  if (kind === 'pack') return '<p><b>Booster packs</b> open instantly and let you choose one of three rewards — a joker, tarot, or playing card — then the rest vanish. You can also skip.</p>';
+  return '<p>A <b>playing card</b> bought here is added permanently to your deck, changing what you can draw in future hands.</p>';
 }
 
 function shopCardFace(item) {
@@ -1301,26 +1353,44 @@ function renderShop(oc, st) {
   const grid = document.createElement('div');
   grid.className = 'shop-grid shop-grid-market';
   (you.shopOffer || []).forEach((item, idx) => {
+    const flipped = selectedShopIdx === idx;
+    const affordable = !item.sold && you.coins >= item.cost && !you.ready;
     const div = document.createElement('div');
-    const selected = selectedShopIdx === idx;
     div.className = `shop-item shop-card ${item.kind}` + (item.sold ? ' sold' : '') +
-      (item.kind === 'pack' ? ' shiny' : '') + (selected ? ' selected' : '');
-    div.appendChild(shopCardFace(item));
-    div.insertAdjacentHTML('beforeend',
+      (item.kind === 'pack' ? ' shiny' : '') + (flipped ? ' flipped' : '');
+
+    const flip = document.createElement('div');
+    flip.className = 'shop-flip';
+
+    const front = document.createElement('div');
+    front.className = 'shop-face shop-front';
+    front.appendChild(shopCardFace(item));
+    front.insertAdjacentHTML('beforeend',
       `<div class="si-name">${esc(item.name)}</div><div class="shop-price">🪙${item.cost}</div>`);
-    if (selected) {
-      div.insertAdjacentHTML('beforeend',
-        `<div class="shop-detail">${shopInfo(item)}<div class="shop-confirm">Click again to buy</div></div>`);
-    }
-    const buy = () => {
-      if (item.sold || you.coins < item.cost || you.ready) return;
-      sendMsg({ t: 'buy', idx });
-      selectedShopIdx = -1;
-    };
+
+    const back = document.createElement('div');
+    back.className = `shop-face shop-back ${item.kind}`;
+    const confirm = item.sold ? 'Sold'
+      : you.ready ? 'Locked in'
+      : you.coins < item.cost ? `Need 🪙${item.cost}`
+      : `Tap to buy · 🪙${item.cost}`;
+    back.innerHTML = `<div class="shop-back-name">${esc(item.name)}</div>` +
+      `<div class="shop-back-desc">${esc(item.desc)}</div>` +
+      `<div class="shop-confirm${affordable ? '' : ' disabled'}">${confirm}</div>`;
+
+    flip.appendChild(front);
+    flip.appendChild(back);
+    div.appendChild(flip);
+
+    addInfoButton(div, shopKindTitle(item.kind), shopKindHelp(item.kind));
+
     div.onclick = () => {
-      if (item.sold || you.coins < item.cost || you.ready) return;
-      if (selectedShopIdx === idx) buy();
-      else {
+      if (item.sold || you.ready) return;
+      if (flipped) {
+        if (you.coins < item.cost) { toast('Not enough coins.'); return; }
+        sendMsg({ t: 'buy', idx });
+        selectedShopIdx = -1;
+      } else {
         selectedShopIdx = idx;
         renderGame(lastState);
       }
@@ -1547,6 +1617,58 @@ function pulse(el) {
   el.classList.remove('pulse');
   void el.offsetWidth;
   el.classList.add('pulse');
+}
+
+// ---- tutorial mode ----
+
+$('tutCheck').checked = tutorialOn;
+$('tutCheck').onchange = () => {
+  tutorialOn = $('tutCheck').checked;
+  localStorage.setItem('crib_tutorial', tutorialOn ? '1' : '0');
+  lastTutKey = '';
+  if (!tutorialOn) $('tutorialBar').classList.add('hidden');
+  else if (lastState) renderTutorial(lastState);
+};
+$('tutClose').onclick = () => $('tutorialBar').classList.add('hidden');
+
+function tutorialMessage(st) {
+  if (!st.you) return null;
+  if (!st.you.active && st.phase !== 'gameover') {
+    return { key: 'spectate', text: "You've busted out — sit back and watch the rest of the table." };
+  }
+  switch (st.phase) {
+    case 'discard':
+      return st.you.canDiscard
+        ? { key: 'discard', text: `Discard phase — send ${st.discardCount} card${st.discardCount > 1 ? 's' : ''} to ${dealerName(st)} crib. Tap a card to pick it (or drag it onto the crib pile), then press the button. Holding a tarot? Play it first.` }
+        : { key: 'discardWait', text: 'Everyone secretly throws to the crib. Waiting for the other players…' };
+    case 'pegging':
+      return st.turnSeat === st.mySeat
+        ? { key: 'pegMine', text: 'Your turn to peg! Tap a card to lift it, then tap again or drag it onto the pile to play. Keep the running count at 31 or under — score 15s, 31s, pairs and runs.' }
+        : { key: 'pegWait', text: 'Pegging — players take turns laying cards on the pile. Watch the running count and wait for your turn.' };
+    case 'scoring':
+      return { key: 'scoring', text: 'Counting the hands — left of the dealer first, the dealer next, the crib last. A 🃏 on a line means one of your jokers boosted it.' };
+    case 'roundEnd':
+      return { key: 'round', text: st.solo
+        ? 'Blind check — beat the blind score or your run ends. The House can never knock you out.'
+        : "Blind check — beat this round's blind score or you're eliminated to the rail." };
+    case 'shop':
+      return { key: 'shop', text: 'Shop — tap a card to flip it over and read what it does, then tap again to buy. The “i” button explains how jokers, tarots and packs work. Reroll for fresh stock.' };
+    case 'gameover':
+      return { key: 'over', text: 'The run is over — start another from the lobby!' };
+  }
+  return null;
+}
+
+function renderTutorial(st) {
+  const bar = $('tutorialBar');
+  if (!tutorialOn) { bar.classList.add('hidden'); return; }
+  const msg = tutorialMessage(st);
+  if (!msg) { bar.classList.add('hidden'); return; }
+  if (msg.key === lastTutKey) return; // already showing this step
+  lastTutKey = msg.key;
+  $('tutorialText').textContent = msg.text;
+  bar.classList.remove('hidden');
+  bar.classList.remove('flash'); void bar.offsetWidth; bar.classList.add('flash');
 }
 
 // ---- boot ----
