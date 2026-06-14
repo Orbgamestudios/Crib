@@ -1,7 +1,7 @@
 import { JOKER_ICONS, TAROT_ICONS, PACK_ICONS } from './icons.js?v=6';
 import { cardValue } from './lib/cards.js';
 import { pegEvents, scoreBreakdown } from './lib/scoring.js';
-import { aggregateMods, buildScore } from './lib/jokers.js';
+import { JOKERS, TAROTS, aggregateMods, buildScore } from './lib/jokers.js';
 
 const $ = id => document.getElementById(id);
 const SUIT_CHARS = ['♥', '♦', '♣', '♠']; // H D C S
@@ -519,6 +519,7 @@ function toast(text) {
 function showInfo(title, body) {
   $('infoTitle').textContent = title;
   $('infoBody').innerHTML = body;
+  $('infoPanel').classList.toggle('wide', $('infoBody').querySelector('.dictionary'));
   $('infoOverlay').classList.remove('hidden');
   sanitizeIcons($('infoOverlay'));
 }
@@ -531,6 +532,7 @@ $('howToBtn').innerHTML = icon('info', 'How to Play');
 $('soloBtn').innerHTML = icon('bot', 'Play Solo vs The House');
 $('syncBtn').innerHTML = icon('refresh');
 $('exitSoloBtn').textContent = 'Exit';
+$('dictBtn').textContent = 'Cards';
 $('deckBtn').innerHTML = icon('deck', 'Deck');
 sanitizeIcons(document.body);
 
@@ -751,6 +753,7 @@ function refreshSoloContinue() {
 }
 
 $('syncBtn').onclick = () => { sendMsg({ t: 'sync' }); toast('Refreshed.'); };
+$('dictBtn').onclick = () => showDictionary();
 $('exitSoloBtn').onclick = () => {
   sendMsg({ t: 'backToLobby' });
   toast('Solo run saved.');
@@ -1038,6 +1041,8 @@ function renderSeats(st) {
         `<div class="seat-blind-fill" style="width:${pct}%"></div>` +
         `<span class="seat-blind-label">${p.roundScore}/${st.blind}</span></div>`);
     }
+    plaque.onclick = () => showPlayerJokers(p);
+    plaque.title = `${p.name}'s jokers`;
     seat.appendChild(plaque);
 
     // the backs of their hand (and any cards they've played to the pile)
@@ -1095,6 +1100,63 @@ function jtile(kind, def, opts = {}) {
     `<span class="jt-name">${esc(def.name)}</span>` +
     `<div class="tip">${esc(def.desc)}${rarityTag}${opts.tipExtra || ''}</div>`;
   return d;
+}
+
+function showDictionary() {
+  const body = document.createElement('div');
+  body.className = 'dictionary';
+  body.appendChild(dictionarySection('Jokers', JOKERS, 'joker'));
+  body.appendChild(dictionarySection('Tarots', TAROTS, 'tarot'));
+  showInfo('Card Dictionary', body.outerHTML);
+}
+
+function dictionarySection(title, defs, kind) {
+  const section = document.createElement('section');
+  section.className = 'dict-section';
+  section.innerHTML = `<h4>${esc(title)}</h4>`;
+  const grid = document.createElement('div');
+  grid.className = 'dict-grid';
+  for (const def of defs) grid.appendChild(dictionaryCard(kind, def));
+  section.appendChild(grid);
+  return section;
+}
+
+function dictionaryCard(kind, def) {
+  const row = document.createElement('div');
+  row.className = 'dict-card ' + kind + (def.rarity ? ' r-' + def.rarity : '');
+  row.appendChild(jtile(kind, def));
+  const text = document.createElement('div');
+  text.className = 'dict-copy';
+  const meta = kind === 'joker'
+    ? `${def.rarity || 'common'} · cost ${def.cost}`
+    : `tarot · cost ${def.cost} · ${def.targets || 0} target${def.targets === 1 ? '' : 's'}`;
+  text.innerHTML = `<b>${esc(def.name)}</b><span>${esc(meta)}</span><p>${esc(def.desc)}</p>`;
+  row.appendChild(text);
+  return row;
+}
+
+function showPlayerJokers(player) {
+  const names = player.jokers || [];
+  const body = document.createElement('div');
+  body.className = 'dictionary player-jokers';
+  if (!names.length) {
+    body.innerHTML = '<p class="hint">No jokers yet.</p>';
+  } else {
+    const grid = document.createElement('div');
+    grid.className = 'dict-grid';
+    for (const name of names) {
+      const def = JOKERS.find(j => j.name === name);
+      if (def) grid.appendChild(dictionaryCard('joker', def));
+      else {
+        const row = document.createElement('div');
+        row.className = 'dict-card joker';
+        row.innerHTML = `<div class="dict-copy"><b>${esc(name)}</b></div>`;
+        grid.appendChild(row);
+      }
+    }
+    body.appendChild(grid);
+  }
+  showInfo(`${player.name}'s Jokers`, body.outerHTML);
 }
 
 function renderMyArea(st) {
