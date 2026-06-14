@@ -746,7 +746,7 @@ body.my-turn #bgRush { opacity: 0.6; animation-play-state: running; }
 #log div { margin-bottom: 2px; opacity: 0.9; }
 #log .hl { color: var(--gold); }
 
-@media (min-width: 1180px) and (min-height: 720px) {
+@media (min-width: 900px) and (min-height: 560px) and (pointer: fine) {
   #game { position: relative; overflow: hidden; }
   #topbar {
     min-height: 54px;
