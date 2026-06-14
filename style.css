@@ -481,12 +481,12 @@ body.my-turn #bgRush { opacity: 0.6; animation-play-state: running; }
 }
 @media (min-width: 900px) and (min-height: 560px) and (pointer: fine) {
   .card.flying {
-    width: 64px;
-    height: 90px;
-    font-size: 20px;
+    width: 56px;
+    height: 78px;
+    font-size: 18px;
     padding: 3px 4px;
   }
-  .card.flying .suit { font-size: 23px; }
+  .card.flying .suit { font-size: 20px; }
 }
 
 .card.sweep {
@@ -749,20 +749,17 @@ body.my-turn #bgRush { opacity: 0.6; animation-play-state: running; }
 .jtile.stamp-purple, .focus-card.stamp-purple, .shop-item.stamp-purple { box-shadow: 0 0 12px #b48be088, 0 2px 5px #0007; }
 .jtile.stamp-blue, .focus-card.stamp-blue, .shop-item.stamp-blue { box-shadow: 0 0 12px #63b8ff88, 0 2px 5px #0007; }
 .jtile.stamp-red, .focus-card.stamp-red, .shop-item.stamp-red { box-shadow: 0 0 12px #ff626288, 0 2px 5px #0007; }
-.jtile.stamp-green, .focus-card.stamp-green, .shop-item.stamp-green { box-shadow: 0 0 12px #5de68a88, 0 2px 5px #0007; }
+.jtile.stamp-white, .focus-card.stamp-white, .shop-item.stamp-white { box-shadow: 0 0 12px #f5f7f0aa, 0 2px 5px #0007; }
 .stamp-badge {
   position: absolute; top: -5px; left: -5px; width: 18px; height: 18px; border-radius: 50%;
   display: grid; place-items: center; font-size: 10px; font-weight: 900;
-  color: #fff; border: 1px solid #ffffff99; box-shadow: 0 2px 5px #0009; z-index: 2;
+  color: #fff; border: 1px solid #ffffff99; box-shadow: 0 2px 5px #0009; z-index: 12;
+  padding: 0; cursor: pointer; line-height: 1;
 }
-.stamp-badge.purple, .stamp-line.purple { background: #7b43c4; }
-.stamp-badge.blue, .stamp-line.blue { background: #2476c9; }
-.stamp-badge.red, .stamp-line.red { background: #be302c; }
-.stamp-badge.green, .stamp-line.green { background: #28884b; }
-.stamp-line {
-  align-self: center; max-width: 92%; border-radius: 999px; padding: 2px 8px;
-  color: #fff; font-size: 10px; font-weight: 800; line-height: 1.2;
-}
+.stamp-badge.purple { background: #7b43c4; }
+.stamp-badge.blue { background: #2476c9; }
+.stamp-badge.red { background: #be302c; }
+.stamp-badge.white { background: #edf3f4; color: #24313a; border-color: #24313a55; }
 .jtile.tarot { border-color: var(--purple); cursor: pointer; background: linear-gradient(160deg, #342347, #241733); }
 .jtile.tarot:hover { background: linear-gradient(160deg, #46315e, #2c1d40); }
 .jtile .tip {
@@ -802,17 +799,17 @@ body.my-turn #bgRush { opacity: 0.6; animation-play-state: running; }
     padding: 0 450px 0 390px;
   }
   #center {
-    top: 41%;
+    top: 45%;
     gap: 16px;
   }
-  #centerCards { gap: 28px; }
+  #centerCards { gap: 24px; }
   #centerCards .card, #pegStack .card {
-    width: 64px;
-    height: 90px;
-    font-size: 20px;
+    width: 56px;
+    height: 78px;
+    font-size: 18px;
   }
-  #centerCards .card .suit, #pegStack .card .suit { font-size: 23px; }
-  #pegStack .card { margin-right: -20px; }
+  #centerCards .card .suit, #pegStack .card .suit { font-size: 20px; }
+  #pegStack .card { margin-right: -18px; }
   #pegCount {
     font-size: 42px;
     min-width: 70px;
@@ -857,7 +854,7 @@ body.my-turn #bgRush { opacity: 0.6; animation-play-state: running; }
   #blindProgress {
     position: fixed;
     left: 50%;
-    bottom: 216px;
+    bottom: 206px;
     transform: translateX(-50%);
     width: min(700px, calc(100vw - 900px));
     min-width: 430px;
@@ -892,16 +889,16 @@ body.my-turn #bgRush { opacity: 0.6; animation-play-state: running; }
     text-overflow: ellipsis;
   }
   #hand {
-    height: 104px;
+    height: 94px;
     align-items: flex-end;
   }
   #hand .card {
-    width: 64px;
-    height: 90px;
-    font-size: 20px;
+    width: 56px;
+    height: 78px;
+    font-size: 18px;
     margin: 0 -3px;
   }
-  #hand .card .suit { font-size: 23px; }
+  #hand .card .suit { font-size: 20px; }
   #hudRow {
     position: fixed;
     left: 18px;
@@ -977,23 +974,23 @@ body.my-turn #bgRush { opacity: 0.6; animation-play-state: running; }
     height: 78px;
   }
   .seat .backs {
-    height: 94px;
+    height: 82px;
     margin-top: 5px;
   }
   .seat .backs .card,
   .seat .played .card {
-    width: 64px;
-    height: 90px;
-    font-size: 20px;
+    width: 54px;
+    height: 76px;
+    font-size: 17px;
     padding: 3px 4px;
-    margin: 0 -20px;
+    margin: 0 -17px;
   }
   .seat .backs .card .suit,
   .seat .played .card .suit {
-    font-size: 23px;
+    font-size: 19px;
   }
   .seat .played {
-    min-height: 92px;
+    min-height: 78px;
     margin-top: 4px;
   }
   #log {

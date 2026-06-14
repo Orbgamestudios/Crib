@@ -1,4 +1,4 @@
-import { JOKER_ICONS, TAROT_ICONS, PACK_ICONS } from './icons.js?v=8';
+import { JOKER_ICONS, TAROT_ICONS, PACK_ICONS } from './icons.js?v=9';
 import { cardValue } from './lib/cards.js';
 import { pegEvents, scoreBreakdown } from './lib/scoring.js';
 import { JOKERS, TAROTS, aggregateMods, buildScore, stampText } from './lib/jokers.js';
@@ -667,6 +667,22 @@ function addInfoButton(el, title, body) {
   return btn;
 }
 
+function addStampBadge(el, stamp) {
+  if (!stamp) return null;
+  const badge = document.createElement('button');
+  badge.className = `stamp-badge ${stamp}`;
+  badge.type = 'button';
+  badge.textContent = stamp[0].toUpperCase();
+  badge.title = stampText(stamp);
+  badge.onclick = e => {
+    e.stopPropagation();
+    e.preventDefault();
+    showInfo('Stamp', `<p>${esc(stampText(stamp))}</p>`);
+  };
+  el.appendChild(badge);
+  return badge;
+}
+
 function showItemInfo(kind, def, action) {
   const timing = kind === 'joker'
     ? 'Jokers are passive. They trigger automatically whenever their condition is met.'
@@ -1229,11 +1245,10 @@ function jtile(kind, def, opts = {}) {
   d.className = 'jtile ' + kind + (rarity ? ' r-' + rarity : '') + (stamp ? ' stamp-' + stamp : '');
   const icon = (kind === 'joker' ? JOKER_ICONS : TAROT_ICONS)[def.id] || '';
   const rarityTag = rarity ? ` <i class="rar">(${rarity})</i>` : '';
-  const stampTip = stamp ? `<br><i>${esc(stampText(stamp))}</i>` : '';
   d.innerHTML = `<span class="jt-foil"></span><span class="jt-icon">${icon}</span>` +
     `<span class="jt-name">${esc(def.name)}</span>` +
-    (stamp ? `<span class="stamp-badge ${stamp}">${stamp[0].toUpperCase()}</span>` : '') +
-    `<div class="tip">${esc(def.desc)}${rarityTag}${stampTip}${opts.tipExtra || ''}</div>`;
+    `<div class="tip">${esc(def.desc)}${rarityTag}${opts.tipExtra || ''}</div>`;
+  addStampBadge(d, stamp);
   return d;
 }
 
@@ -2092,8 +2107,9 @@ function renderShop(oc, st) {
     div.insertAdjacentHTML('beforeend',
       `<div class="si-name">${esc(item.name)}</div>` +
       (item.kind === 'joker' && item.rarity ? `<div class="rar-pill ${item.rarity}">${item.rarity}</div>` : '') +
-      (item.stamp ? `<div class="stamp-line ${item.stamp}">${esc(stampText(item.stamp))}</div>` : '') +
+      (item.kind === 'tarot' && item.jokerStamp ? `<div class="si-desc">${esc(stampText(item.jokerStamp))}</div>` : '') +
       `<div class="shop-price">${chip(item.cost)}</div>`);
+    addStampBadge(div, item.stamp);
     addInfoButton(div, shopKindTitle(item.kind), shopKindHelp(item.kind));
     div.onclick = () => {
       if (item.sold || you.ready) return;
@@ -2127,8 +2143,9 @@ function renderShop(oc, st) {
   row.className = 'row';
   const reroll = document.createElement('button');
   reroll.className = 'btn';
-  reroll.innerHTML = `Reroll ${chip(2)}`;
-  reroll.disabled = you.coins < 2 || you.ready;
+  const rerollCost = you.rerollCost == null ? 2 : you.rerollCost;
+  reroll.innerHTML = `Reroll ${chip(rerollCost)}`;
+  reroll.disabled = you.coins < rerollCost || you.ready;
   reroll.onclick = () => sendMsg({ t: 'reroll' });
   row.appendChild(reroll);
   oc.appendChild(row);
@@ -2182,8 +2199,8 @@ function focusCardShell(item) {
   card.insertAdjacentHTML('beforeend',
     `<div class="focus-name">${esc(item.name)}</div>` +
     (item.kind === 'joker' && item.rarity ? `<div class="rar-pill ${item.rarity}">${item.rarity}</div>` : '') +
-    (item.stamp ? `<div class="stamp-line ${item.stamp}">${esc(stampText(item.stamp))}</div>` : '') +
-    `<div class="focus-desc">${esc(item.desc)}</div>`);
+    `<div class="focus-desc">${esc(item.desc)}${item.kind === 'tarot' && item.jokerStamp ? '<br><br>' + esc(stampText(item.jokerStamp)) : ''}</div>`);
+  addStampBadge(card, item.stamp);
 
   if (item.rarity === 'rare' || item.rarity === 'ultra') {
     card.insertAdjacentHTML('beforeend', '<span class="jt-foil"></span>');
@@ -2367,13 +2384,13 @@ function renderPackOpen(oc, st) {
       const icon = (opt.kind === 'joker' ? JOKER_ICONS : TAROT_ICONS)[opt.id] || '';
       div.innerHTML = `<div class="si-icon">${icon}</div><div class="si-name">${esc(opt.name)}</div>` +
         (opt.kind === 'joker' && opt.rarity ? `<div class="rar-pill ${opt.rarity}">${opt.rarity}</div>` : '') +
-        (opt.stamp ? `<div class="stamp-line ${opt.stamp}">${esc(stampText(opt.stamp))}</div>` : '') +
-        `<div class="si-desc">${esc(opt.desc)}</div>`;
+        `<div class="si-desc">${esc(opt.desc)}${opt.kind === 'tarot' && opt.jokerStamp ? '<br>' + esc(stampText(opt.jokerStamp)) : ''}</div>`;
+      addStampBadge(div, opt.stamp);
     }
     addInfoButton(div, opt.name || cardLabel(opt), opt.kind === 'card'
       ? `<p>Adds this exact ${cardLabel(opt)} to your permanent deck.</p>`
       : `<p>${esc(opt.desc)}</p><p>${opt.kind === 'joker' ? 'Passive once taken.' : 'Consumable before discard once taken.'}</p>`);
-    const full = (opt.kind === 'joker' && st.you.jokers.length >= (st.you.jokerSlots || 5)) ||
+    const full = (opt.kind === 'joker' && st.you.jokers.length >= (st.you.jokerSlots || 5) && opt.stamp !== 'white') ||
       (opt.kind === 'tarot' && st.you.tarots.length >= 2);
     const btn = document.createElement('button');
     btn.className = 'btn small primary';

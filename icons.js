@@ -390,7 +390,7 @@ export const TAROT_ICONS = {
     `<path d="M38 14l4-3M39 23h5M38 31l4 3" stroke="${P}" stroke-width="1.8" stroke-linecap="round"/>`)),
   violet_seal: sealIcon('P', '#7b43c4'),
   scarlet_seal: sealIcon('R', '#be302c'),
-  azure_seal: sealIcon('B', '#2476c9'),
+  ivory_seal: sealIcon('W', '#edf3f4'),
 };
 
 export const PACK_ICONS = {
