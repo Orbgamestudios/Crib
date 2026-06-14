@@ -1,4 +1,4 @@
-import { JOKER_ICONS, TAROT_ICONS, PACK_ICONS } from './icons.js?v=10';
+import { JOKER_ICONS, TAROT_ICONS, PACK_ICONS } from './icons.js?v=11';
 import { cardValue } from './lib/cards.js';
 import { pegEvents, scoreBreakdown } from './lib/scoring.js';
 import { JOKERS, TAROTS, aggregateMods, buildScore, stampText } from './lib/jokers.js';
