@@ -2102,7 +2102,7 @@ function renderShop(oc, st) {
       (item.kind === 'joker' && item.rarity ? `<div class="rar-pill ${item.rarity}">${item.rarity}</div>` : '') +
       (item.kind === 'tarot' && item.jokerStamp ? `<div class="si-desc">${esc(stampText(item.jokerStamp))}</div>` : '') +
       `<div class="shop-price">${chip(item.cost)}</div>`);
-    addStampBadge(div, item.stamp);
+    addStampBadge(div.querySelector('.shop-art') || div, item.stamp);
     addInfoButton(div, shopKindTitle(item.kind), shopKindHelp(item.kind));
     div.onclick = () => {
       if (item.sold || you.ready) return;
@@ -2378,7 +2378,7 @@ function renderPackOpen(oc, st) {
       div.innerHTML = `<div class="si-icon">${icon}</div><div class="si-name">${esc(opt.name)}</div>` +
         (opt.kind === 'joker' && opt.rarity ? `<div class="rar-pill ${opt.rarity}">${opt.rarity}</div>` : '') +
         `<div class="si-desc">${esc(opt.desc)}${opt.kind === 'tarot' && opt.jokerStamp ? '<br>' + esc(stampText(opt.jokerStamp)) : ''}</div>`;
-      addStampBadge(div, opt.stamp);
+      addStampBadge(div.querySelector('.si-icon') || div, opt.stamp);
     }
     addInfoButton(div, opt.name || cardLabel(opt), opt.kind === 'card'
       ? `<p>Adds this exact ${cardLabel(opt)} to your permanent deck.</p>`

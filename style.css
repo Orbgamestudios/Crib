@@ -758,6 +758,16 @@ body.my-turn #bgRush { opacity: 0.6; animation-play-state: running; }
 .stamp-badge.blue { background: #2476c9; }
 .stamp-badge.red { background: #be302c; }
 .stamp-badge.white { background: #edf3f4; color: #24313a; border-color: #24313a55; }
+.shop-item .shop-art .stamp-badge,
+.shop-item .si-icon .stamp-badge {
+  top: -2px; left: -2px;
+  box-shadow: 0 0 0 2px #111827cc, 0 0 12px #ffd76ecc, 0 2px 5px #0009;
+  animation: shopStampGlow 1.45s ease-in-out infinite;
+}
+@keyframes shopStampGlow {
+  0%, 100% { transform: scale(1); filter: brightness(1); }
+  50% { transform: scale(1.1); filter: brightness(1.25); }
+}
 .jtile.tarot { border-color: var(--purple); cursor: pointer; background: linear-gradient(160deg, #342347, #241733); }
 .jtile.tarot:hover { background: linear-gradient(160deg, #46315e, #2c1d40); }
 .jtile .tip {
@@ -1168,9 +1178,9 @@ body.my-turn #bgRush { opacity: 0.6; animation-play-state: running; }
   border-color: #8fe7ff;
 }
 .shop-card-face.card .card { width: 58px; height: 80px; font-size: 18px; }
-.shop-art { width: 72px; height: 72px; filter: drop-shadow(0 5px 6px #00000066); }
+.shop-art { position: relative; width: 72px; height: 72px; filter: drop-shadow(0 5px 6px #00000066); }
 .shop-art svg { width: 100%; height: 100%; }
-.shop-item .si-icon { width: 44px; height: 44px; }
+.shop-item .si-icon { position: relative; width: 44px; height: 44px; }
 .shop-item .si-icon svg { width: 100%; height: 100%; }
 .shop-item .si-name { font-weight: 700; }
 .shop-item .si-desc { font-size: 13px; opacity: 0.8; flex: 1; }
