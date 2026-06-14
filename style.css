@@ -746,6 +746,191 @@ body.my-turn #bgRush { opacity: 0.6; animation-play-state: running; }
 #log div { margin-bottom: 2px; opacity: 0.9; }
 #log .hl { color: var(--gold); }
 
+@media (min-width: 1180px) and (min-height: 720px) {
+  #game { position: relative; overflow: hidden; }
+  #topbar {
+    min-height: 54px;
+    padding: 9px 16px;
+    background: #071622b8;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+  #table {
+    flex: 1 1 auto;
+    min-height: 0;
+    padding: 0 292px;
+  }
+  #center {
+    top: 31%;
+    gap: 12px;
+  }
+  #tutorialBar {
+    position: fixed;
+    top: 76px;
+    right: 18px;
+    bottom: auto;
+    left: auto;
+    transform: none;
+    width: 330px;
+    max-width: 330px;
+    max-height: calc(100vh - 116px);
+    overflow-y: auto;
+    z-index: 55;
+    font-size: 14px;
+    line-height: 1.45;
+    padding: 14px 38px 14px 16px;
+  }
+  #tutorialBar.flash { animation: tutPopSide 0.35s ease-out; }
+  @keyframes tutPopSide {
+    0% { opacity: 0; transform: translateX(12px) scale(0.98); }
+    100% { opacity: 1; transform: translateX(0) scale(1); }
+  }
+  #bottombar {
+    position: fixed;
+    left: 292px;
+    right: 292px;
+    bottom: 0;
+    height: 205px;
+    padding: 0 0 18px;
+    background: linear-gradient(180deg, transparent, #0615229e 48%, #061522d8);
+    pointer-events: none;
+    z-index: 30;
+  }
+  #myCenter {
+    align-items: center;
+    justify-content: flex-end;
+    pointer-events: none;
+  }
+  #blindProgress {
+    position: fixed;
+    left: 50%;
+    bottom: 208px;
+    transform: translateX(-50%);
+    width: min(560px, calc(100vw - 680px));
+    min-width: 360px;
+    padding: 0;
+    margin: 0;
+    z-index: 42;
+    pointer-events: none;
+  }
+  #blindBarOuter {
+    height: 14px;
+    border-radius: 7px;
+  }
+  #blindBarFill { border-radius: 7px; }
+  #blindBarLabel { font-size: 10px; }
+  #myCards {
+    width: min(760px, calc(100vw - 660px));
+    min-width: 520px;
+    min-height: 138px;
+    justify-content: flex-end;
+    pointer-events: auto;
+  }
+  #actionRow {
+    min-height: 34px;
+    margin-bottom: 4px;
+    padding: 0 10px;
+  }
+  #prompt {
+    max-width: 420px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  #hand {
+    height: 104px;
+    align-items: flex-end;
+  }
+  #hand .card {
+    width: 66px;
+    height: 92px;
+    margin: 0 -2px;
+  }
+  #hudRow {
+    position: fixed;
+    left: 18px;
+    top: 76px;
+    width: 236px;
+    min-height: 0;
+    margin: 0;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    z-index: 44;
+    pointer-events: auto;
+  }
+  #scoreHud {
+    flex: none;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+  .hud-chip {
+    min-height: 82px;
+    min-width: 0;
+    border-radius: 10px;
+  }
+  .hud-chip b { font-size: 30px; }
+  #utilityPanel {
+    flex: none;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    width: 100%;
+  }
+  #utilityPanel .btn { min-height: 34px; }
+  #myCoins {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 34px;
+    border: 1px solid #ffffff20;
+    border-radius: 8px;
+    background: #00000035;
+  }
+  #tarotPanel {
+    position: fixed;
+    left: 18px;
+    top: 300px;
+    width: 236px;
+    z-index: 43;
+    pointer-events: auto;
+  }
+  #tarotRow {
+    display: grid;
+    grid-template-columns: repeat(2, 58px);
+    gap: 10px;
+    justify-content: center;
+  }
+  #myStuff {
+    position: fixed;
+    left: 18px;
+    top: 436px;
+    width: 236px;
+    margin: 0;
+    z-index: 43;
+    pointer-events: auto;
+  }
+  #jokerRow {
+    display: grid;
+    grid-template-columns: repeat(2, 58px);
+    gap: 10px;
+    justify-content: center;
+  }
+  .jslot, .tslot {
+    width: 58px;
+    height: 78px;
+  }
+  #log {
+    left: auto;
+    right: 18px;
+    bottom: 18px;
+    width: 330px;
+    max-height: 22vh;
+    z-index: 44;
+  }
+  #overlayContent { max-height: 82vh; }
+}
+
 /* ---- overlay ---- */
 #overlay {
   position: fixed; inset: 0; background: #00000080; z-index: 160;
