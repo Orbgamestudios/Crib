@@ -311,6 +311,10 @@ export const JOKER_ICONS = {
 const tarotFrame = (roman, inner) =>
   `<rect x="7" y="3" width="34" height="42" rx="3.5" fill="#241733" stroke="${P}" stroke-width="2"/>` +
   inner + txt(24, 42.5, roman, 6.5, P);
+const sealIcon = (label, color) => svg(tarotFrame('SEAL',
+  `<circle cx="24" cy="22" r="11" fill="${color}" stroke="${C}" stroke-width="2"/>` +
+  `<path d="M24 9l3 7 7 .6-5.4 4.7 1.7 7-6.3-3.7-6.3 3.7 1.7-7-5.4-4.7 7-.6z" fill="${G}" stroke="#241733" stroke-width="1"/>` +
+  txt(24, 26, label, 8, '#fff')));
 
 export const TAROT_ICONS = {
   sun: svg(tarotFrame('XIX',
@@ -384,6 +388,9 @@ export const TAROT_ICONS = {
     `<path d="M13 14l18 5v8l-18 5q-3-9 0-18z" fill="${G}"/>` +
     `<path d="M31 17h4v12h-4z" fill="${G}"/>` +
     `<path d="M38 14l4-3M39 23h5M38 31l4 3" stroke="${P}" stroke-width="1.8" stroke-linecap="round"/>`)),
+  violet_seal: sealIcon('P', '#7b43c4'),
+  scarlet_seal: sealIcon('R', '#be302c'),
+  azure_seal: sealIcon('B', '#2476c9'),
 };
 
 export const PACK_ICONS = {
