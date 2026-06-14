@@ -749,8 +749,10 @@ body.my-turn #bgRush { opacity: 0.6; animation-play-state: running; }
 @media (min-width: 900px) and (min-height: 560px) and (pointer: fine) {
   #game { position: relative; overflow: hidden; }
   #topbar {
-    min-height: 54px;
-    padding: 9px 16px;
+    min-height: 66px;
+    padding: 14px 16px;
+    gap: 18px;
+    font-size: 18px;
     background: #071622b8;
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
@@ -758,26 +760,38 @@ body.my-turn #bgRush { opacity: 0.6; animation-play-state: running; }
   #table {
     flex: 1 1 auto;
     min-height: 0;
-    padding: 0 292px;
+    padding: 0 450px 0 390px;
   }
   #center {
-    top: 31%;
-    gap: 12px;
+    top: 38%;
+    gap: 16px;
+  }
+  #centerCards { gap: 28px; }
+  #centerCards .card, #pegStack .card {
+    width: 64px;
+    height: 90px;
+    font-size: 20px;
+  }
+  #centerCards .card .suit, #pegStack .card .suit { font-size: 23px; }
+  #pegStack .card { margin-right: -20px; }
+  #pegCount {
+    font-size: 42px;
+    min-width: 70px;
   }
   #tutorialBar {
     position: fixed;
-    top: 76px;
+    top: 94px;
     right: 18px;
     bottom: auto;
     left: auto;
     transform: none;
-    width: 330px;
-    max-width: 330px;
+    width: 410px;
+    max-width: 410px;
     max-height: calc(100vh - 116px);
     overflow-y: auto;
     z-index: 55;
-    font-size: 14px;
-    line-height: 1.45;
+    font-size: 18px;
+    line-height: 1.42;
     padding: 14px 38px 14px 16px;
   }
   #tutorialBar.flash { animation: tutPopSide 0.35s ease-out; }
@@ -787,12 +801,12 @@ body.my-turn #bgRush { opacity: 0.6; animation-play-state: running; }
   }
   #bottombar {
     position: fixed;
-    left: 292px;
-    right: 292px;
+    left: 390px;
+    right: 450px;
     bottom: 0;
     height: 205px;
     padding: 0 0 18px;
-    background: linear-gradient(180deg, transparent, #0615229e 48%, #061522d8);
+    background: transparent;
     pointer-events: none;
     z-index: 30;
   }
@@ -804,25 +818,25 @@ body.my-turn #bgRush { opacity: 0.6; animation-play-state: running; }
   #blindProgress {
     position: fixed;
     left: 50%;
-    bottom: 208px;
+    bottom: 238px;
     transform: translateX(-50%);
-    width: min(560px, calc(100vw - 680px));
-    min-width: 360px;
+    width: min(700px, calc(100vw - 900px));
+    min-width: 430px;
     padding: 0;
     margin: 0;
     z-index: 42;
     pointer-events: none;
   }
   #blindBarOuter {
-    height: 14px;
-    border-radius: 7px;
+    height: 18px;
+    border-radius: 9px;
   }
-  #blindBarFill { border-radius: 7px; }
-  #blindBarLabel { font-size: 10px; }
+  #blindBarFill { border-radius: 9px; }
+  #blindBarLabel { font-size: 14px; }
   #myCards {
-    width: min(760px, calc(100vw - 660px));
-    min-width: 520px;
-    min-height: 138px;
+    width: min(900px, calc(100vw - 900px));
+    min-width: 560px;
+    min-height: 176px;
     justify-content: flex-end;
     pointer-events: auto;
   }
@@ -832,25 +846,28 @@ body.my-turn #bgRush { opacity: 0.6; animation-play-state: running; }
     padding: 0 10px;
   }
   #prompt {
-    max-width: 420px;
+    max-width: 520px;
+    font-size: 18px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
   #hand {
-    height: 104px;
+    height: 142px;
     align-items: flex-end;
   }
   #hand .card {
-    width: 66px;
-    height: 92px;
-    margin: 0 -2px;
+    width: 92px;
+    height: 129px;
+    font-size: 28px;
+    margin: 0 -4px;
   }
+  #hand .card .suit { font-size: 32px; }
   #hudRow {
     position: fixed;
     left: 18px;
-    top: 76px;
-    width: 236px;
+    top: 94px;
+    width: 342px;
     min-height: 0;
     margin: 0;
     flex-direction: column;
@@ -862,11 +879,11 @@ body.my-turn #bgRush { opacity: 0.6; animation-play-state: running; }
   #scoreHud {
     flex: none;
     display: grid;
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr 1fr;
     gap: 10px;
   }
   .hud-chip {
-    min-height: 82px;
+    min-height: 90px;
     min-width: 0;
     border-radius: 10px;
   }
@@ -890,43 +907,38 @@ body.my-turn #bgRush { opacity: 0.6; animation-play-state: running; }
   #tarotPanel {
     position: fixed;
     left: 18px;
-    top: 300px;
-    width: 236px;
+    top: 246px;
+    width: 342px;
     z-index: 43;
     pointer-events: auto;
   }
   #tarotRow {
     display: grid;
-    grid-template-columns: repeat(2, 58px);
-    gap: 10px;
-    justify-content: center;
+    grid-template-columns: repeat(2, 72px);
+    gap: 12px;
+    justify-content: start;
   }
   #myStuff {
     position: fixed;
     left: 18px;
-    top: 436px;
-    width: 236px;
+    top: 388px;
+    width: 342px;
     margin: 0;
     z-index: 43;
     pointer-events: auto;
   }
   #jokerRow {
     display: grid;
-    grid-template-columns: repeat(2, 58px);
-    gap: 10px;
-    justify-content: center;
+    grid-template-columns: repeat(5, 58px);
+    gap: 8px;
+    justify-content: start;
   }
   .jslot, .tslot {
     width: 58px;
     height: 78px;
   }
   #log {
-    left: auto;
-    right: 18px;
-    bottom: 18px;
-    width: 330px;
-    max-height: 22vh;
-    z-index: 44;
+    display: none;
   }
   #overlayContent { max-height: 82vh; }
 }
