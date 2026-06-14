@@ -17,6 +17,8 @@ const P2P_ROOM_TOPIC_PREFIX = 'orbcrib-room-v1';
 const TOUCH = 'ontouchstart' in window;
 const ANIM = 1.9; // global animation slowdown — everything glides ~half speed
 const SOLO_SAVE_KEY = 'crib_solo_house_save_v1';
+const PROFILE_KEY = 'crib_profiles_v1';
+const ACTIVE_PROFILE_KEY = 'crib_active_profile_pin';
 
 // GitHub Pages (or any static host) has no WebSocket server: use P2P rooms.
 const P2P_MODE = location.hostname.endsWith('github.io') ||
@@ -47,6 +49,7 @@ let selectedShopIdx = -1;
 let focusMode = null;
 let pointerCardDrag = null;
 let lastCoinPopKey = '';
+let lastRecordedRunKey = '';
 let deferredRender = false; // a state update arrived mid-drag; apply on release
 
 function isDragging() {
@@ -463,7 +466,10 @@ function handle(msg) {
       const animRefs = captureAnimationRefs(prevState, msg.state);
       renderGame(msg.state);
       runAnimations(prevState, msg.state, animRefs);
-      if (msg.state.phase === 'gameover') refreshSoloContinue();
+      if (msg.state.phase === 'gameover') {
+        recordSoloResult(msg.state);
+        refreshSoloContinue();
+      }
       break;
     case 'log':
       addLog(msg.text);
@@ -529,6 +535,8 @@ document.addEventListener('click', e => {
 });
 
 $('howToBtn').innerHTML = icon('info', 'How to Play');
+$('profileBtn').textContent = 'Profile';
+$('leaderBtn').textContent = 'Leaderboard';
 $('soloBtn').innerHTML = icon('bot', 'Play Solo vs The House');
 $('syncBtn').innerHTML = icon('refresh');
 $('exitSoloBtn').textContent = 'Exit';
@@ -682,8 +690,132 @@ function myName() {
   return $('nameInput').value.trim();
 }
 
-$('nameInput').value = localStorage.getItem('crib_name') || '';
-$('nameInput').addEventListener('input', () => localStorage.setItem('crib_name', myName()));
+function readProfiles() {
+  try {
+    const data = JSON.parse(localStorage.getItem(PROFILE_KEY) || '{}');
+    return data && typeof data === 'object' ? data : {};
+  } catch {
+    return {};
+  }
+}
+
+function writeProfiles(profiles) {
+  localStorage.setItem(PROFILE_KEY, JSON.stringify(profiles));
+}
+
+function activeProfilePin() {
+  const pin = localStorage.getItem(ACTIVE_PROFILE_KEY) || '';
+  return /^\d{4}$/.test(pin) ? pin : '';
+}
+
+function activeProfile() {
+  const pin = activeProfilePin();
+  return pin ? readProfiles()[pin] || null : null;
+}
+
+function saveActiveProfileName() {
+  const pin = activeProfilePin();
+  if (!pin) return;
+  const name = myName();
+  if (!name) return;
+  const profiles = readProfiles();
+  const p = profiles[pin];
+  if (!p) return;
+  p.name = name;
+  p.updatedAt = Date.now();
+  writeProfiles(profiles);
+  renderProfileStatus();
+}
+
+function renderProfileStatus() {
+  const el = $('profileStatus');
+  if (!el) return;
+  const p = activeProfile();
+  el.textContent = p ? `Profile: ${p.name}` : 'No profile saved';
+}
+
+$('nameInput').value = localStorage.getItem('crib_name') || (activeProfile() && activeProfile().name) || '';
+$('nameInput').addEventListener('input', () => {
+  localStorage.setItem('crib_name', myName());
+  saveActiveProfileName();
+});
+renderProfileStatus();
+
+function showProfile() {
+  const p = activeProfile();
+  showInfo('Profile', `<div class="profile-box">
+    <label>Name</label>
+    <input id="profileNameInput" maxlength="16" value="${esc(myName() || (p && p.name) || '')}" placeholder="Your name">
+    <label>4-digit PIN</label>
+    <input id="profilePinInput" maxlength="4" inputmode="numeric" pattern="[0-9]*" value="${esc(activeProfilePin())}" placeholder="1234">
+    <div class="profile-actions">
+      <button id="profileSaveBtn" class="btn primary">Save Profile</button>
+      <button id="profileLogoutBtn" class="btn">Forget PIN</button>
+    </div>
+    <p class="hint">Profiles and leaderboard scores are saved on this device.</p>
+  </div>`);
+  const nameInput = $('profileNameInput');
+  const pinInput = $('profilePinInput');
+  $('profileSaveBtn').onclick = () => {
+    const name = nameInput.value.trim();
+    const pin = pinInput.value.trim();
+    if (!name) return toast('Enter a name first.');
+    if (!/^\d{4}$/.test(pin)) return toast('PIN must be 4 digits.');
+    const profiles = readProfiles();
+    profiles[pin] = {
+      pin,
+      name,
+      bestBlind: Math.max(0, profiles[pin]?.bestBlind || 0),
+      bestScore: Math.max(0, profiles[pin]?.bestScore || 0),
+      updatedAt: Date.now(),
+    };
+    writeProfiles(profiles);
+    localStorage.setItem(ACTIVE_PROFILE_KEY, pin);
+    localStorage.setItem('crib_name', name);
+    $('nameInput').value = name;
+    renderProfileStatus();
+    toast('Profile saved.');
+  };
+  $('profileLogoutBtn').onclick = () => {
+    localStorage.removeItem(ACTIVE_PROFILE_KEY);
+    renderProfileStatus();
+    toast('PIN forgotten on this device.');
+  };
+}
+
+function recordSoloResult(st) {
+  if (!st.solo || st.phase !== 'gameover' || !st.you) return;
+  const me = (st.standings || []).find(s => s.seat === st.mySeat) || { score: st.you.score || 0 };
+  const score = Math.max(0, me.score || 0);
+  const blind = Math.max(0, st.you.blindsPassed || 0);
+  const key = `${score}-${blind}-${st.round}`;
+  if (key === lastRecordedRunKey) return;
+  lastRecordedRunKey = key;
+  const pin = activeProfilePin();
+  if (!pin) return;
+  const profiles = readProfiles();
+  const p = profiles[pin];
+  if (!p) return;
+  p.name = myName() || p.name;
+  p.bestScore = Math.max(p.bestScore || 0, score);
+  p.bestBlind = Math.max(p.bestBlind || 0, blind);
+  p.updatedAt = Date.now();
+  writeProfiles(profiles);
+  renderProfileStatus();
+}
+
+function showLeaderboard() {
+  const profiles = Object.values(readProfiles())
+    .filter(p => p && p.name)
+    .sort((a, b) => (b.bestBlind || 0) - (a.bestBlind || 0) || (b.bestScore || 0) - (a.bestScore || 0) || a.name.localeCompare(b.name));
+  const rows = profiles.length ? profiles.map((p, i) =>
+    `<div class="leader-row"><span>${i + 1}. ${esc(p.name)}</span><span>Blind ${p.bestBlind || 0}</span><span>${p.bestScore || 0} pts</span></div>`
+  ).join('') : '<p class="hint">No solo runs recorded yet. Save a profile, play The House, then come back.</p>';
+  showInfo('Leaderboard', `<div class="leaderboard">${rows}</div>`);
+}
+
+$('profileBtn').onclick = () => showProfile();
+$('leaderBtn').onclick = () => showLeaderboard();
 
 if (P2P_MODE) {
   $('wsPanel').classList.add('hidden');
