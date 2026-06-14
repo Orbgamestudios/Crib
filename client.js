@@ -503,6 +503,7 @@ function showView(v) {
     lastOverlayPhase = 'none';
     document.body.classList.remove('my-turn');
   }
+  if (v === 'lobby') refreshSoloContinue();
 }
 
 function toast(text) {
@@ -529,6 +530,7 @@ document.addEventListener('click', e => {
 $('howToBtn').innerHTML = icon('info', 'How to Play');
 $('soloBtn').innerHTML = icon('bot', 'Play Solo vs The House');
 $('syncBtn').innerHTML = icon('refresh');
+$('exitSoloBtn').textContent = 'Exit';
 $('deckBtn').innerHTML = icon('deck', 'Deck');
 sanitizeIcons(document.body);
 
@@ -749,6 +751,10 @@ function refreshSoloContinue() {
 }
 
 $('syncBtn').onclick = () => { sendMsg({ t: 'sync' }); toast('Refreshed.'); };
+$('exitSoloBtn').onclick = () => {
+  sendMsg({ t: 'backToLobby' });
+  toast('Solo run saved.');
+};
 
 $('updateBtn').onclick = async () => {
   try {
@@ -939,6 +945,7 @@ function renderGame(st) {
   const turnP = st.players.find(p => p.seat === st.turnSeat);
   $('turnInfo').textContent =
     st.phase === 'pegging' && turnP ? (turnP.seat === st.mySeat ? 'Your turn' : `${turnP.name}'s turn`) : '';
+  $('exitSoloBtn').classList.toggle('hidden', !st.solo || st.phase === 'gameover');
 
   const myMove = !!st.you && st.you.active &&
     ((st.phase === 'pegging' && st.turnSeat === st.mySeat) || st.you.canDiscard);

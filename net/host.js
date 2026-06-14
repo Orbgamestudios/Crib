@@ -194,7 +194,10 @@ export class HostSession {
     if (this.destroyed) return;
     const p = this.players[0];
     if (msg.t === 'startGame') return this.startGame();
-    if (msg.t === 'leaveRoom' || msg.t === 'backToLobby') return this.destroy('Host closed the table.');
+    if (msg.t === 'leaveRoom' || msg.t === 'backToLobby') {
+      this.saveSolo();
+      return this.destroy('Host closed the table.');
+    }
     this.dispatch(p, msg, null);
   }
 
