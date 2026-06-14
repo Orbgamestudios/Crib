@@ -479,6 +479,15 @@ body.my-turn #bgRush { opacity: 0.6; animation-play-state: running; }
   position: fixed; z-index: 120; margin: 0; pointer-events: none;
   transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.3, 1);
 }
+@media (min-width: 900px) and (min-height: 560px) and (pointer: fine) {
+  .card.flying {
+    width: 64px;
+    height: 90px;
+    font-size: 20px;
+    padding: 3px 4px;
+  }
+  .card.flying .suit { font-size: 23px; }
+}
 
 .card.sweep {
   position: fixed; z-index: 110; margin: 0; pointer-events: none;
@@ -725,7 +734,16 @@ body.my-turn #bgRush { opacity: 0.6; animation-play-state: running; }
 .jtile:hover { transform: translateY(-8px); animation: wobble 2.2s ease-in-out infinite; z-index: 8; }
 .jtile .jt-icon { width: 30px; height: 30px; }
 .jtile .jt-icon svg { width: 100%; height: 100%; }
-.jtile .jt-name { font-size: 7.5px; text-align: center; line-height: 1.1; opacity: 0.9; }
+.jtile .jt-name {
+  width: 100%;
+  max-height: 18px;
+  overflow: hidden;
+  font-size: 7.5px;
+  text-align: center;
+  line-height: 1.1;
+  opacity: 0.9;
+  overflow-wrap: anywhere;
+}
 .jtile.joker { border-color: var(--gold); cursor: grab; touch-action: none; }
 .jtile.joker.dragging { opacity: 0.4; cursor: grabbing; }
 .jtile.stamp-purple, .focus-card.stamp-purple, .shop-item.stamp-purple { box-shadow: 0 0 12px #b48be088, 0 2px 5px #0007; }
@@ -750,9 +768,13 @@ body.my-turn #bgRush { opacity: 0.6; animation-play-state: running; }
 .jtile .tip {
   display: none; position: absolute; bottom: 108%; left: 50%; transform: translateX(-50%);
   background: #000000ee; padding: 8px 10px; border-radius: 6px; width: min(270px, calc(100vw - 32px));
-  font-size: 12px; z-index: 30; pointer-events: none;
+  font-size: 12px; z-index: 30; pointer-events: none; overflow-wrap: anywhere;
 }
 .jtile:hover .tip { display: block; }
+.jslot .jtile .tip, .tslot .jtile .tip {
+  left: 0;
+  transform: none;
+}
 
 /* ---- log ---- */
 #log {
@@ -780,7 +802,7 @@ body.my-turn #bgRush { opacity: 0.6; animation-play-state: running; }
     padding: 0 450px 0 390px;
   }
   #center {
-    top: 38%;
+    top: 41%;
     gap: 16px;
   }
   #centerCards { gap: 28px; }
@@ -835,7 +857,7 @@ body.my-turn #bgRush { opacity: 0.6; animation-play-state: running; }
   #blindProgress {
     position: fixed;
     left: 50%;
-    bottom: 238px;
+    bottom: 216px;
     transform: translateX(-50%);
     width: min(700px, calc(100vw - 900px));
     min-width: 430px;
@@ -853,7 +875,7 @@ body.my-turn #bgRush { opacity: 0.6; animation-play-state: running; }
   #myCards {
     width: min(900px, calc(100vw - 900px));
     min-width: 560px;
-    min-height: 176px;
+    min-height: 150px;
     justify-content: flex-end;
     pointer-events: auto;
   }
@@ -870,16 +892,16 @@ body.my-turn #bgRush { opacity: 0.6; animation-play-state: running; }
     text-overflow: ellipsis;
   }
   #hand {
-    height: 142px;
+    height: 104px;
     align-items: flex-end;
   }
   #hand .card {
-    width: 92px;
-    height: 129px;
-    font-size: 28px;
-    margin: 0 -4px;
+    width: 64px;
+    height: 90px;
+    font-size: 20px;
+    margin: 0 -3px;
   }
-  #hand .card .suit { font-size: 32px; }
+  #hand .card .suit { font-size: 23px; }
   #hudRow {
     position: fixed;
     left: 18px;
@@ -954,6 +976,26 @@ body.my-turn #bgRush { opacity: 0.6; animation-play-state: running; }
     width: 58px;
     height: 78px;
   }
+  .seat .backs {
+    height: 94px;
+    margin-top: 5px;
+  }
+  .seat .backs .card,
+  .seat .played .card {
+    width: 64px;
+    height: 90px;
+    font-size: 20px;
+    padding: 3px 4px;
+    margin: 0 -20px;
+  }
+  .seat .backs .card .suit,
+  .seat .played .card .suit {
+    font-size: 23px;
+  }
+  .seat .played {
+    min-height: 92px;
+    margin-top: 4px;
+  }
   #log {
     display: none;
   }
@@ -972,7 +1014,7 @@ body.my-turn #bgRush { opacity: 0.6; animation-play-state: running; }
   position: fixed; inset: 0; background: #00000088; z-index: 230;
   display: flex; align-items: center; justify-content: center; padding: 16px;
 }
-#infoPanel { width: min(420px, 94vw); max-height: 80vh; overflow-y: auto; }
+#infoPanel { width: min(420px, 94vw); max-height: 80vh; overflow-y: auto; overflow-wrap: anywhere; }
 #infoPanel.wide { width: min(760px, 94vw); }
 #infoPanel h2 { color: var(--gold); }
 #infoBody { font-size: 14px; line-height: 1.45; }
@@ -1396,7 +1438,7 @@ body.my-turn #bgRush { opacity: 0.6; animation-play-state: running; }
 @keyframes focusFade { from { opacity: 0; } to { opacity: 1; } }
 .focus-card {
   position: relative; overflow: hidden;
-  width: min(320px, 86vw); max-height: 84vh;
+  width: min(320px, 86vw); max-height: calc(100vh - 40px);
   display: flex; flex-direction: column; align-items: center; gap: 10px;
   padding: 22px 20px; border-radius: 16px;
   background: rgba(28, 42, 54, 0.92);
@@ -1414,8 +1456,11 @@ body.my-turn #bgRush { opacity: 0.6; animation-play-state: running; }
 .focus-art { width: 116px; height: 116px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 .focus-art svg { width: 100%; height: 100%; }
 .focus-art.card .card { width: 84px; height: 118px; font-size: 26px; }
-.focus-name { font-size: 22px; font-weight: 800; color: var(--cream); text-align: center; line-height: 1.1; }
-.focus-desc { line-height: 1.4; text-align: center; opacity: 0.92; max-height: 34vh; overflow: hidden; width: 100%; }
+.focus-name { font-size: 20px; font-weight: 800; color: var(--cream); text-align: center; line-height: 1.12; overflow-wrap: anywhere; }
+.focus-desc {
+  line-height: 1.32; text-align: center; opacity: 0.92; max-height: 30vh;
+  overflow-y: auto; width: 100%; font-size: 15px; overflow-wrap: anywhere;
+}
 .focus-buy, .focus-btn { margin-top: 6px; font-size: 16px; padding: 10px 26px; }
 .focus-actions { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
 .focus-note { font-size: 13px; line-height: 1.35; opacity: 0.78; text-align: center; }
