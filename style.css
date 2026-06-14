@@ -385,8 +385,6 @@ body.my-turn #bgRush { opacity: 0.6; animation-play-state: running; }
 }
 .seat .backs { display: flex; justify-content: center; margin-top: 4px; height: 44px; }
 .seat .backs .card { margin: 0 -9px; }
-.seat .played { display: flex; justify-content: center; margin-top: 3px; min-height: 30px; }
-.seat .played .card { margin: 0 -7px; }
 .dealer-chip {
   display: inline-block; background: var(--gold); color: var(--ink); border-radius: 50%;
   width: 18px; height: 18px; line-height: 18px; font-size: 11px; font-weight: 700;
@@ -977,21 +975,15 @@ body.my-turn #bgRush { opacity: 0.6; animation-play-state: running; }
     height: 82px;
     margin-top: 5px;
   }
-  .seat .backs .card,
-  .seat .played .card {
+  .seat .backs .card {
     width: 54px;
     height: 76px;
     font-size: 17px;
     padding: 3px 4px;
     margin: 0 -17px;
   }
-  .seat .backs .card .suit,
-  .seat .played .card .suit {
+  .seat .backs .card .suit {
     font-size: 19px;
-  }
-  .seat .played {
-    min-height: 78px;
-    margin-top: 4px;
   }
   #log {
     display: none;
@@ -1250,7 +1242,7 @@ body.my-turn #bgRush { opacity: 0.6; animation-play-state: running; }
   .seat { width: 120px; }
   .seat .plaque { font-size: 11px; padding: 3px 8px; }
   .seat .backs { height: 34px; }
-  .seat .backs .card, .seat .played .card { width: 24px; height: 34px; font-size: 9px; padding: 1px 2px; }
+  .seat .backs .card { width: 24px; height: 34px; font-size: 9px; padding: 1px 2px; }
   .seat .backs .card { margin: 0 -7px; }
   .card { width: 38px; height: 53px; font-size: 12px; }
   .card .suit { font-size: 13px; }

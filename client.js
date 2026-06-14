@@ -1,4 +1,4 @@
-import { JOKER_ICONS, TAROT_ICONS, PACK_ICONS } from './icons.js?v=9';
+import { JOKER_ICONS, TAROT_ICONS, PACK_ICONS } from './icons.js?v=10';
 import { cardValue } from './lib/cards.js';
 import { pegEvents, scoreBreakdown } from './lib/scoring.js';
 import { JOKERS, TAROTS, aggregateMods, buildScore, stampText } from './lib/jokers.js';
@@ -1193,18 +1193,11 @@ function renderSeats(st) {
     plaque.title = `${p.name}'s jokers`;
     seat.appendChild(plaque);
 
-    // the backs of their hand (and any cards they've played to the pile)
+    // the backs of their hand
     const backs = document.createElement('div');
     backs.className = 'backs';
     for (let c = 0; c < p.handCount; c++) backs.appendChild(backEl(true));
     seat.appendChild(backs);
-
-    if (p.played && p.played.length) {
-      const played = document.createElement('div');
-      played.className = 'played';
-      for (const c of p.played) played.appendChild(cardEl(c, { small: true }));
-      seat.appendChild(played);
-    }
     el.appendChild(seat);
   });
 }

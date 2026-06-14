@@ -55,7 +55,10 @@ export const JOKER_ICONS = {
   ),
   counter_king: svg(
     `<path d="M12 14l6 7 6-10 6 10 6-7v12H12z" fill="${G}" stroke="${D}" stroke-width="1.5"/>` +
-    txt(24, 42, '×2', 15, C)
+    `<path d="M11 34h26" stroke="${C}" stroke-width="3" stroke-linecap="round"/>` +
+    `<path d="M26 34h11" stroke="${R}" stroke-width="3" stroke-linecap="round"/>` +
+    txt(24, 31, '15+', 10, D) +
+    txt(24, 44, '+M', 8, C)
   ),
   last_card_larry: svg(
     card(14, 16, -6) +
@@ -212,10 +215,12 @@ export const JOKER_ICONS = {
   crib_battery: svg(
     `<path d="M8 23h32l-3 15a3 3 0 01-3 2H14a3 3 0 01-3-2z" fill="${BL}" stroke="${D}" stroke-width="1.5"/>` +
     `<path d="M8 23c0-6 7-10 16-10s16 4 16 10" fill="none" stroke="${BL}" stroke-width="2.5"/>` +
-    `<rect x="15" y="16" width="18" height="12" rx="2" fill="${C}" stroke="${D}" stroke-width="1.4"/>` +
-    `<rect x="33" y="19" width="3" height="6" rx="1" fill="${G}" stroke="${D}" stroke-width=".8"/>` +
-    `<path d="M24 17l-4 7h4l-2 7 6-9h-4l2-5z" fill="${R}" stroke="${D}" stroke-width=".8"/>` +
-    txt(24, 38, 'x2', 9, G)
+    `<rect x="13" y="15" width="22" height="13" rx="2" fill="${C}" stroke="${D}" stroke-width="1.4"/>` +
+    `<rect x="35" y="19" width="3" height="5" rx="1" fill="${G}" stroke="${D}" stroke-width=".8"/>` +
+    txt(18, 24, 'S', 7, D) +
+    txt(24, 24, 'H', 7, R) +
+    txt(30, 24, 'D', 7, R) +
+    txt(24, 39, 'x1.25', 6, G)
   ),
   hayloft: svg(
     `<path d="M8 24h32l-4 15H12z" fill="#b87932" stroke="${D}" stroke-width="1.5"/>` +
@@ -294,11 +299,12 @@ export const JOKER_ICONS = {
     `<circle cx="39" cy="14" r="1.5" fill="${C}"/>`
   ),
   card_smith: svg(
-    `<rect x="12" y="8" width="24" height="33" rx="4" fill="#1d3a5c" stroke="#7fb4d8" stroke-width="2"/>` +
-    `<path d="M12 17q12 5 24 0" fill="none" stroke="#7fb4d8" stroke-width="1.5"/>` +
-    `<g transform="rotate(-10 21 29)"><rect x="16" y="22" width="11" height="15" rx="1.6" fill="${C}" stroke="${D}" stroke-width="1"/></g>` +
-    `<g transform="rotate(10 29 29)"><rect x="23" y="22" width="11" height="15" rx="1.6" fill="${C}" stroke="${D}" stroke-width="1"/></g>` +
-    txt(24, 47, 'FREE', 6, '#9fd0ee')
+    `<rect x="9" y="13" width="21" height="29" rx="3" fill="#1d3a5c" stroke="#7fb4d8" stroke-width="2"/>` +
+    `<path d="M9 21q10 4 21 0" fill="none" stroke="#7fb4d8" stroke-width="1.4"/>` +
+    `<g transform="rotate(9 28 28)"><rect x="21" y="20" width="14" height="18" rx="2" fill="${C}" stroke="${D}" stroke-width="1.1"/></g>` +
+    `<path d="M31 8l6 6-3 3-6-6z" fill="${G}" stroke="${D}" stroke-width="1.1"/>` +
+    `<path d="M28 12l-9 9" stroke="${D}" stroke-width="2.4" stroke-linecap="round"/>` +
+    txt(20, 35, 'PACK', 6, '#9fd0ee')
   ),
   acemaker: svg(
     `<path d="M10 25h28l-3 13a3 3 0 01-3 2H16a3 3 0 01-3-2z" fill="${G}" stroke="${D}" stroke-width="1.5"/>` +
