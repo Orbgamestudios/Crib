@@ -209,6 +209,28 @@ export const JOKER_ICONS = {
     txt(16, 29, 'C', 9, R, 'transform="rotate(-10 16 25)"') +
     txt(32, 29, 'C', 9, R, 'transform="rotate(10 32 25)"')
   ),
+  crib_battery: svg(
+    `<path d="M8 23h32l-3 15a3 3 0 01-3 2H14a3 3 0 01-3-2z" fill="${BL}" stroke="${D}" stroke-width="1.5"/>` +
+    `<path d="M8 23c0-6 7-10 16-10s16 4 16 10" fill="none" stroke="${BL}" stroke-width="2.5"/>` +
+    `<rect x="15" y="16" width="18" height="12" rx="2" fill="${C}" stroke="${D}" stroke-width="1.4"/>` +
+    `<rect x="33" y="19" width="3" height="6" rx="1" fill="${G}" stroke="${D}" stroke-width=".8"/>` +
+    `<path d="M24 17l-4 7h4l-2 7 6-9h-4l2-5z" fill="${R}" stroke="${D}" stroke-width=".8"/>` +
+    txt(24, 38, 'x2', 9, G)
+  ),
+  hayloft: svg(
+    `<path d="M8 24h32l-4 15H12z" fill="#b87932" stroke="${D}" stroke-width="1.5"/>` +
+    `<path d="M9 24l15-13 15 13" fill="${G}" stroke="${D}" stroke-width="1.4"/>` +
+    `<path d="M14 27h20M13 32h22M16 37h16" stroke="#f7d36b" stroke-width="2" stroke-linecap="round"/>` +
+    `<path d="M34 12v24M30 16h8M31 20h6" stroke="${D}" stroke-width="1.6" stroke-linecap="round"/>` +
+    txt(24, 22, '+M', 8, D)
+  ),
+  crib_spark: svg(
+    `<path d="M9 23h30l-3 15a3 3 0 01-3 2H15a3 3 0 01-3-2z" fill="${G}" stroke="${D}" stroke-width="1.5"/>` +
+    `<path d="M9 23c0-6 7-10 15-10s15 4 15 10" fill="none" stroke="${G}" stroke-width="2.4"/>` +
+    txt(24, 33, '15', 11, R) +
+    `<path d="M36 6l1.5 4 4 .8-3 2.7.8 4-3.3-2.1-3.4 2.1.9-4-3-2.7 4-.8z" fill="${C}" stroke="${D}" stroke-width=".7"/>` +
+    `<path d="M14 9l1 2.6 2.7.5-2 1.8.5 2.7-2.2-1.4-2.3 1.4.6-2.7-2-1.8 2.7-.5z" fill="${P}"/>`
+  ),
   ace_chaser: svg(
     card(15, 10, 0) +
     `<circle cx="34" cy="33" r="7" fill="${G}" stroke="${D}" stroke-width="1.4"/>` +
