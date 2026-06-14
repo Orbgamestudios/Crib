@@ -16,6 +16,7 @@ const P2P_LOBBY_BROKERS = [
 const P2P_ROOM_TOPIC_PREFIX = 'orbcrib-room-v1';
 const TOUCH = 'ontouchstart' in window;
 const ANIM = 1.9; // global animation slowdown — everything glides ~half speed
+const SOLO_SAVE_KEY = 'crib_solo_house_save_v1';
 
 // GitHub Pages (or any static host) has no WebSocket server: use P2P rooms.
 const P2P_MODE = location.hostname.endsWith('github.io') ||
@@ -462,6 +463,7 @@ function handle(msg) {
       const animRefs = captureAnimationRefs(prevState, msg.state);
       renderGame(msg.state);
       runAnimations(prevState, msg.state, animRefs);
+      if (msg.state.phase === 'gameover') refreshSoloContinue();
       break;
     case 'log':
       addLog(msg.text);
@@ -480,6 +482,7 @@ function handle(msg) {
       clearGuestTransports();
       showView('lobby');
       if (!P2P_MODE) renderRoomList(msg.rooms || []);
+      refreshSoloContinue();
       break;
   }
 }
@@ -528,6 +531,14 @@ $('soloBtn').innerHTML = icon('bot', 'Play Solo vs The House');
 $('syncBtn').innerHTML = icon('refresh');
 $('deckBtn').innerHTML = icon('deck', 'Deck');
 sanitizeIcons(document.body);
+
+const continueSoloBtn = document.createElement('button');
+continueSoloBtn.id = 'continueSoloBtn';
+continueSoloBtn.className = 'btn primary wide';
+continueSoloBtn.style.marginTop = '10px';
+continueSoloBtn.innerHTML = icon('deck', 'Continue Solo Run');
+$('soloBtn').insertAdjacentElement('beforebegin', continueSoloBtn);
+refreshSoloContinue();
 
 $('infoClose').onclick = () => $('infoOverlay').classList.add('hidden');
 $('infoOverlay').onclick = e => {
@@ -700,11 +711,42 @@ $('soloBtn').onclick = async () => {
   if (!myName()) return toast('Enter a name first.');
   if (P2P_MODE) {
     const { HostSession, makeCode } = await import('./net/host.js');
-    hostSession = new HostSession(makeCode(), myName(), msg => handle(msg), () => {}, { solo: true });
+    hostSession = new HostSession(makeCode(), myName(), msg => handle(msg), () => {}, { solo: true, saveKey: SOLO_SAVE_KEY });
   } else {
     sendMsg({ t: 'createSolo', playerName: myName() });
   }
 };
+
+continueSoloBtn.onclick = async () => {
+  const saved = readSoloSave();
+  if (!saved) return refreshSoloContinue();
+  const hostName = (saved.game && saved.game.players && saved.game.players.find(p => !p.isBot)?.name) || myName() || 'Player';
+  localStorage.setItem('crib_name', hostName);
+  $('nameInput').value = hostName;
+  const { HostSession, makeCode } = await import('./net/host.js');
+  hostSession = new HostSession(makeCode(), hostName, msg => handle(msg), () => {}, {
+    solo: true,
+    saveKey: SOLO_SAVE_KEY,
+    restoreState: saved,
+  });
+};
+
+function readSoloSave() {
+  try {
+    const raw = localStorage.getItem(SOLO_SAVE_KEY);
+    if (!raw) return null;
+    const saved = JSON.parse(raw);
+    if (!saved || !saved.game || !Array.isArray(saved.game.players)) return null;
+    return saved;
+  } catch {
+    localStorage.removeItem(SOLO_SAVE_KEY);
+    return null;
+  }
+}
+
+function refreshSoloContinue() {
+  continueSoloBtn.classList.toggle('hidden', !readSoloSave());
+}
 
 $('syncBtn').onclick = () => { sendMsg({ t: 'sync' }); toast('Refreshed.'); };
 

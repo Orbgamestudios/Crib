@@ -24,6 +24,7 @@ export class HostSession {
   constructor(code, hostName, onLocal, onStatus, opts = {}) {
     this.code = code;
     this.solo = !!opts.solo;
+    this.saveKey = opts.saveKey || null;
     this.roomName = this.solo ? `${hostName} vs The House` : `${hostName}'s table`;
     this.onLocal = onLocal;       // deliver a protocol message to the host's own client
     this.onStatus = onStatus || (() => {});
@@ -42,8 +43,11 @@ export class HostSession {
       this.peer = null;
       setTimeout(() => {
         this.onLocal({ t: 'joined', roomId: 'SOLO', logs: this.logs });
-        this.players.push({ id: 'p2', name: 'The House', conn: 'bot', connected: true, isBot: true });
-        this.startGame();
+        if (opts.restoreState) this.restoreSolo(opts.restoreState);
+        else {
+          this.players.push({ id: 'p2', name: 'The House', conn: 'bot', connected: true, isBot: true });
+          this.startGame();
+        }
       }, 0);
       return;
     }
@@ -130,6 +134,7 @@ export class HostSession {
   }
 
   broadcastRoom() {
+    this.saveSolo();
     for (const p of this.players) {
       if (!p.connected) continue;
       if (this.game) {
@@ -145,6 +150,36 @@ export class HostSession {
         });
       }
     }
+  }
+
+  saveSolo() {
+    if (!this.solo || !this.saveKey || !this.game) return;
+    if (this.game.phase === 'gameover') { this.clearSoloSave(); return; }
+    try {
+      localStorage.setItem(this.saveKey, JSON.stringify({
+        version: 1,
+        savedAt: Date.now(),
+        logs: this.logs,
+        game: this.game.snapshot(),
+      }));
+    } catch { /* storage may be full or blocked */ }
+  }
+
+  clearSoloSave() {
+    if (!this.saveKey) return;
+    try { localStorage.removeItem(this.saveKey); } catch { /* ignore */ }
+  }
+
+  restoreSolo(payload) {
+    const snap = payload && payload.game;
+    if (!snap || !Array.isArray(snap.players)) return this.startGame();
+    this.logs = Array.isArray(payload.logs) ? payload.logs.slice(-60) : [];
+    this.players = snap.players.map(p => ({
+      id: p.id, name: p.name, conn: p.isBot ? 'bot' : null,
+      connected: true, isBot: !!p.isBot,
+    }));
+    this.game = Game.fromSnapshot(snap, { onUpdate: () => this.broadcastRoom(), log: text => this.log(text) });
+    this.broadcastRoom();
   }
 
   handle(conn, msg) {
