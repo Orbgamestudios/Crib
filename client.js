@@ -2556,6 +2556,10 @@ function runAnimations(prev, st, refs = {}) {
     (!prev.lastPlayAnim || st.lastPlayAnim.seq !== prev.lastPlayAnim.seq)
     ? st.lastPlayAnim.card
     : null;
+  const multAnim = st.lastMultAnim &&
+    (!prev.lastMultAnim || st.lastMultAnim.seq !== prev.lastMultAnim.seq)
+    ? st.lastMultAnim
+    : null;
   if (playAnim) {
     let fromRect = refs.playAnimFrom || null;
     if (!fromRect) {
@@ -2602,6 +2606,9 @@ function runAnimations(prev, st, refs = {}) {
     if (gained > 0) {
       showMultGainForSeat(prev, st, played.seat, gained);
     }
+  }
+  if (!playAnim && multAnim && multAnim.multGain > 0) {
+    showMultGainForSeat(prev, st, multAnim.seat, multAnim.multGain);
   }
 
   // booster pack just opened — burst it before the picks rise in
