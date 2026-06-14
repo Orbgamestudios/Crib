@@ -574,7 +574,7 @@ function showHowToPlay() {
     runs, go, His Heels) adds to it.</p>
     <p>At the show, <b>Points x Mult = the deal's score</b>. So a fat hand with a
     big pegging Mult snowballs - that's how you beat late blinds. The <b>crib</b>
-    scores its points straight (no Mult), so its value is all about the cards in it.</p>
+    uses the dealer's Mult too, so dealer turns can swing hard.</p>
 
     <h4>Pegging points</h4>
     <ul>
@@ -591,8 +591,8 @@ function showHowToPlay() {
 
     <h4>Jokers</h4>
     <p>Passive cards bought in the shop. They sit beside your hand and boost your
-    Points or Mult automatically - e.g. fifteens worth 3, doubled pegging, a +50%
-    crib. Hold up to 5; drag to reorder (<i>Blueprint</i> copies the joker to its
+    Points or Mult automatically - e.g. stronger fifteens, conditional pegging,
+    or crib Mult. Hold up to 5; drag to reorder (<i>Blueprint</i> copies the joker to its
     right).</p>
 
     <h4>Tarots</h4>
@@ -614,12 +614,12 @@ function showHowToPlay() {
       <li><b>Keep Points and Mult balanced.</b> A huge hand at x1, or a tiny
       hand at x8, both fizzle. Buy jokers that lift whichever you're short on.</li>
       <li><b>Build an engine early.</b> Round 1-2 blinds are gentle — spend
-      coins on jokers that compound (repricers, suit/rank bonuses, doubled
+      coins on jokers that compound (repricers, suit/rank bonuses, conditional
       pegging) rather than hoarding.</li>
       <li><b>Sculpt your deck.</b> Tarots and Standard packs let you load up on
       one suit (for flushes) or rank (for fifteens/pairs). A focused deck scores
       far more reliably than a random 52.</li>
-      <li><b>Mind the crib.</b> It has no Mult, so the dealer wants high-scoring
+      <li><b>Mind the crib.</b> It uses the dealer's Mult, so the dealer wants high-scoring
       cards in it — and non-dealers should avoid handing the dealer easy points.
       Crib jokers (Golden/Steel Crib, Copier, Acemaker) only pay you on your deal.</li>
       <li><b>Race for the blind.</b> Clearing it first earns the most bonus
@@ -1870,8 +1870,7 @@ function scoreBlock(r, st, fresh) {
     div.insertAdjacentHTML('beforeend', '<div class="sb-line"><span>Nothing scored</span><span>+0</span></div>');
   }
 
-  // Points × Mult = Total  (Balatro-style). The crib has no Mult — show its
-  // points as the total straight.
+  // Points × Mult = Total  (Balatro-style). The crib uses the dealer's Mult.
   const eqDelay = 300 + r.lines.length * 130;
   const eq = document.createElement('div');
   eq.className = 'sb-equation' + (fresh ? ' anim' : '');
@@ -2678,7 +2677,7 @@ $('tutClose').onclick = () => $('tutorialBar').classList.add('hidden');
 function tutorialMessage(st) {
   if (!st.you) return null;
   if (st.phase === 'scoring') {
-    return { key: `scoring-${st.dealNumber}`, text: "Scoring reveal - each hand is counted in order, then the dealer's crib scores last. Your deal total is hand Points times your red Mult, and any coins you earn will pop in before the shop." };
+    return { key: `scoring-${st.dealNumber}`, text: "Scoring reveal - each hand is counted in order, then the dealer's crib scores last. Hands and crib use Points times the owner's red Mult, and any coins you earn will pop in before the shop." };
   }
   if (st.phase === 'roundEnd') {
     return { key: `round-${st.round}`, text: st.solo

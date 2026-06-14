@@ -50,37 +50,56 @@ input,
 }
 #bg {
   position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none;
-  background: radial-gradient(ellipse at center, var(--felt) 0%, var(--felt-dark) 100%);
+  background:
+    radial-gradient(circle at 50% 50%, #2f6f4a 0 8%, transparent 28%),
+    conic-gradient(from 0deg at 50% 50%, #143727, #1c5b49, #203b6b, #6c315f, #69322e, #1d5c3a, #143727);
 }
 /* CSS can't tween between two gradients, so crossfade a blue layer's opacity */
 #bgTurn {
   position: absolute; inset: 0;
-  background: radial-gradient(ellipse at center, #2f5c8a 0%, #142a4a 100%);
-  opacity: 0; transition: opacity 1.6s ease-in-out;
+  background:
+    radial-gradient(circle at 50% 50%, #5caee6 0 5%, transparent 22%),
+    conic-gradient(from 45deg at 50% 50%, #173b67, #315c92, #744a9b, #9d3f62, #b87932, #25765a, #173b67);
+  opacity: 0; transition: opacity 1.2s ease-in-out;
 }
 body.my-turn #bgTurn { opacity: 1; }
 #bgDrift, #bgRush {
   position: absolute; inset: -220px;
-  background-image: var(--suit-tile);
+  background-image:
+    var(--suit-tile),
+    repeating-conic-gradient(from 0deg at 50% 50%, #ffffff00 0 10deg, #ffffff12 12deg 16deg, #ffffff00 18deg 30deg),
+    radial-gradient(circle at 50% 50%, transparent 0 12%, #ffffff10 13% 14%, transparent 15% 28%, #0000001c 29% 30%, transparent 31%);
   background-size: 140px 140px;
+  background-position: center;
+  transform-origin: 50% 50%;
 }
-#bgDrift { animation: bgDrift 110s ease-in-out infinite; }
+#bgDrift {
+  opacity: 0.72;
+  animation: bgKaleido 70s linear infinite, bgHue 34s linear infinite;
+  mix-blend-mode: screen;
+}
 #bgRush {
-  opacity: 0; animation: bgRush 7s linear infinite;
+  opacity: 0; animation: bgRush 6s linear infinite, bgHue 10s linear infinite;
   animation-play-state: paused; transition: opacity 1s ease;
+  mix-blend-mode: screen;
 }
 /* your move: the felt shifts to blue (via #bgTurn crossfade) and flows faster */
-body.my-turn #bgRush { opacity: 0.6; animation-play-state: running; }
-@keyframes bgDrift {
-  0% { transform: translate(0, 0); }
-  25% { transform: translate(85px, -55px); }
-  50% { transform: translate(155px, 25px); }
-  75% { transform: translate(60px, 95px); }
-  100% { transform: translate(0, 0); }
+body.my-turn #bgDrift { animation-duration: 24s, 8s; opacity: 0.92; }
+body.my-turn #bgRush { opacity: 0.78; animation-play-state: running; }
+@keyframes bgKaleido {
+  0% { transform: translate(0, 0) rotate(0deg) scale(1); }
+  25% { transform: translate(70px, -50px) rotate(45deg) scale(1.08); }
+  50% { transform: translate(150px, 30px) rotate(90deg) scale(1); }
+  75% { transform: translate(55px, 95px) rotate(135deg) scale(1.08); }
+  100% { transform: translate(0, 0) rotate(180deg) scale(1); }
 }
 @keyframes bgRush {
-  from { transform: translate(0, 0); }
-  to { transform: translate(140px, 140px); }
+  from { transform: translate(0, 0) rotate(0deg) scale(1.05); filter: hue-rotate(0deg) saturate(1.1); }
+  to { transform: translate(140px, 140px) rotate(90deg) scale(1.12); filter: hue-rotate(160deg) saturate(1.45); }
+}
+@keyframes bgHue {
+  from { filter: hue-rotate(0deg) saturate(1); }
+  to { filter: hue-rotate(360deg) saturate(1.25); }
 }
 
 .hidden { display: none !important; }
