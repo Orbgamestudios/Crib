@@ -1105,9 +1105,16 @@ function jtile(kind, def, opts = {}) {
 function showDictionary() {
   const body = document.createElement('div');
   body.className = 'dictionary';
-  body.appendChild(dictionarySection('Jokers', JOKERS, 'joker'));
+  body.appendChild(dictionarySection('Jokers', sortedJokersForDictionary(), 'joker'));
   body.appendChild(dictionarySection('Tarots', TAROTS, 'tarot'));
   showInfo('Card Dictionary', body.outerHTML);
+}
+
+function sortedJokersForDictionary() {
+  const rank = { common: 0, rare: 1, ultra: 2 };
+  return JOKERS.slice().sort((a, b) =>
+    (rank[a.rarity || 'common'] ?? 0) - (rank[b.rarity || 'common'] ?? 0) ||
+    a.name.localeCompare(b.name));
 }
 
 function dictionarySection(title, defs, kind) {

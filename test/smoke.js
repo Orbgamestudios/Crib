@@ -5,8 +5,37 @@ process.env.CRIB_FAST = '1';
 
 import WebSocket from 'ws';
 const { start } = await import('../server.js');
+const { Game } = await import('../lib/game.js');
+const { makeCard } = await import('../lib/cards.js');
 
 const PORT = 3100;
+
+async function testRestorePegClosing() {
+  const game = new Game([
+    { id: 'p1', name: 'Solo1', connected: true },
+    { id: 'p2', name: 'The House', connected: true, isBot: true },
+  ], { onUpdate() {}, log() {} });
+  game.phase = 'pegging';
+  game.pegClosing = true;
+  game.pegCount = 12;
+  game.turnSeat = null;
+  game.lastPlayerSeat = 1;
+  game.players[0].pegLeft = [makeCard(5, 0)];
+  game.players[1].pegLeft = [];
+  const snap = game.snapshot();
+  game.destroy();
+
+  const restored = Game.fromSnapshot(snap, { onUpdate() {}, log() {} });
+  await new Promise(r => setTimeout(r, 80));
+  if (restored.pegClosing || restored.turnSeat !== 0) {
+    console.error('FAIL: restored peg-closing game did not resume', {
+      pegClosing: restored.pegClosing,
+      turnSeat: restored.turnSeat,
+    });
+    process.exit(1);
+  }
+  restored.destroy();
+}
 
 function bot(name, opts) {
   const ws = new WebSocket(`ws://localhost:${PORT}`);
@@ -147,6 +176,7 @@ async function runSolo() {
 }
 
 const server = await start(PORT);
+await testRestorePegClosing();
 await runMatch(2);
 await runMatch(3);
 await runMatch(5);
