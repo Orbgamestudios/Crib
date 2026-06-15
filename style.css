@@ -1225,6 +1225,11 @@ body.my-turn #bgRush { opacity: 0.6; animation-play-state: running; }
 }
 .shop-item.pack { border-color: #8fe7ff; }
 .shop-item.pick .si-bigcard { align-self: center; margin: 6px 0; }
+.shop-item.pick .shop-type {
+  position: static;
+  align-self: flex-end;
+  margin: -2px 0 2px auto;
+}
 .pack-grid { grid-template-columns: 1fr 1fr 1fr; }
 
 /* deck viewer */
