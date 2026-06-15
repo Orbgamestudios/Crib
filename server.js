@@ -15,10 +15,12 @@ const MIME = {
 const rooms = new Map(); // id -> room
 let nextRoomId = 1;
 
-function makeRoom(name) {
+function makeRoom(name, opts = {}) {
   const room = {
     id: 'r' + (nextRoomId++),
     name: (name || 'Cribbage Table').slice(0, 30),
+    mode: opts.mode === 'board' ? 'board' : 'blind',
+    goalScore: opts.mode === 'board' ? (opts.goalScore === 5000 ? 5000 : 2500) : null,
     players: [], // { id, name, ws, connected }
     game: null,
     logs: [],
@@ -32,6 +34,8 @@ function roomSummary(room) {
     id: room.id, name: room.name,
     players: room.players.map(p => p.name),
     count: room.players.filter(p => p.connected).length,
+    mode: room.mode,
+    goalScore: room.goalScore,
     inGame: !!room.game && room.game.phase !== 'gameover',
   };
 }
@@ -79,13 +83,18 @@ function roomLog(room, text) {
   }
 }
 
-function startGame(room) {
+function startGame(room, opts = {}) {
+  if (opts.mode) {
+    room.mode = opts.mode === 'board' ? 'board' : 'blind';
+    room.goalScore = room.mode === 'board' ? (opts.goalScore === 5000 ? 5000 : 2500) : null;
+  }
   room.game = new Game(
     room.players.map(p => ({ id: p.id, name: p.name, connected: p.connected })),
     {
       onUpdate: () => broadcastRoom(room),
       log: text => roomLog(room, text),
-    }
+    },
+    { mode: room.mode, goalScore: room.goalScore }
   );
   broadcastRoom(room);
   broadcastRooms();
@@ -132,7 +141,7 @@ function handleMessage(ws, msg) {
       if (meta.roomId) return;
       const name = String(msg.playerName || '').trim().slice(0, 16);
       if (!name) return send(ws, { t: 'error', text: 'Enter a name first.' });
-      const newRoom = makeRoom(msg.roomName);
+      const newRoom = makeRoom(msg.roomName, msg);
       joinPlayer(newRoom, ws, name);
       break;
     }
@@ -141,14 +150,15 @@ function handleMessage(ws, msg) {
       if (meta.roomId) return;
       const name = String(msg.playerName || '').trim().slice(0, 16);
       if (!name) return send(ws, { t: 'error', text: 'Enter a name first.' });
-      const soloRoom = makeRoom(`${name} vs The House`);
+      const soloRoom = makeRoom(`${name} vs The House`, msg);
       joinPlayer(soloRoom, ws, name);
       soloRoom.game = new Game(
         [
           ...soloRoom.players.map(p => ({ id: p.id, name: p.name, connected: true })),
           { id: 'house-' + soloRoom.id, name: 'The House', isBot: true },
         ],
-        { onUpdate: () => broadcastRoom(soloRoom), log: t => roomLog(soloRoom, t) }
+        { onUpdate: () => broadcastRoom(soloRoom), log: t => roomLog(soloRoom, t) },
+        { mode: soloRoom.mode, goalScore: soloRoom.goalScore }
       );
       broadcastRoom(soloRoom);
       broadcastRooms();
@@ -207,7 +217,7 @@ function handleMessage(ws, msg) {
       const connected = room.players.filter(p => p.connected);
       if (connected.length < 2) return send(ws, { t: 'error', text: 'Need at least 2 players.' });
       room.players = connected;
-      startGame(room);
+      startGame(room, msg);
       break;
     }
 

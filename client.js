@@ -51,6 +51,10 @@ let pointerCardDrag = null;
 let lastCoinPopKey = '';
 let lastRecordedRunKey = '';
 let deferredRender = false; // a state update arrived mid-drag; apply on release
+let selectedGameMode = localStorage.getItem('crib_game_mode') === 'board' ? 'board' : 'blind';
+let selectedBoardGoal = Number(localStorage.getItem('crib_board_goal')) === 5000 ? 5000 : 2500;
+let boardView = null;
+let boardScoreDisplay = new Map();
 
 function isDragging() {
   return !!((pointerCardDrag && pointerCardDrag.dragging) || (jokerDrag && jokerDrag.dragging));
@@ -280,13 +284,24 @@ function playMessageSfx(msg) {
   }
 }
 
+function gameOptions() {
+  return {
+    mode: selectedGameMode,
+    goalScore: selectedGameMode === 'board' ? selectedBoardGoal : null,
+  };
+}
+
+function modeLabel(mode, goal) {
+  return mode === 'board' ? `Board to ${goal || 2500}` : 'Blind';
+}
+
 async function hostTable() {
   const { HostSession, makeCode } = await import('./net/host.js');
   const code = makeCode();
   hostSession = new HostSession(code, myName(), msg => handle(msg), (status, detail) => {
     if (status === 'code-taken') { hostSession = null; toast('Code collision — try again.'); }
     else if (status === 'error') { hostSession = null; toast('Connection service error: ' + detail); showView('lobby'); }
-  });
+  }, gameOptions());
   hostSession.peer.on('error', err => {
     console.warn('Host PeerJS error:', err.type);
     toast('Connection service error: ' + err.type);
@@ -523,7 +538,8 @@ function showView(v) {
     lastStateJson = '';
     lastJokerSig = null;
     lastOverlayPhase = 'none';
-    document.body.classList.remove('my-turn');
+    document.body.classList.remove('my-turn', 'mode-board', 'phase-discard', 'phase-pegging', 'phase-scoring', 'phase-roundEnd', 'phase-shop', 'phase-gameover');
+    $('board3dWrap').classList.add('hidden');
   }
   if (v === 'lobby') refreshSoloContinue();
 }
@@ -712,6 +728,8 @@ function showItemInfo(kind, def, action) {
     : 'Tarots are one-shot cards. Use them before you discard, then pick the required target card(s).';
   showInfo(def.name, `<p>${esc(def.desc)}</p><p>${timing}</p>`);
   if (action) {
+    const meta = div.querySelector('.meta');
+    if (meta) meta.textContent = `${modeLabel(r.mode, r.goalScore)} · ${r.count}/6 players - ${(r.players || []).join(', ')}`;
     const btn = document.createElement('button');
     btn.className = 'btn primary';
     btn.textContent = `Use ${def.name}`;
@@ -856,6 +874,27 @@ function showLeaderboard() {
 $('profileBtn').onclick = () => showProfile();
 $('leaderBtn').onclick = () => showLeaderboard();
 
+function syncModeControls() {
+  document.querySelectorAll('#modeToggle button').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.mode === selectedGameMode);
+  });
+  $('boardGoalBox').classList.toggle('hidden', selectedGameMode !== 'board');
+  $('boardGoalSelect').value = String(selectedBoardGoal);
+}
+
+document.querySelectorAll('#modeToggle button').forEach(btn => {
+  btn.onclick = () => {
+    selectedGameMode = btn.dataset.mode === 'board' ? 'board' : 'blind';
+    localStorage.setItem('crib_game_mode', selectedGameMode);
+    syncModeControls();
+  };
+});
+$('boardGoalSelect').onchange = () => {
+  selectedBoardGoal = Number($('boardGoalSelect').value) === 5000 ? 5000 : 2500;
+  localStorage.setItem('crib_board_goal', String(selectedBoardGoal));
+};
+syncModeControls();
+
 if (P2P_MODE) {
   $('wsPanel').classList.add('hidden');
   $('p2pPanel').classList.remove('hidden');
@@ -877,7 +916,7 @@ if (P2P_MODE) {
 } else {
   $('createBtn').onclick = () => {
     if (!myName()) return toast('Enter a name first.');
-    sendMsg({ t: 'createRoom', roomName: $('roomNameInput').value.trim() || `${myName()}'s table`, playerName: myName() });
+    sendMsg({ t: 'createRoom', roomName: $('roomNameInput').value.trim() || `${myName()}'s table`, playerName: myName(), ...gameOptions() });
   };
   $('refreshBtn').onclick = () => sendMsg({ t: 'listRooms' });
 }
@@ -886,9 +925,9 @@ $('soloBtn').onclick = async () => {
   if (!myName()) return toast('Enter a name first.');
   if (P2P_MODE) {
     const { HostSession, makeCode } = await import('./net/host.js');
-    hostSession = new HostSession(makeCode(), myName(), msg => handle(msg), () => {}, { solo: true, saveKey: SOLO_SAVE_KEY });
+    hostSession = new HostSession(makeCode(), myName(), msg => handle(msg), () => {}, { solo: true, saveKey: SOLO_SAVE_KEY, ...gameOptions() });
   } else {
-    sendMsg({ t: 'createSolo', playerName: myName() });
+    sendMsg({ t: 'createSolo', playerName: myName(), ...gameOptions() });
   }
 };
 
@@ -983,6 +1022,8 @@ function startP2pLobbyDiscovery() {
       name: msg.name || `${msg.code} table`,
       count: Number(msg.count) || 1,
       players: Array.isArray(msg.players) ? msg.players : [],
+      mode: msg.mode === 'board' ? 'board' : 'blind',
+      goalScore: Number(msg.goalScore) === 5000 ? 5000 : 2500,
       lastSeen: Date.now(),
     });
     renderP2pRooms();
@@ -1087,12 +1128,20 @@ function renderWaiting(msg) {
   const n = msg.players.filter(p => p.connected).length;
   $('startBtn').classList.toggle('hidden', !isHost);
   $('startBtn').disabled = n < 2;
+  queueMicrotask(() => {
+    const mode = msg.room && msg.room.mode === 'board' ? 'board' : 'blind';
+    const goal = msg.room && msg.room.goalScore;
+    $('waitHint').textContent = n < 2 ? 'Waiting for at least 2 players...' :
+      mode === 'board'
+        ? `${n} players. Board mode: no blinds or knockouts - first to ${goal || 2500} wins.`
+        : `${n} players. Each round, beat the blind or you're out - last one standing wins.`;
+  });
   $('waitHint').textContent = n < 2
     ? 'Waiting for at least 2 players…'
     : `${n} players. Each round, beat the blind or you're out — last one standing wins.`;
 }
 
-$('startBtn').onclick = () => sendMsg({ t: 'startGame' });
+$('startBtn').onclick = () => sendMsg({ t: 'startGame', ...gameOptions() });
 $('leaveBtn').onclick = () => { if (P2P_MODE) leaveP2p(); else sendMsg({ t: 'leaveRoom' }); };
 
 // ---- cards ----
@@ -1122,6 +1171,8 @@ function renderGame(st) {
   $('exitSoloBtn').classList.toggle('hidden', !st.solo || st.phase === 'gameover');
   document.body.classList.remove('phase-discard', 'phase-pegging', 'phase-scoring', 'phase-roundEnd', 'phase-shop', 'phase-gameover');
   document.body.classList.add(`phase-${st.phase}`);
+  document.body.classList.toggle('mode-board', st.mode === 'board');
+  $('board3dWrap').classList.toggle('hidden', st.mode !== 'board');
 
   const myMove = !!st.you && st.you.active &&
     ((st.phase === 'pegging' && st.turnSeat === st.mySeat) || st.you.canDiscard);
@@ -1133,6 +1184,7 @@ function renderGame(st) {
   renderMyArea(st);
   renderOverlay(st);
   renderTutorial(st);
+  renderBoard3d(st);
   sanitizeIcons($('game'));
 }
 
@@ -1154,6 +1206,17 @@ function renderBlindBar(st) {
   const el = $('blindProgress');
   const fill = $('blindBarFill');
   const label = $('blindBarLabel');
+
+  if (st.mode === 'board') {
+    const goal = st.goalScore || 2500;
+    const pct = st.you ? Math.min(100, Math.round(100 * st.you.score / goal)) : 0;
+    el.classList.remove('out-label');
+    fill.style.width = pct + '%';
+    fill.className = pct >= 100 ? 'done' : pct >= 75 ? 'high' : pct >= 45 ? 'mid' : '';
+    label.style.color = '';
+    label.textContent = st.you ? `${st.you.score} / ${goal}  ·  Board` : `Board to ${goal}`;
+    return;
+  }
 
   if (!st.you || !st.you.active) {
     el.classList.add('out-label');
@@ -1206,13 +1269,15 @@ function renderSeats(st) {
       if (nm) nm.innerHTML = `${esc(p.name)} ${icon('bot')}`;
     }
     // how far this player is toward the round's blind
-    if (p.active && st.blind) {
-      const pct = Math.min(100, Math.round(100 * p.roundScore / st.blind));
-      const done = p.roundScore >= st.blind;
+    if (p.active && (st.blind || st.mode === 'board')) {
+      const goal = st.mode === 'board' ? (st.goalScore || 2500) : st.blind;
+      const score = st.mode === 'board' ? p.score : p.roundScore;
+      const pct = Math.min(100, Math.round(100 * score / goal));
+      const done = score >= goal;
       plaque.insertAdjacentHTML('beforeend',
         `<div class="seat-blind${done ? ' done' : ''}">` +
         `<div class="seat-blind-fill" style="width:${pct}%"></div>` +
-        `<span class="seat-blind-label">${p.roundScore}/${st.blind}</span></div>`);
+        `<span class="seat-blind-label">${score}/${goal}</span></div>`);
     }
     plaque.onclick = () => showPlayerJokers(p);
     plaque.title = `${p.name}'s jokers`;
@@ -1253,6 +1318,141 @@ function renderCenter(st) {
     stack.appendChild(el);
   }
   $('pegCount').textContent = st.phase === 'pegging' ? st.pegCount : '';
+}
+
+const BOARD_COLORS = ['#ffd76e', '#63b8ff', '#ff6262', '#7ee08b', '#dfc8ff', '#ff9f43'];
+
+function boardPathPoint(t) {
+  const a = t * Math.PI * 2 - Math.PI / 2;
+  return { x: Math.cos(a) * 2.7, z: Math.sin(a) * 0.82 };
+}
+
+function initBoard3d() {
+  const canvas = $('board3d');
+  if (!canvas || boardView) return boardView;
+  const THREE = window.THREE;
+  if (!THREE) {
+    boardView = { fallback: true, canvas, ctx: canvas.getContext('2d'), targets: new Map() };
+    return boardView;
+  }
+  const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+  renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(36, 1, 0.1, 100);
+  camera.position.set(0, 3.1, 5.2);
+  camera.lookAt(0, 0, 0);
+  const group = new THREE.Group();
+  scene.add(group);
+  const light = new THREE.DirectionalLight(0xffffff, 1.8);
+  light.position.set(2.5, 5, 3);
+  scene.add(light);
+  scene.add(new THREE.AmbientLight(0x99bbff, 1.1));
+
+  const board = new THREE.Mesh(
+    new THREE.BoxGeometry(6.4, 0.22, 2.05),
+    new THREE.MeshStandardMaterial({ color: 0x5a351d, roughness: 0.62, metalness: 0.08 })
+  );
+  board.position.y = -0.12;
+  group.add(board);
+  const holeGeo = new THREE.SphereGeometry(0.025, 10, 8);
+  const holeMat = new THREE.MeshStandardMaterial({ color: 0x160e08, roughness: 0.9 });
+  for (let lane = 0; lane < 3; lane++) {
+    for (let i = 0; i < 80; i++) {
+      const p = boardPathPoint(i / 80);
+      const h = new THREE.Mesh(holeGeo, holeMat);
+      h.position.set(p.x, 0.035, p.z + (lane - 1) * 0.12);
+      group.add(h);
+    }
+  }
+  boardView = { THREE, renderer, scene, camera, group, pegs: new Map(), targets: new Map(), lastTs: 0 };
+  requestAnimationFrame(boardFrame);
+  return boardView;
+}
+
+function ensureBoardPeg(view, player) {
+  if (view.pegs.has(player.seat)) return view.pegs.get(player.seat);
+  const color = BOARD_COLORS[player.seat % BOARD_COLORS.length];
+  const mat = new view.THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 0.28, roughness: 0.38 });
+  const peg = new view.THREE.Mesh(new view.THREE.CapsuleGeometry(0.055, 0.28, 6, 12), mat);
+  view.group.add(peg);
+  view.pegs.set(player.seat, peg);
+  return peg;
+}
+
+function boardFrame(ts) {
+  const view = boardView;
+  if (!view || view.fallback) return;
+  const canvas = view.renderer.domElement;
+  const rect = canvas.getBoundingClientRect();
+  const w = Math.max(1, Math.floor(rect.width));
+  const h = Math.max(1, Math.floor(rect.height));
+  if (canvas.width !== w || canvas.height !== h) {
+    view.renderer.setSize(w, h, false);
+    view.camera.aspect = w / h;
+    view.camera.updateProjectionMatrix();
+  }
+  const dt = Math.min(0.05, ((ts || 0) - (view.lastTs || ts || 0)) / 1000);
+  view.lastTs = ts || 0;
+  view.group.rotation.y += dt * 0.22;
+  for (const [seat, target] of view.targets) {
+    const cur = boardScoreDisplay.get(seat) ?? target;
+    const next = cur + (target - cur) * Math.min(1, dt * 2.8);
+    boardScoreDisplay.set(seat, Math.abs(next - target) < 0.5 ? target : next);
+  }
+  for (const player of (lastState && lastState.players) || []) {
+    const peg = view.pegs.get(player.seat);
+    if (!peg) continue;
+    const goal = Math.max(1, lastState.goalScore || 2500);
+    const t = Math.min(1, (boardScoreDisplay.get(player.seat) || 0) / goal);
+    const p = boardPathPoint(t);
+    peg.position.set(p.x, 0.22, p.z + ((player.seat % 3) - 1) * 0.16);
+  }
+  view.renderer.render(view.scene, view.camera);
+  requestAnimationFrame(boardFrame);
+}
+
+function drawBoardFallback(view, st) {
+  const canvas = view.canvas;
+  const rect = canvas.getBoundingClientRect();
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  canvas.width = Math.max(1, Math.floor(rect.width * dpr));
+  canvas.height = Math.max(1, Math.floor(rect.height * dpr));
+  const ctx = view.ctx;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, rect.width, rect.height);
+  const cx = rect.width / 2, cy = rect.height / 2 + 4;
+  ctx.fillStyle = '#5a351d';
+  ctx.strokeStyle = '#2a170c';
+  ctx.lineWidth = 8;
+  ctx.beginPath();
+  ctx.roundRect(cx - rect.width * 0.42, cy - 45, rect.width * 0.84, 90, 38);
+  ctx.fill(); ctx.stroke();
+  const goal = st.goalScore || 2500;
+  st.players.forEach(p => {
+    const target = p.score || 0;
+    const cur = boardScoreDisplay.get(p.seat) ?? target;
+    boardScoreDisplay.set(p.seat, cur + (target - cur) * 0.18);
+    const t = Math.min(1, (boardScoreDisplay.get(p.seat) || 0) / goal) * Math.PI * 2 - Math.PI / 2;
+    const x = cx + Math.cos(t) * rect.width * 0.34;
+    const y = cy + Math.sin(t) * 34 + ((p.seat % 3) - 1) * 6;
+    ctx.fillStyle = BOARD_COLORS[p.seat % BOARD_COLORS.length];
+    ctx.beginPath(); ctx.arc(x, y, 7, 0, Math.PI * 2); ctx.fill();
+  });
+}
+
+function renderBoard3d(st) {
+  if (st.mode !== 'board') return;
+  const view = initBoard3d();
+  $('board3dLegend').innerHTML = st.players.map(p => {
+    const color = BOARD_COLORS[p.seat % BOARD_COLORS.length];
+    return `<span class="board-legend-item" style="color:${color}"><span class="board-dot" style="background:${color}"></span>${esc(p.name)} ${p.score}/${st.goalScore || 2500}</span>`;
+  }).join('');
+  st.players.forEach(p => {
+    view.targets.set(p.seat, p.score || 0);
+    if (!boardScoreDisplay.has(p.seat)) boardScoreDisplay.set(p.seat, p.score || 0);
+    if (!view.fallback) ensureBoardPeg(view, p);
+  });
+  if (view.fallback) drawBoardFallback(view, st);
 }
 
 // joker/tarot rendered as a little card tile, Balatro-row style
@@ -1987,9 +2187,13 @@ function renderGameover(oc, st) {
       `<div class="run-summary">You reached <b>Round ${st.round}</b> against The House.<br>` +
       `Final score: <b>${me.score}</b> · Blinds beaten: <b>${st.you.blindsPassed}</b></div>`;
   } else {
-    oc.innerHTML = '<h2>Final Standings</h2>';
+    oc.innerHTML = st.mode === 'board'
+      ? `<h2>Board Winner</h2><div class="run-summary">Goal: <b>${st.goalScore || 2500}</b> points</div>`
+      : '<h2>Final Standings</h2>';
     (st.standings || []).forEach((s, i) => {
-      const tag = s.eliminatedRound === null ? `${icon('winner')} winner` : `out round ${s.eliminatedRound}`;
+      const tag = st.mode === 'board'
+        ? (i === 0 ? `${icon('winner')} winner` : 'finished')
+        : s.eliminatedRound === null ? `${icon('winner')} winner` : `out round ${s.eliminatedRound}`;
       oc.insertAdjacentHTML('beforeend',
         `<div class="standing${i === 0 ? ' winner' : ''}"><span>${i + 1}. ${esc(s.name)}</span>` +
         `<span class="standing-tag">${tag}</span><span>${s.score} pts</span></div>`);
@@ -2042,6 +2246,21 @@ function renderScoring(oc, st) {
   oc.lastChild.appendChild(cardEl(st.starter, { small: true }));
 
   const done = st.revealIndex >= st.scoringResults.length - 1;
+  if (st.mode === 'board') {
+    const r = st.scoringResults[Math.min(st.revealIndex, st.scoringResults.length - 1)];
+    const fresh = st.revealIndex > revealShown;
+    oc.appendChild(scoreBlock(r, st, fresh));
+    revealShown = Math.max(revealShown, st.revealIndex);
+    oc.insertAdjacentHTML('beforeend',
+      `<div class="hint" style="margin-top:8px">${esc(r.name)} moves from ${Math.round(r.scoreBefore || 0)} to ${Math.round(r.scoreAfter || 0)} on the board.</div>`);
+    if (done) {
+      const winner = st.players.find(p => p.score >= (st.goalScore || 2500));
+      if (st.you.active) appendReadyBtn(oc, st, winner ? 'Final Standings' : 'Next Deal');
+    } else {
+      oc.insertAdjacentHTML('beforeend', '<div class="counting-hint">Counting...</div>');
+    }
+    return;
+  }
   for (let i = 0; i <= st.revealIndex && i < st.scoringResults.length; i++) {
     const fresh = i > revealShown;
     oc.appendChild(scoreBlock(st.scoringResults[i], st, fresh));

@@ -115,6 +115,25 @@ body.my-turn #bgRush { opacity: 0.6; animation-play-state: running; }
 .row { display: flex; gap: 8px; align-items: center; }
 .row.spread { justify-content: space-between; }
 .row input { margin-bottom: 0; }
+.mode-box { margin-top: 10px; display: grid; gap: 8px; }
+.segmented {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 4px;
+  background: #00000033; border: 1px solid #ffffff22; border-radius: 8px; padding: 4px;
+}
+.segmented button {
+  border: 0; border-radius: 6px; padding: 9px 10px;
+  background: transparent; color: var(--cream); font-weight: 800; cursor: pointer;
+}
+.segmented button.active {
+  background: var(--gold); color: var(--ink);
+  box-shadow: 0 2px 8px #0005;
+}
+.board-goal { display: grid; gap: 5px; }
+.board-goal select {
+  width: 100%; background: #2d4053; color: var(--cream);
+  border: 1px solid #ffffff33; border-radius: 8px; padding: 9px 10px;
+  font: inherit;
+}
 .lobby-actions { flex-wrap: wrap; justify-content: center; }
 .profile-status {
   min-height: 18px; margin: -4px 0 10px; color: var(--gold);
@@ -356,6 +375,10 @@ body.phase-pegging #tutorialBar {
   flex-shrink: 0;
 }
 #turnInfo { color: var(--gold); font-weight: 600; }
+body.mode-board #phaseInfo::after {
+  content: ' · Board';
+  color: var(--gold);
+}
 
 #table { position: relative; flex: 1; min-height: 0; }
 
@@ -389,6 +412,9 @@ body.phase-pegging #tutorialBar {
 .seat-blind-label {
   position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
   font-size: 9px; font-weight: 700; color: #fff; text-shadow: 0 1px 2px #000a;
+}
+body.mode-board .seat-blind-fill {
+  background: linear-gradient(90deg, #2a6db0, #8fe7ff);
 }
 .seat .backs { display: flex; justify-content: center; margin-top: 4px; height: 44px; }
 .seat .backs .card { margin: 0 -9px; }
@@ -609,6 +635,32 @@ body.phase-pegging #tutorialBar {
   text-align: center;
 }
 #blindProgress.out-label #blindBarOuter { display: none; }
+body.mode-board #blindBarFill {
+  background: linear-gradient(90deg, #2a6db0, #8fe7ff);
+}
+body.mode-board #blindBarFill.done {
+  background: linear-gradient(90deg, #e8c35a, #58d68d);
+}
+
+#board3dWrap {
+  position: fixed; left: 50%; bottom: calc(-26px + env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  width: min(760px, calc(100vw - 24px)); height: 190px;
+  z-index: 24; pointer-events: none;
+  filter: drop-shadow(0 12px 22px #0009);
+}
+#board3d { width: 100%; height: 100%; display: block; }
+#board3dLegend {
+  position: absolute; left: 50%; bottom: 4px; transform: translateX(-50%);
+  display: flex; gap: 8px; justify-content: center; flex-wrap: wrap;
+  font-size: 11px; font-weight: 800; color: var(--cream);
+  text-shadow: 0 1px 3px #000;
+}
+.board-legend-item { display: inline-flex; align-items: center; gap: 4px; }
+.board-dot { width: 9px; height: 9px; border-radius: 50%; box-shadow: 0 0 6px currentColor; }
+body.mode-board #bottombar { background: transparent; }
+body.mode-board #myStuff,
+body.mode-board #tarotPanel { display: none; }
 
 /* ---- bottom bar ---- */
 #bottombar {
@@ -869,7 +921,7 @@ body.phase-pegging #tutorialBar {
     position: fixed;
     left: 390px;
     right: 450px;
-    bottom: 0;
+    bottom: -42px;
     height: 205px;
     padding: 0 0 18px;
     background: transparent;
@@ -893,6 +945,16 @@ body.phase-pegging #tutorialBar {
     z-index: 42;
     pointer-events: none;
   }
+  body.mode-board #blindProgress { bottom: 212px; }
+  body.mode-board #board3dWrap {
+    left: 50%;
+    right: auto;
+    bottom: 0;
+    width: min(760px, calc(100vw - 920px));
+    min-width: 430px;
+    height: 205px;
+  }
+  body.mode-board #myCards { transform: translateY(-22px); }
   #blindBarOuter {
     height: 18px;
     border-radius: 9px;
@@ -1021,6 +1083,20 @@ body.phase-pegging #tutorialBar {
     display: none;
   }
   #overlayContent { max-height: 82vh; }
+  body.mode-board #overlay {
+    align-items: flex-start;
+    padding-top: 88px;
+    background: transparent;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    pointer-events: none;
+  }
+  body.mode-board #overlayContent {
+    width: min(640px, calc(100vw - 920px));
+    min-width: 420px;
+    max-height: 34vh;
+    pointer-events: auto;
+  }
 }
 
 /* ---- overlay ---- */
@@ -1332,6 +1408,12 @@ body.phase-pegging #tutorialBar {
   .jtile .jt-name { display: none; }
 
   #log { display: none; }
+  body.mode-board #board3dWrap {
+    height: 138px;
+    bottom: calc(-20px + env(safe-area-inset-bottom));
+  }
+  body.mode-board #blindProgress { margin-bottom: 136px; }
+  body.mode-board #myCards { min-height: 118px; }
   #topbar { gap: 8px; font-size: 12px; padding: 6px 8px; }
   .br-name { width: 80px; font-size: 13px; }
   .br-tag { width: 88px; }

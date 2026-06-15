@@ -24,6 +24,8 @@ export class HostSession {
   constructor(code, hostName, onLocal, onStatus, opts = {}) {
     this.code = code;
     this.solo = !!opts.solo;
+    this.gameMode = opts.mode === 'board' ? 'board' : 'blind';
+    this.goalScore = this.gameMode === 'board' ? (opts.goalScore === 5000 ? 5000 : 2500) : null;
     this.saveKey = opts.saveKey || null;
     this.roomName = this.solo ? `${hostName} vs The House` : `${hostName}'s table`;
     this.onLocal = onLocal;       // deliver a protocol message to the host's own client
@@ -129,6 +131,8 @@ export class HostSession {
       id: this.code, name: this.roomName,
       players: this.players.map(p => p.name),
       count: this.players.filter(p => p.connected).length,
+      mode: this.gameMode,
+      goalScore: this.goalScore,
       inGame: !!this.game && this.game.phase !== 'gameover',
     };
   }
@@ -193,7 +197,7 @@ export class HostSession {
   handleLocal(msg) {
     if (this.destroyed) return;
     const p = this.players[0];
-    if (msg.t === 'startGame') return this.startGame();
+    if (msg.t === 'startGame') return this.startGame(msg);
     if (msg.t === 'leaveRoom' || msg.t === 'backToLobby') {
       this.saveSolo();
       return this.destroy('Host closed the table.');
@@ -252,8 +256,10 @@ export class HostSession {
     this.broadcastRoom();
   }
 
-  startGame() {
+  startGame(opts = {}) {
     if (this.game && this.game.phase !== 'gameover') return;
+    this.gameMode = opts.mode === 'board' ? 'board' : this.gameMode;
+    this.goalScore = this.gameMode === 'board' ? (opts.goalScore === 5000 ? 5000 : 2500) : null;
     const connected = this.players.filter(p => p.connected);
     if (connected.length < 2) {
       return this.onLocal({ t: 'error', text: 'Need at least 2 players.' });
@@ -261,7 +267,8 @@ export class HostSession {
     this.players = connected;
     this.game = new Game(
       this.players.map(p => ({ id: p.id, name: p.name, connected: p.connected, isBot: p.isBot })),
-      { onUpdate: () => this.broadcastRoom(), log: text => this.log(text) }
+      { onUpdate: () => this.broadcastRoom(), log: text => this.log(text) },
+      { mode: this.gameMode, goalScore: this.goalScore }
     );
     this.stopLobbyAdvertising();
     this.broadcastRoom();
@@ -311,6 +318,8 @@ export class HostSession {
         name: this.roomName,
         count: connectedCount,
         players: this.players.filter(p => p.connected).map(p => p.name),
+        mode: this.gameMode,
+        goalScore: this.goalScore,
       });
       client.publish(P2P_LOBBY_TOPIC, payload);
     };
