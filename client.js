@@ -2635,7 +2635,8 @@ function runAnimations(prev, st, refs = {}) {
       showMultGainForSeat(prev, st, played.seat, gained);
     }
   }
-  if (!playAnim && multAnim && multAnim.multGain > 0) {
+  if (multAnim && multAnim.multGain > 0 &&
+      (!playAnim || st.pegClosing || multAnim.multGain !== (st.lastPlayAnim && st.lastPlayAnim.multGain))) {
     showMultGainForSeat(prev, st, multAnim.seat, multAnim.multGain);
   }
 
