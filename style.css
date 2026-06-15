@@ -308,9 +308,9 @@ body.my-turn #bgRush { opacity: 0.6; animation-play-state: running; }
 
 #tutorialBar {
   position: fixed; bottom: 14px; left: 50%; transform: translateX(-50%);
-  width: min(840px, calc(100vw - 20px)); max-width: calc(100vw - 20px); z-index: 205;
-  background: linear-gradient(160deg, rgba(43,63,36,0.82), rgba(28,44,26,0.82));
-  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  width: min(840px, calc(100vw - 20px)); max-width: calc(100vw - 20px); z-index: 280;
+  background: linear-gradient(160deg, rgba(43,63,36,0.96), rgba(28,44,26,0.96));
+  backdrop-filter: none; -webkit-backdrop-filter: none;
   border: 1px solid var(--gold); border-radius: 10px;
   padding: 9px 34px 9px 14px; font-size: 13px; line-height: 1.4;
   color: var(--cream); box-shadow: 0 6px 20px #0008; pointer-events: auto;

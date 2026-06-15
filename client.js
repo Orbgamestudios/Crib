@@ -2914,9 +2914,7 @@ function shopStampTip(st) {
 
 function tutorialMessage(st) {
   if (!st.you) return null;
-  if (st.phase === 'scoring') {
-    return { key: `scoring-${st.dealNumber}`, text: "Scoring reveal - each hand is counted in order, then the dealer's crib scores last. Hands and crib use Points times the owner's red Mult, and any coins you earn will pop in before the shop." };
-  }
+  if (st.phase === 'scoring') return null;
   if (st.phase === 'roundEnd') {
     return { key: `round-${st.round}`, text: st.solo
       ? 'Blind check - your round score is compared to the target blind. Beat it to keep the run alive; The House can score points, but it cannot knock you out.'
