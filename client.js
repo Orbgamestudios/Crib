@@ -547,6 +547,13 @@ function showInfo(title, body) {
 }
 
 document.addEventListener('click', e => {
+  const stamp = e.target.closest('.stamp-pill');
+  if (stamp) {
+    e.stopPropagation();
+    e.preventDefault();
+    showInfo('Stamp', `<p>${esc(stampText(stamp.dataset.stamp))}</p>`);
+    return;
+  }
   if (e.target.closest('button, .card, .shop-item, .jtile, .sell-cell, .info-btn')) sfx('click');
 });
 
@@ -1852,7 +1859,7 @@ function rarityPill(item) {
 function stampPill(item) {
   if (!item || !item.stamp) return '';
   const label = stampText(item.stamp).split(':')[0] || `${item.stamp} Stamp`;
-  return `<div class="stamp-pill ${item.stamp}">${esc(label)}</div>`;
+  return `<button type="button" class="stamp-pill ${item.stamp}" data-stamp="${esc(item.stamp)}">${esc(label)}</button>`;
 }
 
 function shopCardFace(item) {
@@ -1867,6 +1874,22 @@ function shopCardFace(item) {
     : PACK_ICONS[item.id];
   face.innerHTML = `<div class="shop-art">${icon || ''}</div>`;
   return face;
+}
+
+function focusDisplayCard(item) {
+  const art = document.createElement('div');
+  art.className = 'focus-art focus-display-card ' + item.kind;
+  if (item.kind === 'card') {
+    art.appendChild(cardEl(item));
+    return art;
+  }
+  const icon = item.kind === 'joker' ? JOKER_ICONS[item.id]
+    : item.kind === 'tarot' ? TAROT_ICONS[item.id]
+    : PACK_ICONS[item.id];
+  art.innerHTML = `<span class="focus-card-icon">${icon || ''}</span>` +
+    `<span class="focus-card-title">${esc(item.name)}</span>`;
+  addStampBadge(art, item.stamp);
+  return art;
 }
 
 function dealerName(st) {
@@ -2234,13 +2257,7 @@ function focusCardShell(item) {
   card.className = `focus-card ${item.kind}` + (item.rarity ? ' r-' + item.rarity : '') +
     (item.stamp ? ' stamp-' + item.stamp : '');
 
-  const art = document.createElement('div');
-  art.className = 'focus-art ' + item.kind;
-  if (item.kind === 'card') {
-    art.appendChild(cardEl(item));
-  } else {
-    art.innerHTML = (item.kind === 'joker' ? JOKER_ICONS : item.kind === 'tarot' ? TAROT_ICONS : PACK_ICONS)[item.id] || '';
-  }
+  const art = focusDisplayCard(item);
   card.appendChild(art);
 
   card.insertAdjacentHTML('beforeend',
@@ -2248,7 +2265,6 @@ function focusCardShell(item) {
     rarityPill(item) +
     stampPill(item) +
     `<div class="focus-desc">${esc(item.desc)}${item.kind === 'tarot' && item.jokerStamp ? '<br><br>' + esc(stampText(item.jokerStamp)) : ''}</div>`);
-  addStampBadge(art, item.stamp);
 
   if (item.rarity === 'rare' || item.rarity === 'ultra') {
     card.insertAdjacentHTML('beforeend', '<span class="jt-foil"></span>');
