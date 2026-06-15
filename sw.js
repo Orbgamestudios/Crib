@@ -1,4 +1,4 @@
-const CACHE = 'crib-v65';
+const CACHE = 'crib-v66';
 const SHELL = [
   './',
   'index.html',
