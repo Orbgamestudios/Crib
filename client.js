@@ -2611,7 +2611,13 @@ function runAnimations(prev, st, refs = {}) {
       }
     }
     pulse($('pegCount'));
-    showMultGainForSeat(prev, st, playAnim.seat, st.lastPlayAnim.multGain || 0);
+    const playGain = st.lastPlayAnim.multGain || 0;
+    const queuedCloseout = multAnim && multAnim.multGain > 0 && st.pegClosing;
+    const multFrom = playAnim.seat === st.mySeat && prev.you ? prev.you.dealMult : null;
+    showMultGainForSeat(prev, st, playAnim.seat, playGain, {
+      fromMult: multFrom,
+      toMult: queuedCloseout && multFrom != null ? multFrom + playGain : null,
+    });
   } else if (st.phase === 'pegging' && prev.dealNumber === st.dealNumber &&
       Array.isArray(prev.pegStack) && st.pegStack.length > prev.pegStack.length) {
     const played = st.pegStack[st.pegStack.length - 1];
@@ -2637,7 +2643,13 @@ function runAnimations(prev, st, refs = {}) {
   }
   if (multAnim && multAnim.multGain > 0 &&
       (!playAnim || st.pegClosing || multAnim.multGain !== (st.lastPlayAnim && st.lastPlayAnim.multGain))) {
-    showMultGainForSeat(prev, st, multAnim.seat, multAnim.multGain);
+    const playGain = playAnim && st.lastPlayAnim ? st.lastPlayAnim.multGain || 0 : 0;
+    const delay = playAnim && playGain > 0 ? 360 : 0;
+    const multFrom = multAnim.seat === st.mySeat && prev.you ? prev.you.dealMult + playGain : null;
+    setTimeout(() => showMultGainForSeat(prev, st, multAnim.seat, multAnim.multGain, {
+      fromMult: multFrom,
+      toMult: multAnim.seat === st.mySeat && st.you ? st.you.dealMult : null,
+    }), delay);
   }
 
   // booster pack just opened — burst it before the picks rise in
@@ -2749,7 +2761,7 @@ function floatRise(x, y, text, cls) {
   div.addEventListener('animationend', () => div.remove());
 }
 
-function showMultGainForSeat(prev, st, seat, gained) {
+function showMultGainForSeat(prev, st, seat, gained, opts = {}) {
   if (!gained) return;
   sfx('mult');
   const pc = $('pegCount').getBoundingClientRect();
@@ -2765,7 +2777,9 @@ function showMultGainForSeat(prev, st, seat, gained) {
   const toX = tr.left + tr.width / 2;
   const toY = tr.top + tr.height / 2;
   flingOrbs(fromX, fromY, toX, toY, Math.min(9, 3 + gained), () => {
-    if (seat === st.mySeat && prev.you && st.you && st.you.dealMult > prev.you.dealMult) {
+    if (seat === st.mySeat && opts.toMult != null) {
+      bumpMult(opts.toMult);
+    } else if (seat === st.mySeat && prev.you && st.you && st.you.dealMult > prev.you.dealMult) {
       bumpMult(st.you.dealMult);
     }
   });
@@ -2773,7 +2787,8 @@ function showMultGainForSeat(prev, st, seat, gained) {
   flashEl(target);
   if (seat === st.mySeat) {
     const b = $('myMult').querySelector('b');
-    if (b && prev.you && st.you && st.you.dealMult > prev.you.dealMult) b.textContent = 'x' + prev.you.dealMult;
+    if (b && opts.fromMult != null) b.textContent = 'x' + opts.fromMult;
+    else if (b && prev.you && st.you && st.you.dealMult > prev.you.dealMult) b.textContent = 'x' + prev.you.dealMult;
     if (st.you.jokers && st.you.jokers.length) flashEl($('jokerRow'));
   }
 }
