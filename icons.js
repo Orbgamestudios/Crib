@@ -57,8 +57,8 @@ export const JOKER_ICONS = {
     `<path d="M12 14l6 7 6-10 6 10 6-7v12H12z" fill="${G}" stroke="${D}" stroke-width="1.5"/>` +
     `<path d="M11 34h26" stroke="${C}" stroke-width="3" stroke-linecap="round"/>` +
     `<path d="M26 34h11" stroke="${R}" stroke-width="3" stroke-linecap="round"/>` +
-    txt(24, 31, '15+', 10, D) +
-    txt(24, 44, '+M', 8, C)
+    txt(24, 31, '>15', 9, D) +
+    txt(24, 44, '+2M', 7, C)
   ),
   last_card_larry: svg(
     card(14, 16, -6) +
