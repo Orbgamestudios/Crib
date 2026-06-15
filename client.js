@@ -163,6 +163,20 @@ function noise(delay = 0, dur = 0.08, gain = 0.35, filterFreq = 1200) {
   src.start(t);
 }
 
+function cardSnap(delay = 0, gain = 0.22) {
+  noise(delay, 0.018, gain, 3600);
+  noise(delay + 0.012, 0.025, gain * 0.65, 1600);
+}
+
+function shuffleSound() {
+  for (let i = 0; i < 9; i++) {
+    const d = i * 0.026;
+    noise(d, 0.028, 0.12 + Math.random() * 0.05, 1200 + Math.random() * 2400);
+  }
+  noise(0.22, 0.11, 0.16, 900);
+  cardSnap(0.31, 0.16);
+}
+
 function sfx(name) {
   if (!soundUnlocked) return;
   switch (name) {
@@ -171,12 +185,14 @@ function sfx(name) {
     case 'toast': tone(420, 0, 0.06, 'triangle', 0.24); tone(560, 0.055, 0.06, 'triangle', 0.2); break;
     case 'join': tone(440, 0, 0.07, 'triangle', 0.28); tone(660, 0.07, 0.08, 'triangle', 0.24); break;
     case 'ready': tone(520, 0, 0.05, 'square', 0.22); tone(780, 0.055, 0.08, 'triangle', 0.24); break;
-    case 'deal': for (let i = 0; i < 5; i++) noise(i * 0.035, 0.035, 0.16, 2400); break;
-    case 'shuffle': noise(0, 0.2, 0.24, 1800); noise(0.12, 0.18, 0.18, 2600); break;
-    case 'card': noise(0, 0.045, 0.18, 2100); break;
-    case 'discard': sweep(520, 230, 0, 0.12, 'triangle', 0.28); noise(0.06, 0.05, 0.14, 1600); break;
-    case 'peg': tone(330, 0, 0.045, 'square', 0.2); noise(0.035, 0.04, 0.12, 2500); break;
-    case 'score': tone(520, 0, 0.07, 'triangle', 0.22); tone(690, 0.055, 0.07, 'triangle', 0.22); break;
+    case 'deal': for (let i = 0; i < 6; i++) cardSnap(i * 0.045, 0.14); break;
+    case 'shuffle': shuffleSound(); break;
+    case 'card': cardSnap(0, 0.2); break;
+    case 'discard': cardSnap(0, 0.2); sweep(360, 170, 0.025, 0.08, 'triangle', 0.16); break;
+    case 'peg': cardSnap(0, 0.24); tone(260, 0.018, 0.035, 'triangle', 0.12); break;
+    case 'score': tone(420, 0, 0.055, 'triangle', 0.18); tone(610, 0.05, 0.06, 'triangle', 0.14); break;
+    case 'scoreTick': cardSnap(0, 0.09); tone(680, 0.006, 0.035, 'triangle', 0.12); break;
+    case 'scoreTotal': tone(560, 0, 0.055, 'triangle', 0.16); tone(840, 0.05, 0.08, 'triangle', 0.18); break;
     case 'mult': sweep(260, 720, 0, 0.18, 'sine', 0.3); break;
     case 'coin': tone(880, 0, 0.055, 'triangle', 0.24); tone(1320, 0.045, 0.08, 'triangle', 0.18); break;
     case 'shop': tone(330, 0, 0.08, 'sine', 0.24); tone(495, 0.08, 0.08, 'sine', 0.22); tone(660, 0.16, 0.1, 'sine', 0.2); break;
@@ -2046,9 +2062,11 @@ function scoreBlock(r, st, fresh) {
     if (fresh) lineEl.style.animationDelay = (250 + i * 130) + 'ms';
     lineEl.innerHTML = `<span>${esc(lineLabel)}</span><span>${line.pts == null ? '' : '+' + line.pts}</span>`;
     div.appendChild(lineEl);
+    if (fresh) setTimeout(() => sfx(line.pts == null ? 'mult' : 'scoreTick'), 250 + i * 130);
   });
   if (!r.lines.length) {
     div.insertAdjacentHTML('beforeend', '<div class="sb-line"><span>Nothing scored</span><span>+0</span></div>');
+    if (fresh) setTimeout(() => sfx('card'), 250);
   }
 
   // Points × Mult = Total  (Balatro-style). The crib uses the dealer's Mult.
@@ -2066,7 +2084,10 @@ function scoreBlock(r, st, fresh) {
       `<span class="eq-op">=</span>` +
       `<span class="eq-total">${r.total}</span>`;
   div.appendChild(eq);
-  if (fresh) countUp(eq.querySelector('.eq-total'), r.total, eqDelay + 250);
+  if (fresh) {
+    countUp(eq.querySelector('.eq-total'), r.total, eqDelay + 250);
+    setTimeout(() => sfx('scoreTotal'), eqDelay + 120);
+  }
   return div;
 }
 
