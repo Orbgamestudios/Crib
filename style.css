@@ -1484,9 +1484,9 @@ body.my-turn #bgRush { opacity: 0.6; animation-play-state: running; }
 .focus-art svg { width: 100%; height: 100%; }
 .focus-art.card .card { width: 84px; height: 118px; font-size: 26px; }
 .focus-display-card {
-  width: 132px; height: 184px; padding: 12px 10px 10px;
-  flex-direction: column; gap: 8px; border-radius: 12px;
-  border: 2px solid #ffffff33; overflow: hidden;
+  width: 92px; height: 129px; padding: 9px 7px 7px;
+  flex-direction: column; gap: 5px; border-radius: 9px;
+  border: 2px solid #ffffff33; overflow: visible;
   background: linear-gradient(160deg, #223241, #111b24);
   box-shadow: 0 18px 28px #0008, inset 0 1px 0 #ffffff33;
   animation: focusCardFloat 2.8s ease-in-out infinite;
@@ -1495,12 +1495,13 @@ body.my-turn #bgRush { opacity: 0.6; animation-play-state: running; }
 .focus-display-card.tarot { border-color: var(--purple); background: linear-gradient(160deg, #342347, #16101f); }
 .focus-display-card.pack { border-color: #8fe7ff; background: linear-gradient(160deg, #153443, #221833); }
 .focus-display-card.card { padding: 0; background: transparent; border: 0; box-shadow: none; overflow: visible; }
-.focus-display-card.card .card { width: 104px; height: 146px; font-size: 32px; transform: none; }
-.focus-card-icon { width: 86px; height: 86px; display: grid; place-items: center; filter: drop-shadow(0 6px 8px #0008); }
+.focus-display-card .stamp-badge { top: -14px; left: -10px; }
+.focus-display-card.card .card { width: 73px; height: 102px; font-size: 22px; transform: none; }
+.focus-card-icon { width: 60px; height: 60px; display: grid; place-items: center; filter: drop-shadow(0 6px 8px #0008); }
 .focus-card-icon svg { width: 100%; height: 100%; }
 .focus-card-title {
-  width: 100%; min-height: 34px; display: flex; align-items: center; justify-content: center;
-  text-align: center; font-size: 11px; font-weight: 900; line-height: 1.08;
+  width: 100%; min-height: 28px; display: flex; align-items: center; justify-content: center;
+  text-align: center; font-size: 8.5px; font-weight: 900; line-height: 1.08;
   color: var(--cream); overflow-wrap: anywhere; text-transform: uppercase;
 }
 @keyframes focusCardFloat {
