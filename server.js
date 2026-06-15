@@ -20,7 +20,7 @@ function makeRoom(name, opts = {}) {
     id: 'r' + (nextRoomId++),
     name: (name || 'Cribbage Table').slice(0, 30),
     mode: opts.mode === 'board' ? 'board' : 'blind',
-    goalScore: opts.mode === 'board' ? (opts.goalScore === 5000 ? 5000 : 2500) : null,
+    goalScore: opts.mode === 'board' ? 121 : null,
     players: [], // { id, name, ws, connected }
     game: null,
     logs: [],
@@ -86,7 +86,7 @@ function roomLog(room, text) {
 function startGame(room, opts = {}) {
   if (opts.mode) {
     room.mode = opts.mode === 'board' ? 'board' : 'blind';
-    room.goalScore = room.mode === 'board' ? (opts.goalScore === 5000 ? 5000 : 2500) : null;
+    room.goalScore = room.mode === 'board' ? 121 : null;
   }
   room.game = new Game(
     room.players.map(p => ({ id: p.id, name: p.name, connected: p.connected })),

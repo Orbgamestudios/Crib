@@ -25,7 +25,7 @@ export class HostSession {
     this.code = code;
     this.solo = !!opts.solo;
     this.gameMode = opts.mode === 'board' ? 'board' : 'blind';
-    this.goalScore = this.gameMode === 'board' ? (opts.goalScore === 5000 ? 5000 : 2500) : null;
+    this.goalScore = this.gameMode === 'board' ? 121 : null;
     this.saveKey = opts.saveKey || null;
     this.roomName = this.solo ? `${hostName} vs The House` : `${hostName}'s table`;
     this.onLocal = onLocal;       // deliver a protocol message to the host's own client
@@ -259,7 +259,7 @@ export class HostSession {
   startGame(opts = {}) {
     if (this.game && this.game.phase !== 'gameover') return;
     this.gameMode = opts.mode === 'board' ? 'board' : this.gameMode;
-    this.goalScore = this.gameMode === 'board' ? (opts.goalScore === 5000 ? 5000 : 2500) : null;
+    this.goalScore = this.gameMode === 'board' ? 121 : null;
     const connected = this.players.filter(p => p.connected);
     if (connected.length < 2) {
       return this.onLocal({ t: 'error', text: 'Need at least 2 players.' });

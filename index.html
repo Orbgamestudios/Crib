@@ -12,10 +12,9 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Crib">
-<link rel="stylesheet" href="style.css?v=57">
+<link rel="stylesheet" href="style.css?v=61">
 <script src="https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js" defer></script>
 <script src="https://unpkg.com/mqtt/dist/mqtt.min.js" defer></script>
-<script src="vendor/three.min.js?v=149"></script>
 </head>
 <body>
 
@@ -38,13 +37,6 @@
       <div class="segmented" id="modeToggle">
         <button class="active" data-mode="blind" type="button">Blind</button>
         <button data-mode="board" type="button">Board</button>
-      </div>
-      <div id="boardGoalBox" class="board-goal hidden">
-        <label>Board goal</label>
-        <select id="boardGoalSelect">
-          <option value="2500">Short - 2500</option>
-          <option value="5000">Long - 5000</option>
-        </select>
       </div>
     </div>
     <div class="row" id="wsPanel">
@@ -165,9 +157,9 @@
     </div>
   </div>
   <div id="log"></div>
-  <div id="board3dWrap" class="hidden">
-    <canvas id="board3d"></canvas>
-    <div id="board3dLegend"></div>
+  <div id="board2dWrap" class="hidden">
+    <canvas id="board2d"></canvas>
+    <div id="board2dLegend"></div>
   </div>
 </div>
 
@@ -198,6 +190,6 @@
 <div id="fx"></div>
 <div id="toast" class="hidden"></div>
 
-<script type="module" src="client.js?v=68"></script>
+<script type="module" src="client.js?v=72"></script>
 </body>
 </html>

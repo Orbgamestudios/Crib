@@ -52,9 +52,10 @@ let lastCoinPopKey = '';
 let lastRecordedRunKey = '';
 let deferredRender = false; // a state update arrived mid-drag; apply on release
 let selectedGameMode = localStorage.getItem('crib_game_mode') === 'board' ? 'board' : 'blind';
-let selectedBoardGoal = Number(localStorage.getItem('crib_board_goal')) === 5000 ? 5000 : 2500;
 let boardView = null;
 let boardScoreDisplay = new Map();
+let boardFx = [];
+let lastBoardRevealKey = '';
 
 function isDragging() {
   return !!((pointerCardDrag && pointerCardDrag.dragging) || (jokerDrag && jokerDrag.dragging));
@@ -65,6 +66,17 @@ function flushDeferredRender() {
     deferredRender = false;
     renderGame(lastState); // no animation on the catch-up frame
   }
+}
+
+function ensureBoardShell() {
+  let wrap = $('board2dWrap');
+  if (wrap) return wrap;
+  wrap = document.createElement('div');
+  wrap.id = 'board2dWrap';
+  wrap.className = 'hidden';
+  wrap.innerHTML = '<canvas id="board2d"></canvas><div id="board2dLegend"></div>';
+  $('game').appendChild(wrap);
+  return wrap;
 }
 
 // Joker drag state (pointer-based, works on touch + mouse)
@@ -197,6 +209,7 @@ function sfx(name) {
     case 'score': tone(420, 0, 0.055, 'triangle', 0.18); tone(610, 0.05, 0.06, 'triangle', 0.14); break;
     case 'scoreTick': cardSnap(0, 0.09); tone(680, 0.006, 0.035, 'triangle', 0.12); break;
     case 'scoreTotal': tone(560, 0, 0.055, 'triangle', 0.16); tone(840, 0.05, 0.08, 'triangle', 0.18); break;
+    case 'boardPeg': tone(760, 0, 0.04, 'triangle', 0.18); tone(1140, 0.04, 0.055, 'triangle', 0.16); noise(0.02, 0.05, 0.08, 2600); break;
     case 'mult': sweep(260, 720, 0, 0.18, 'sine', 0.3); break;
     case 'coin': tone(880, 0, 0.055, 'triangle', 0.24); tone(1320, 0.045, 0.08, 'triangle', 0.18); break;
     case 'shop': tone(330, 0, 0.08, 'sine', 0.24); tone(495, 0.08, 0.08, 'sine', 0.22); tone(660, 0.16, 0.1, 'sine', 0.2); break;
@@ -287,12 +300,12 @@ function playMessageSfx(msg) {
 function gameOptions() {
   return {
     mode: selectedGameMode,
-    goalScore: selectedGameMode === 'board' ? selectedBoardGoal : null,
+    goalScore: selectedGameMode === 'board' ? 121 : null,
   };
 }
 
 function modeLabel(mode, goal) {
-  return mode === 'board' ? `Board to ${goal || 2500}` : 'Blind';
+  return mode === 'board' ? `Board to ${goal || 121}` : 'Blind';
 }
 
 async function hostTable() {
@@ -539,7 +552,7 @@ function showView(v) {
     lastJokerSig = null;
     lastOverlayPhase = 'none';
     document.body.classList.remove('my-turn', 'mode-board', 'phase-discard', 'phase-pegging', 'phase-scoring', 'phase-roundEnd', 'phase-shop', 'phase-gameover');
-    $('board3dWrap').classList.add('hidden');
+    ensureBoardShell().classList.add('hidden');
   }
   if (v === 'lobby') refreshSoloContinue();
 }
@@ -878,8 +891,6 @@ function syncModeControls() {
   document.querySelectorAll('#modeToggle button').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.mode === selectedGameMode);
   });
-  $('boardGoalBox').classList.toggle('hidden', selectedGameMode !== 'board');
-  $('boardGoalSelect').value = String(selectedBoardGoal);
 }
 
 document.querySelectorAll('#modeToggle button').forEach(btn => {
@@ -889,10 +900,6 @@ document.querySelectorAll('#modeToggle button').forEach(btn => {
     syncModeControls();
   };
 });
-$('boardGoalSelect').onchange = () => {
-  selectedBoardGoal = Number($('boardGoalSelect').value) === 5000 ? 5000 : 2500;
-  localStorage.setItem('crib_board_goal', String(selectedBoardGoal));
-};
 syncModeControls();
 
 if (P2P_MODE) {
@@ -1023,7 +1030,7 @@ function startP2pLobbyDiscovery() {
       count: Number(msg.count) || 1,
       players: Array.isArray(msg.players) ? msg.players : [],
       mode: msg.mode === 'board' ? 'board' : 'blind',
-      goalScore: Number(msg.goalScore) === 5000 ? 5000 : 2500,
+      goalScore: 121,
       lastSeen: Date.now(),
     });
     renderP2pRooms();
@@ -1133,7 +1140,7 @@ function renderWaiting(msg) {
     const goal = msg.room && msg.room.goalScore;
     $('waitHint').textContent = n < 2 ? 'Waiting for at least 2 players...' :
       mode === 'board'
-        ? `${n} players. Board mode: no blinds or knockouts - first to ${goal || 2500} wins.`
+        ? `${n} players. Board mode: classic cribbage scoring - first to ${goal || 121} wins.`
         : `${n} players. Each round, beat the blind or you're out - last one standing wins.`;
   });
   $('waitHint').textContent = n < 2
@@ -1172,7 +1179,7 @@ function renderGame(st) {
   document.body.classList.remove('phase-discard', 'phase-pegging', 'phase-scoring', 'phase-roundEnd', 'phase-shop', 'phase-gameover');
   document.body.classList.add(`phase-${st.phase}`);
   document.body.classList.toggle('mode-board', st.mode === 'board');
-  $('board3dWrap').classList.toggle('hidden', st.mode !== 'board');
+  ensureBoardShell().classList.toggle('hidden', st.mode !== 'board' || st.phase !== 'scoring');
 
   const myMove = !!st.you && st.you.active &&
     ((st.phase === 'pegging' && st.turnSeat === st.mySeat) || st.you.canDiscard);
@@ -1184,7 +1191,6 @@ function renderGame(st) {
   renderMyArea(st);
   renderOverlay(st);
   renderTutorial(st);
-  renderBoard3d(st);
   sanitizeIcons($('game'));
 }
 
@@ -1208,7 +1214,7 @@ function renderBlindBar(st) {
   const label = $('blindBarLabel');
 
   if (st.mode === 'board') {
-    const goal = st.goalScore || 2500;
+    const goal = st.goalScore || 121;
     const pct = st.you ? Math.min(100, Math.round(100 * st.you.score / goal)) : 0;
     el.classList.remove('out-label');
     fill.style.width = pct + '%';
@@ -1270,7 +1276,7 @@ function renderSeats(st) {
     }
     // how far this player is toward the round's blind
     if (p.active && (st.blind || st.mode === 'board')) {
-      const goal = st.mode === 'board' ? (st.goalScore || 2500) : st.blind;
+      const goal = st.mode === 'board' ? (st.goalScore || 121) : st.blind;
       const score = st.mode === 'board' ? p.score : p.roundScore;
       const pct = Math.min(100, Math.round(100 * score / goal));
       const done = score >= goal;
@@ -1322,96 +1328,54 @@ function renderCenter(st) {
 
 const BOARD_COLORS = ['#ffd76e', '#63b8ff', '#ff6262', '#7ee08b', '#dfc8ff', '#ff9f43'];
 
-function boardPathPoint(t) {
-  const a = t * Math.PI * 2 - Math.PI / 2;
-  return { x: Math.cos(a) * 2.7, z: Math.sin(a) * 0.82 };
-}
-
-function initBoard3d() {
-  const canvas = $('board3d');
-  if (!canvas || boardView) return boardView;
-  const THREE = window.THREE;
-  if (!THREE) {
-    boardView = { fallback: true, canvas, ctx: canvas.getContext('2d'), targets: new Map() };
-    return boardView;
-  }
-  const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
-  renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
-  const scene = new THREE.Scene();
-  const camera = new THREE.PerspectiveCamera(36, 1, 0.1, 100);
-  camera.position.set(0, 3.1, 5.2);
-  camera.lookAt(0, 0, 0);
-  const group = new THREE.Group();
-  scene.add(group);
-  const light = new THREE.DirectionalLight(0xffffff, 1.8);
-  light.position.set(2.5, 5, 3);
-  scene.add(light);
-  scene.add(new THREE.AmbientLight(0x99bbff, 1.1));
-
-  const board = new THREE.Mesh(
-    new THREE.BoxGeometry(6.4, 0.22, 2.05),
-    new THREE.MeshStandardMaterial({ color: 0x5a351d, roughness: 0.62, metalness: 0.08 })
-  );
-  board.position.y = -0.12;
-  group.add(board);
-  const holeGeo = new THREE.SphereGeometry(0.025, 10, 8);
-  const holeMat = new THREE.MeshStandardMaterial({ color: 0x160e08, roughness: 0.9 });
-  for (let lane = 0; lane < 3; lane++) {
-    for (let i = 0; i < 80; i++) {
-      const p = boardPathPoint(i / 80);
-      const h = new THREE.Mesh(holeGeo, holeMat);
-      h.position.set(p.x, 0.035, p.z + (lane - 1) * 0.12);
-      group.add(h);
-    }
-  }
-  boardView = { THREE, renderer, scene, camera, group, pegs: new Map(), targets: new Map(), lastTs: 0 };
+function initBoard2d() {
+  const canvas = $('board2d');
+  if (!canvas) return boardView;
+  if (boardView && boardView.canvas === canvas) return boardView;
+  boardView = { canvas, ctx: canvas.getContext('2d'), targets: new Map(), lastTs: 0 };
   requestAnimationFrame(boardFrame);
   return boardView;
 }
 
-function ensureBoardPeg(view, player) {
-  if (view.pegs.has(player.seat)) return view.pegs.get(player.seat);
-  const color = BOARD_COLORS[player.seat % BOARD_COLORS.length];
-  const mat = new view.THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 0.28, roughness: 0.38 });
-  const peg = new view.THREE.Mesh(new view.THREE.CapsuleGeometry(0.055, 0.28, 6, 12), mat);
-  view.group.add(peg);
-  view.pegs.set(player.seat, peg);
-  return peg;
+function boardPoint(score, lane, rect) {
+  const n = Math.max(0, Math.min(121, score));
+  const cols = 41;
+  const row = Math.floor(n / cols);
+  const colRaw = n % cols;
+  const col = row % 2 ? cols - 1 - colRaw : colRaw;
+  const padX = 34;
+  const top = 34;
+  const rowGap = Math.max(30, (rect.height - 86) / 2);
+  return {
+    x: padX + col * ((rect.width - padX * 2) / (cols - 1)),
+    y: top + row * rowGap + (lane - 1) * 7,
+  };
+}
+
+function addBoardSparkles(x, y, color) {
+  for (let i = 0; i < 16; i++) {
+    const a = Math.random() * Math.PI * 2;
+    const speed = 26 + Math.random() * 46;
+    boardFx.push({
+      x, y, color, age: 0, life: 0.55 + Math.random() * 0.28,
+      vx: Math.cos(a) * speed, vy: Math.sin(a) * speed - 20,
+    });
+  }
+  sfx('boardPeg');
 }
 
 function boardFrame(ts) {
   const view = boardView;
-  if (!view || view.fallback) return;
-  const canvas = view.renderer.domElement;
-  const rect = canvas.getBoundingClientRect();
-  const w = Math.max(1, Math.floor(rect.width));
-  const h = Math.max(1, Math.floor(rect.height));
-  if (canvas.width !== w || canvas.height !== h) {
-    view.renderer.setSize(w, h, false);
-    view.camera.aspect = w / h;
-    view.camera.updateProjectionMatrix();
-  }
+  if (!view) return;
   const dt = Math.min(0.05, ((ts || 0) - (view.lastTs || ts || 0)) / 1000);
   view.lastTs = ts || 0;
-  view.group.rotation.y += dt * 0.22;
-  for (const [seat, target] of view.targets) {
-    const cur = boardScoreDisplay.get(seat) ?? target;
-    const next = cur + (target - cur) * Math.min(1, dt * 2.8);
-    boardScoreDisplay.set(seat, Math.abs(next - target) < 0.5 ? target : next);
+  if (lastState && lastState.mode === 'board' && lastState.phase === 'scoring') {
+    drawBoard2d(view, lastState, dt);
   }
-  for (const player of (lastState && lastState.players) || []) {
-    const peg = view.pegs.get(player.seat);
-    if (!peg) continue;
-    const goal = Math.max(1, lastState.goalScore || 2500);
-    const t = Math.min(1, (boardScoreDisplay.get(player.seat) || 0) / goal);
-    const p = boardPathPoint(t);
-    peg.position.set(p.x, 0.22, p.z + ((player.seat % 3) - 1) * 0.16);
-  }
-  view.renderer.render(view.scene, view.camera);
   requestAnimationFrame(boardFrame);
 }
 
-function drawBoardFallback(view, st) {
+function drawBoard2d(view, st, dt = 0) {
   const canvas = view.canvas;
   const rect = canvas.getBoundingClientRect();
   const dpr = Math.min(2, window.devicePixelRatio || 1);
@@ -1420,39 +1384,86 @@ function drawBoardFallback(view, st) {
   const ctx = view.ctx;
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.clearRect(0, 0, rect.width, rect.height);
-  const cx = rect.width / 2, cy = rect.height / 2 + 4;
   ctx.fillStyle = '#5a351d';
   ctx.strokeStyle = '#2a170c';
-  ctx.lineWidth = 8;
+  ctx.lineWidth = 3;
   ctx.beginPath();
-  ctx.roundRect(cx - rect.width * 0.42, cy - 45, rect.width * 0.84, 90, 38);
+  ctx.roundRect(8, 8, rect.width - 16, rect.height - 18, 18);
   ctx.fill(); ctx.stroke();
-  const goal = st.goalScore || 2500;
-  st.players.forEach(p => {
-    const target = p.score || 0;
+
+  for (let lane = 0; lane < 3; lane++) {
+    for (let i = 0; i <= 121; i++) {
+      const hp = boardPoint(i, lane, rect);
+      ctx.fillStyle = i % 5 === 0 ? '#130b06cc' : '#1f120bcc';
+      ctx.beginPath();
+      ctx.arc(hp.x, hp.y, i === 121 ? 6 : 4, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  boardPlayersFor(st).forEach((p, idx) => {
+    const target = Math.min(121, p.score || 0);
     const cur = boardScoreDisplay.get(p.seat) ?? target;
-    boardScoreDisplay.set(p.seat, cur + (target - cur) * 0.18);
-    const t = Math.min(1, (boardScoreDisplay.get(p.seat) || 0) / goal) * Math.PI * 2 - Math.PI / 2;
-    const x = cx + Math.cos(t) * rect.width * 0.34;
-    const y = cy + Math.sin(t) * 34 + ((p.seat % 3) - 1) * 6;
-    ctx.fillStyle = BOARD_COLORS[p.seat % BOARD_COLORS.length];
-    ctx.beginPath(); ctx.arc(x, y, 7, 0, Math.PI * 2); ctx.fill();
+    const next = cur + (target - cur) * Math.min(1, dt * 5.5);
+    const landed = Math.abs(next - target) < 0.35 && Math.abs(cur - target) >= 0.35;
+    boardScoreDisplay.set(p.seat, landed ? target : next);
+    const pos = boardPoint(boardScoreDisplay.get(p.seat) || 0, idx % 3, rect);
+    const color = BOARD_COLORS[p.seat % BOARD_COLORS.length];
+    if (landed) addBoardSparkles(pos.x, pos.y, color);
+    ctx.fillStyle = color;
+    ctx.strokeStyle = '#fff8';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(pos.x, pos.y, 8, 0, Math.PI * 2);
+    ctx.fill(); ctx.stroke();
+  });
+
+  boardFx = boardFx.filter(f => {
+    f.age += dt;
+    if (f.age >= f.life) return false;
+    f.x += f.vx * dt;
+    f.y += f.vy * dt;
+    f.vy += 90 * dt;
+    const alpha = 1 - f.age / f.life;
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = f.color;
+    ctx.beginPath();
+    ctx.arc(f.x, f.y, 2 + 3 * alpha, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+    return true;
   });
 }
 
-function renderBoard3d(st) {
-  if (st.mode !== 'board') return;
-  const view = initBoard3d();
-  $('board3dLegend').innerHTML = st.players.map(p => {
+function renderBoard2d(st) {
+  if (st.mode !== 'board' || st.phase !== 'scoring') return;
+  const view = initBoard2d();
+  const r = st.scoringResults && st.scoringResults[Math.min(st.revealIndex, st.scoringResults.length - 1)];
+  const key = r ? `${st.dealNumber}:${st.revealIndex}:${r.seat}:${r.scoreAfter}` : '';
+  if (r && key !== lastBoardRevealKey) {
+    lastBoardRevealKey = key;
+    boardScoreDisplay.set(r.seat, Math.min(121, r.scoreBefore || 0));
+  }
+  const boardPlayers = boardPlayersFor(st);
+  $('board2dLegend').innerHTML = boardPlayers.map(p => {
     const color = BOARD_COLORS[p.seat % BOARD_COLORS.length];
-    return `<span class="board-legend-item" style="color:${color}"><span class="board-dot" style="background:${color}"></span>${esc(p.name)} ${p.score}/${st.goalScore || 2500}</span>`;
+    return `<span class="board-legend-item" style="color:${color}"><span class="board-dot" style="background:${color}"></span>${esc(p.name)} ${p.score}/121</span>`;
   }).join('');
-  st.players.forEach(p => {
-    view.targets.set(p.seat, p.score || 0);
+  boardPlayers.forEach(p => {
+    view.targets.set(p.seat, Math.min(121, p.score || 0));
     if (!boardScoreDisplay.has(p.seat)) boardScoreDisplay.set(p.seat, p.score || 0);
-    if (!view.fallback) ensureBoardPeg(view, p);
   });
-  if (view.fallback) drawBoardFallback(view, st);
+  drawBoard2d(view, st, 0);
+}
+
+function boardPlayersFor(st) {
+  const players = st.players.map(p => ({ ...p }));
+  const future = (st.scoringResults || []).slice((st.revealIndex || 0) + 1);
+  for (const r of future) {
+    const p = players.find(x => x.seat === r.seat);
+    if (p) p.score -= r.total || 0;
+  }
+  return players.map(p => ({ ...p, score: Math.max(0, Math.min(121, Math.round(p.score || 0))) }));
 }
 
 // joker/tarot rendered as a little card tile, Balatro-row style
@@ -1544,7 +1555,7 @@ function renderMyArea(st) {
   $('myCoins').innerHTML = chip(you.coins);
   $('myCoins').innerHTML = chip(you.coins);
   const coinKey = `${st.dealNumber}:${st.phase}:${you.coins}`;
-  if (prevState && prevState.you && you.coins > prevState.you.coins && coinKey !== lastCoinPopKey) {
+  if (st.mode !== 'board' && prevState && prevState.you && you.coins > prevState.you.coins && coinKey !== lastCoinPopKey) {
     lastCoinPopKey = coinKey;
     showCoinGain(you.coins - prevState.you.coins);
   }
@@ -1567,10 +1578,12 @@ function renderHandScore(st) {
   } else {
     cards = you.hand || [];
   }
-  const mods = aggregateMods(you.jokers || []);
+  const mods = st.mode === 'board' ? aggregateMods([]) : aggregateMods(you.jokers || []);
   const bd = scoreBreakdown(cards, st.starter || null, false, { shortcut: mods.shortcut });
   const score = buildScore(bd, mods, 'hand', cards, { starter: st.starter || null, coins: you.coins }).total;
-  $('myScore').innerHTML = `<span>Hand</span><b>${score}</b>`;
+  $('myScore').innerHTML = st.mode === 'board'
+    ? `<span>Score</span><b>${you.score}</b>`
+    : `<span>Hand</span><b>${score}</b>`;
 }
 
 function showCoinGain(amount) {
@@ -2188,7 +2201,7 @@ function renderGameover(oc, st) {
       `Final score: <b>${me.score}</b> · Blinds beaten: <b>${st.you.blindsPassed}</b></div>`;
   } else {
     oc.innerHTML = st.mode === 'board'
-      ? `<h2>Board Winner</h2><div class="run-summary">Goal: <b>${st.goalScore || 2500}</b> points</div>`
+      ? `<h2>Board Winner</h2><div class="run-summary">Goal: <b>${st.goalScore || 121}</b> points</div>`
       : '<h2>Final Standings</h2>';
     (st.standings || []).forEach((s, i) => {
       const tag = st.mode === 'board'
@@ -2250,11 +2263,15 @@ function renderScoring(oc, st) {
     const r = st.scoringResults[Math.min(st.revealIndex, st.scoringResults.length - 1)];
     const fresh = st.revealIndex > revealShown;
     oc.appendChild(scoreBlock(r, st, fresh));
+    const board = ensureBoardShell();
+    board.classList.remove('hidden');
+    oc.appendChild(board);
+    renderBoard2d(st);
     revealShown = Math.max(revealShown, st.revealIndex);
     oc.insertAdjacentHTML('beforeend',
       `<div class="hint" style="margin-top:8px">${esc(r.name)} moves from ${Math.round(r.scoreBefore || 0)} to ${Math.round(r.scoreAfter || 0)} on the board.</div>`);
     if (done) {
-      const winner = st.players.find(p => p.score >= (st.goalScore || 2500));
+      const winner = st.players.find(p => p.score >= (st.goalScore || 121));
       if (st.you.active) appendReadyBtn(oc, st, winner ? 'Final Standings' : 'Next Deal');
     } else {
       oc.insertAdjacentHTML('beforeend', '<div class="counting-hint">Counting...</div>');

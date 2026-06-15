@@ -642,15 +642,17 @@ body.mode-board #blindBarFill.done {
   background: linear-gradient(90deg, #e8c35a, #58d68d);
 }
 
-#board3dWrap {
-  position: fixed; left: 50%; bottom: calc(-26px + env(safe-area-inset-bottom));
-  transform: translateX(-50%);
-  width: min(760px, calc(100vw - 24px)); height: 190px;
-  z-index: 24; pointer-events: none;
+#board2dWrap {
+  width: 100%;
+  max-width: 720px;
+  height: 150px;
+  margin: 12px auto 0;
+  position: relative;
+  pointer-events: none;
   filter: drop-shadow(0 12px 22px #0009);
 }
-#board3d { width: 100%; height: 100%; display: block; }
-#board3dLegend {
+#board2d { width: 100%; height: 100%; display: block; }
+#board2dLegend {
   position: absolute; left: 50%; bottom: 4px; transform: translateX(-50%);
   display: flex; gap: 8px; justify-content: center; flex-wrap: wrap;
   font-size: 11px; font-weight: 800; color: var(--cream);
@@ -660,7 +662,10 @@ body.mode-board #blindBarFill.done {
 .board-dot { width: 9px; height: 9px; border-radius: 50%; box-shadow: 0 0 6px currentColor; }
 body.mode-board #bottombar { background: transparent; }
 body.mode-board #myStuff,
-body.mode-board #tarotPanel { display: none; }
+body.mode-board #tarotPanel,
+body.mode-board #utilityPanel { display: none; }
+body.mode-board #myMult { display: none; }
+body.mode-board #scoreHud { grid-template-columns: 1fr; flex-basis: 150px; }
 
 /* ---- bottom bar ---- */
 #bottombar {
@@ -945,16 +950,8 @@ body.mode-board #tarotPanel { display: none; }
     z-index: 42;
     pointer-events: none;
   }
-  body.mode-board #blindProgress { bottom: 212px; }
-  body.mode-board #board3dWrap {
-    left: 50%;
-    right: auto;
-    bottom: 0;
-    width: min(760px, calc(100vw - 920px));
-    min-width: 430px;
-    height: 205px;
-  }
-  body.mode-board #myCards { transform: translateY(-22px); }
+  body.mode-board #blindProgress { bottom: 206px; }
+  body.mode-board #myCards { transform: none; }
   #blindBarOuter {
     height: 18px;
     border-radius: 9px;
@@ -1086,16 +1083,11 @@ body.mode-board #tarotPanel { display: none; }
   body.mode-board #overlay {
     align-items: flex-start;
     padding-top: 88px;
-    background: transparent;
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
-    pointer-events: none;
   }
   body.mode-board #overlayContent {
-    width: min(640px, calc(100vw - 920px));
+    width: min(760px, calc(100vw - 40px));
     min-width: 420px;
-    max-height: 34vh;
-    pointer-events: auto;
+    max-height: 82vh;
   }
 }
 
@@ -1408,11 +1400,8 @@ body.mode-board #tarotPanel { display: none; }
   .jtile .jt-name { display: none; }
 
   #log { display: none; }
-  body.mode-board #board3dWrap {
-    height: 138px;
-    bottom: calc(-20px + env(safe-area-inset-bottom));
-  }
-  body.mode-board #blindProgress { margin-bottom: 136px; }
+  body.mode-board #board2dWrap { height: 150px; }
+  body.mode-board #blindProgress { margin-bottom: 4px; }
   body.mode-board #myCards { min-height: 118px; }
   #topbar { gap: 8px; font-size: 12px; padding: 6px 8px; }
   .br-name { width: 80px; font-size: 13px; }
