@@ -320,6 +320,10 @@ body.my-turn #bgRush { opacity: 0.6; animation-play-state: running; }
 }
 #tutorialText { display: block; }
 #tutorialBar.flash { animation: tutPop 0.4s ease-out; }
+body.phase-discard #tutorialBar,
+body.phase-pegging #tutorialBar {
+  bottom: calc(312px + env(safe-area-inset-bottom));
+}
 @keyframes tutPop {
   0% { opacity: 0; transform: translate(-50%, -10px) scale(0.96); }
   100% { opacity: 1; transform: translate(-50%, 0) scale(1); }
@@ -843,6 +847,20 @@ body.my-turn #bgRush { opacity: 0.6; animation-play-state: running; }
     padding: 14px 38px 14px 16px;
   }
   #tutorialBar.flash { animation: tutPopSide 0.35s ease-out; }
+  body.phase-discard #tutorialBar,
+  body.phase-pegging #tutorialBar {
+    top: auto;
+    right: auto;
+    bottom: 232px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: min(760px, calc(100vw - 920px));
+    min-width: 430px;
+    max-width: calc(100vw - 920px);
+    max-height: 128px;
+  }
+  body.phase-discard #tutorialBar.flash,
+  body.phase-pegging #tutorialBar.flash { animation: tutPop 0.35s ease-out; }
   @keyframes tutPopSide {
     0% { opacity: 0; transform: translateX(12px) scale(0.98); }
     100% { opacity: 1; transform: translateX(0) scale(1); }

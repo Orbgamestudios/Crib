@@ -1120,6 +1120,8 @@ function renderGame(st) {
   $('turnInfo').textContent =
     st.phase === 'pegging' && turnP ? (turnP.seat === st.mySeat ? 'Your turn' : `${turnP.name}'s turn`) : '';
   $('exitSoloBtn').classList.toggle('hidden', !st.solo || st.phase === 'gameover');
+  document.body.classList.remove('phase-discard', 'phase-pegging', 'phase-scoring', 'phase-roundEnd', 'phase-shop', 'phase-gameover');
+  document.body.classList.add(`phase-${st.phase}`);
 
   const myMove = !!st.you && st.you.active &&
     ((st.phase === 'pegging' && st.turnSeat === st.mySeat) || st.you.canDiscard);
