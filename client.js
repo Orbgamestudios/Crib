@@ -1,4 +1,4 @@
-import { JOKER_ICONS, TAROT_ICONS, PACK_ICONS } from './icons.js?v=11';
+import { JOKER_ICONS, TAROT_ICONS, PACK_ICONS } from './icons.js?v=12';
 import { cardValue } from './lib/cards.js';
 import { pegEvents, scoreBreakdown } from './lib/scoring.js';
 import { JOKERS, TAROTS, aggregateMods, buildScore, stampText } from './lib/jokers.js';
@@ -1808,6 +1808,18 @@ function shopKindHelp(kind) {
   return '<p>A <b>playing card</b> bought here is added permanently to your deck, changing what you can draw in future hands.</p>';
 }
 
+function rarityPill(item) {
+  if (!item || item.kind !== 'joker') return '';
+  const rarity = item.rarity || 'common';
+  return `<div class="rar-pill ${rarity}">${rarity}</div>`;
+}
+
+function stampPill(item) {
+  if (!item || !item.stamp) return '';
+  const label = stampText(item.stamp).split(':')[0] || `${item.stamp} Stamp`;
+  return `<div class="stamp-pill ${item.stamp}">${esc(label)}</div>`;
+}
+
 function shopCardFace(item) {
   const face = document.createElement('div');
   face.className = `shop-card-face ${item.kind}`;
@@ -2099,7 +2111,8 @@ function renderShop(oc, st) {
     div.appendChild(shopCardFace(item));
     div.insertAdjacentHTML('beforeend',
       `<div class="si-name">${esc(item.name)}</div>` +
-      (item.kind === 'joker' && item.rarity ? `<div class="rar-pill ${item.rarity}">${item.rarity}</div>` : '') +
+      rarityPill(item) +
+      stampPill(item) +
       (item.kind === 'tarot' && item.jokerStamp ? `<div class="si-desc">${esc(stampText(item.jokerStamp))}</div>` : '') +
       `<div class="shop-price">${chip(item.cost)}</div>`);
     addStampBadge(div.querySelector('.shop-art') || div, item.stamp);
@@ -2191,9 +2204,10 @@ function focusCardShell(item) {
 
   card.insertAdjacentHTML('beforeend',
     `<div class="focus-name">${esc(item.name)}</div>` +
-    (item.kind === 'joker' && item.rarity ? `<div class="rar-pill ${item.rarity}">${item.rarity}</div>` : '') +
+    rarityPill(item) +
+    stampPill(item) +
     `<div class="focus-desc">${esc(item.desc)}${item.kind === 'tarot' && item.jokerStamp ? '<br><br>' + esc(stampText(item.jokerStamp)) : ''}</div>`);
-  addStampBadge(card, item.stamp);
+  addStampBadge(art, item.stamp);
 
   if (item.rarity === 'rare' || item.rarity === 'ultra') {
     card.insertAdjacentHTML('beforeend', '<span class="jt-foil"></span>');
@@ -2376,7 +2390,8 @@ function renderPackOpen(oc, st) {
     } else {
       const icon = (opt.kind === 'joker' ? JOKER_ICONS : TAROT_ICONS)[opt.id] || '';
       div.innerHTML = `<div class="si-icon">${icon}</div><div class="si-name">${esc(opt.name)}</div>` +
-        (opt.kind === 'joker' && opt.rarity ? `<div class="rar-pill ${opt.rarity}">${opt.rarity}</div>` : '') +
+        rarityPill(opt) +
+        stampPill(opt) +
         `<div class="si-desc">${esc(opt.desc)}${opt.kind === 'tarot' && opt.jokerStamp ? '<br>' + esc(stampText(opt.jokerStamp)) : ''}</div>`;
       addStampBadge(div.querySelector('.si-icon') || div, opt.stamp);
     }

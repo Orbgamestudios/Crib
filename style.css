@@ -1347,6 +1347,15 @@ body.my-turn #bgRush { opacity: 0.6; animation-play-state: running; }
 .rar-pill.common { background: #243645; color: #dbe7ef; box-shadow: inset 0 0 0 1px #ffffff44; }
 .rar-pill.rare { background: #1d3a55; color: #9fe0ff; box-shadow: inset 0 0 0 1px #7fd0ff88; }
 .rar-pill.ultra { background: #4a3a12; color: #ffd76e; box-shadow: inset 0 0 0 1px #ffd76e; }
+.stamp-pill {
+  align-self: center; font-size: 10px; font-weight: 900; letter-spacing: .45px;
+  text-transform: uppercase; border-radius: 999px; padding: 2px 9px; margin-top: -1px;
+  color: #fff; box-shadow: 0 0 10px #ffd76e55, inset 0 0 0 1px #ffffff66;
+}
+.stamp-pill.purple { background: #5a318f; }
+.stamp-pill.blue { background: #1d5d9d; }
+.stamp-pill.red { background: #8e2724; }
+.stamp-pill.white { background: #edf3f4; color: #24313a; }
 .jtile .tip .rar { opacity: .8; font-style: italic; }
 
 /* rising +Mult label (reuses .fx-float / floatUp) */
@@ -1452,7 +1461,7 @@ body.my-turn #bgRush { opacity: 0.6; animation-play-state: running; }
 .focus-card.pack { border-color: #8fe7ff; }
 .focus-card.r-rare { border-color: #7fd0ff; box-shadow: 0 0 22px #7fd0ff55, 0 18px 50px #000a; }
 .focus-card.r-ultra { border-color: #ffd76e; box-shadow: 0 0 26px #ffd76e77, 0 18px 50px #000a; }
-.focus-art { width: 116px; height: 116px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.focus-art { position: relative; width: 116px; height: 116px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 .focus-art svg { width: 100%; height: 100%; }
 .focus-art.card .card { width: 84px; height: 118px; font-size: 26px; }
 .focus-name { font-size: 20px; font-weight: 800; color: var(--cream); text-align: center; line-height: 1.12; overflow-wrap: anywhere; }
