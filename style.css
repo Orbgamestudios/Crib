@@ -836,7 +836,8 @@ body.my-turn #bgRush { opacity: 0.6; animation-play-state: running; }
     max-width: 410px;
     max-height: calc(100vh - 116px);
     overflow-y: auto;
-    z-index: 55;
+    z-index: 300;
+    background: linear-gradient(160deg, rgba(43,63,36,0.98), rgba(28,44,26,0.98));
     font-size: 18px;
     line-height: 1.42;
     padding: 14px 38px 14px 16px;
