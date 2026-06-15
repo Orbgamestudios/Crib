@@ -1203,6 +1203,8 @@ body.my-turn #bgRush { opacity: 0.6; animation-play-state: running; }
 .shop-confirm { color: var(--gold); font-weight: 800; margin-top: 10px; font-size: 13px; }
 .shop-confirm.disabled { color: #ff7b6e; }
 .shop-item.sold { opacity: 0.35; }
+.shop-item.unavailable { opacity: 0.58; filter: grayscale(0.35); }
+.shop-item.unavailable .shop-price { color: #ff9b8f; }
 .shop-coins { font-size: 18px; color: #ffd76e; font-weight: 700; }
 
 /* shiny booster packs */

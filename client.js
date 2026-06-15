@@ -1838,6 +1838,13 @@ function shopTypeLabel(kind) {
     : 'Card';
 }
 
+function packBlockedReason(item, you) {
+  if (!item || item.kind !== 'pack') return '';
+  if (item.id === 'buffoon' && you.jokers.length >= (you.jokerSlots || 5)) return 'Jokers full';
+  if (item.id === 'arcana' && you.tarots.length >= 2) return 'Tarots full';
+  return '';
+}
+
 function shopItemHelp(item) {
   const specific = item.kind === 'card'
     ? `<p><b>This card:</b> Adds this exact ${cardLabel(item)} to your permanent deck.</p>`
@@ -2169,7 +2176,9 @@ function renderShop(oc, st) {
   grid.className = 'shop-grid shop-grid-market';
   (you.shopOffer || []).forEach((item, idx) => {
     const div = document.createElement('div');
+    const packBlock = packBlockedReason(item, you);
     div.className = `shop-item shop-card ${item.kind}` + (item.sold ? ' sold' : '') +
+      (packBlock ? ' unavailable' : '') +
       (item.kind === 'pack' ? ' shiny' : '') + (item.rarity ? ' r-' + item.rarity : '');
     div.appendChild(shopCardFace(item));
     div.insertAdjacentHTML('beforeend',
@@ -2177,7 +2186,7 @@ function renderShop(oc, st) {
       rarityPill(item) +
       stampPill(item) +
       (item.kind === 'tarot' && item.jokerStamp ? `<div class="si-desc">${esc(stampText(item.jokerStamp))}</div>` : '') +
-      `<div class="shop-price">${chip(item.cost)}</div>` +
+      `<div class="shop-price">${packBlock || chip(item.cost)}</div>` +
       `<div class="shop-type ${item.kind}">${shopTypeLabel(item.kind)}</div>`);
     addStampBadge(div.querySelector('.shop-art') || div, item.stamp);
     addInfoButton(div, item.name, shopItemHelp(item));
@@ -2235,13 +2244,15 @@ function openShopFocus(item, idx, you) {
 
   const card = focusCardShell(item);
 
-  const canAfford = !item.sold && you.coins >= item.cost && !you.ready;
+  const packBlock = packBlockedReason(item, you);
+  const canAfford = !item.sold && !packBlock && you.coins >= item.cost && !you.ready;
   const buy = document.createElement('button');
   buy.className = 'btn primary focus-buy';
-  buy.innerHTML = item.sold ? 'Sold'
-    : you.ready ? 'Locked in'
-    : you.coins < item.cost ? `Need ${chip(item.cost)}`
-    : `Buy · ${chip(item.cost)}`;
+  if (item.sold) buy.innerHTML = 'Sold';
+  else if (you.ready) buy.innerHTML = 'Locked in';
+  else if (packBlock) buy.innerHTML = packBlock;
+  else if (you.coins < item.cost) buy.innerHTML = `Need ${chip(item.cost)}`;
+  else buy.innerHTML = `Buy · ${chip(item.cost)}`;
   buy.disabled = !canAfford;
   buy.onclick = e => { e.stopPropagation(); sendMsg({ t: 'buy', idx }); closeFocus(); };
   card.appendChild(buy);
