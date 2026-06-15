@@ -1808,6 +1808,25 @@ function shopKindHelp(kind) {
   return '<p>A <b>playing card</b> bought here is added permanently to your deck, changing what you can draw in future hands.</p>';
 }
 
+function shopTypeLabel(kind) {
+  return kind === 'joker' ? 'Joker'
+    : kind === 'tarot' ? 'Tarot'
+    : kind === 'pack' ? 'Pack'
+    : 'Card';
+}
+
+function shopItemHelp(item) {
+  const specific = item.kind === 'card'
+    ? `<p><b>This card:</b> Adds this exact ${cardLabel(item)} to your permanent deck.</p>`
+    : `<p><b>${esc(item.name)}:</b> ${esc(item.desc)}</p>`;
+  const stamp = item.kind === 'tarot' && item.jokerStamp
+    ? `<p><b>Stamp effect:</b> ${esc(stampText(item.jokerStamp))}</p>`
+    : item.stamp
+      ? `<p><b>Stamp:</b> ${esc(stampText(item.stamp))}</p>`
+      : '';
+  return shopKindHelp(item.kind) + specific + stamp;
+}
+
 function rarityPill(item) {
   if (!item || item.kind !== 'joker') return '';
   const rarity = item.rarity || 'common';
@@ -2114,9 +2133,10 @@ function renderShop(oc, st) {
       rarityPill(item) +
       stampPill(item) +
       (item.kind === 'tarot' && item.jokerStamp ? `<div class="si-desc">${esc(stampText(item.jokerStamp))}</div>` : '') +
-      `<div class="shop-price">${chip(item.cost)}</div>`);
+      `<div class="shop-price">${chip(item.cost)}</div>` +
+      `<div class="shop-type ${item.kind}">${shopTypeLabel(item.kind)}</div>`);
     addStampBadge(div.querySelector('.shop-art') || div, item.stamp);
-    addInfoButton(div, shopKindTitle(item.kind), shopKindHelp(item.kind));
+    addInfoButton(div, item.name, shopItemHelp(item));
     div.onclick = () => {
       if (item.sold || you.ready) return;
       openShopFocus(item, idx, you); // tap a card → it enlarges to centre
@@ -2387,6 +2407,7 @@ function renderPackOpen(oc, st) {
     if (opt.kind === 'card') {
       div.innerHTML = `<div class="si-bigcard"></div><div class="si-name">${RANK_NAMES[opt.rank]}${SUIT_CHARS[opt.suit]} — add to your deck</div>`;
       div.querySelector('.si-bigcard').appendChild(cardEl(opt));
+      div.insertAdjacentHTML('beforeend', '<div class="shop-type card">Card</div>');
     } else {
       const icon = (opt.kind === 'joker' ? JOKER_ICONS : TAROT_ICONS)[opt.id] || '';
       div.innerHTML = `<div class="si-icon">${icon}</div><div class="si-name">${esc(opt.name)}</div>` +
@@ -2394,10 +2415,9 @@ function renderPackOpen(oc, st) {
         stampPill(opt) +
         `<div class="si-desc">${esc(opt.desc)}${opt.kind === 'tarot' && opt.jokerStamp ? '<br>' + esc(stampText(opt.jokerStamp)) : ''}</div>`;
       addStampBadge(div.querySelector('.si-icon') || div, opt.stamp);
+      div.insertAdjacentHTML('beforeend', `<div class="shop-type ${opt.kind}">${shopTypeLabel(opt.kind)}</div>`);
     }
-    addInfoButton(div, opt.name || cardLabel(opt), opt.kind === 'card'
-      ? `<p>Adds this exact ${cardLabel(opt)} to your permanent deck.</p>`
-      : `<p>${esc(opt.desc)}</p><p>${opt.kind === 'joker' ? 'Passive once taken.' : 'Consumable before discard once taken.'}</p>`);
+    addInfoButton(div, opt.name || cardLabel(opt), shopItemHelp(opt));
     const full = (opt.kind === 'joker' && st.you.jokers.length >= (st.you.jokerSlots || 5) && opt.stamp !== 'white') ||
       (opt.kind === 'tarot' && st.you.tarots.length >= 2);
     const btn = document.createElement('button');

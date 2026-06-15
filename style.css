@@ -1185,6 +1185,17 @@ body.my-turn #bgRush { opacity: 0.6; animation-play-state: running; }
 .shop-item .si-name { font-weight: 700; }
 .shop-item .si-desc { font-size: 13px; opacity: 0.8; flex: 1; }
 .shop-price { color: #ffd76e; font-weight: 800; font-size: 13px; }
+.shop-type {
+  position: absolute; right: 8px; bottom: 7px;
+  padding: 2px 7px; border-radius: 999px;
+  font-size: 9px; font-weight: 900; letter-spacing: .06em; text-transform: uppercase;
+  color: #eef6ff; background: #152536dd; border: 1px solid #ffffff33;
+  box-shadow: 0 2px 6px #0006; pointer-events: none;
+}
+.shop-type.joker { color: #ffe8a0; border-color: #e8c35a88; }
+.shop-type.tarot { color: #dfc8ff; border-color: #b48be088; }
+.shop-type.pack { color: #bdf3ff; border-color: #8fe7ff88; }
+.shop-type.card { color: #f3ead8; border-color: #f4ead866; }
 .shop-confirm { color: var(--gold); font-weight: 800; margin-top: 10px; font-size: 13px; }
 .shop-confirm.disabled { color: #ff7b6e; }
 .shop-item.sold { opacity: 0.35; }
