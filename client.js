@@ -2898,6 +2898,20 @@ $('tutCheck').onchange = () => {
 };
 $('tutClose').onclick = () => $('tutorialBar').classList.add('hidden');
 
+function shopStampTip(st) {
+  const items = st.you.pendingPack ? st.you.pendingPack.options : st.you.shopOffer;
+  const stamped = (items || []).filter(item => item && item.stamp);
+  if (!stamped.length) return null;
+  const names = [...new Set(stamped.map(item => stampText(item.stamp)).filter(Boolean))];
+  const first = stamped[0];
+  const itemName = first.name || (first.kind === 'card' ? cardLabel(first) : 'this item');
+  const text = names.length === 1
+    ? `Stamp spotted - ${itemName} has ${names[0]}. Stamped jokers have an extra bonus on top of their normal effect; tap the stamp badge or the info button to see the details.`
+    : `Stamps spotted - this shop has ${names.join('; ')}. Stamped jokers have an extra bonus on top of their normal effect; tap a stamp badge or the info button to learn what each one does.`;
+  const sig = stamped.map(item => `${item.id || item.name}:${item.stamp}`).join('|');
+  return { key: `shopStamp-${st.dealNumber}-${sig}`, text };
+}
+
 function tutorialMessage(st) {
   if (!st.you) return null;
   if (st.phase === 'scoring') {
@@ -2909,6 +2923,8 @@ function tutorialMessage(st) {
       : 'Blind check - everyone compares their round score to the target blind. Players who cleared it survive and earn bonus coins; anyone short is eliminated.' };
   }
   if (st.phase === 'shop') {
+    const stampTip = shopStampTip(st);
+    if (stampTip) return stampTip;
     return { key: `shop-${st.dealNumber}`, text: 'Shop - spend coins before the next deal. Tap a card once to enlarge it and read the effect, tap it again to buy; jokers stay passive, tarots are single-use, and packs let you choose one reward.' };
   }
   if (!st.you.active && st.phase !== 'gameover') {
