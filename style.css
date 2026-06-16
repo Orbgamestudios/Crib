@@ -1473,12 +1473,17 @@ body.mode-board #scoreHud { grid-template-columns: 1fr; flex-basis: 150px; }
 
 /* rising +Mult label (reuses .fx-float / floatUp) */
 .fx-mult { color: #ff6b6b; font-size: 20px; text-shadow: 0 2px 6px #000; }
+.fx-points-blue { color: #7fd0ff; font-size: 22px; text-shadow: 0 2px 6px #001a2c, 0 0 10px #63b8ffaa; }
 
 /* orbs streaming into the Mult box */
 .fx-orb {
   position: fixed; width: 13px; height: 13px; border-radius: 50%;
   background: radial-gradient(circle at 35% 30%, #fff, #ff6b6b 55%, #a51d1d);
   box-shadow: 0 0 10px #ff6b6bcc; pointer-events: none; z-index: 321;
+}
+.fx-orb.blue {
+  background: radial-gradient(circle at 35% 30%, #fff, #7fd0ff 55%, #176db0);
+  box-shadow: 0 0 12px #63b8ffcc;
 }
 /* sparkles */
 .fx-spark {

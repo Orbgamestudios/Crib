@@ -2976,8 +2976,12 @@ function runAnimations(prev, st, refs = {}) {
   for (const p of st.players) {
     const pp = prev.players && prev.players.find(q => q.seat === p.seat);
     if (pp && p.score > pp.score) {
-      sfx('score');
-      floatAtSeat(st, p.seat, `+${p.score - pp.score}`, 'fx-pts');
+      if (st.mode === 'board' && st.phase === 'pegging') continue;
+      if (st.mode === 'board') showBoardPointGain(st, p.seat, p.score - pp.score);
+      else {
+        sfx('score');
+        floatAtSeat(st, p.seat, `+${p.score - pp.score}`, 'fx-pts');
+      }
     }
   }
   if (prev.you && st.you && st.you.coins > prev.you.coins && st.phase !== 'shop') {
@@ -3049,6 +3053,10 @@ function floatRise(x, y, text, cls) {
 
 function showMultGainForSeat(prev, st, seat, gained, opts = {}) {
   if (!gained) return;
+  if (st.mode === 'board') {
+    showBoardPointGain(st, seat, gained);
+    return;
+  }
   sfx('mult');
   const pc = $('pegCount').getBoundingClientRect();
   const fromX = pc.left + pc.width / 2;
@@ -3079,12 +3087,40 @@ function showMultGainForSeat(prev, st, seat, gained, opts = {}) {
   }
 }
 
-function flingOrbs(fromX, fromY, toX, toY, count, onArrive) {
+function showBoardPointGain(st, seat, gained) {
+  if (!gained) return;
+  sfx('score');
+  const pc = $('pegCount').getBoundingClientRect();
+  let fromX = pc.left + pc.width / 2;
+  let fromY = pc.top + pc.height / 2;
+  if (!pc.width || !pc.height) {
+    const seatEl = seat === st.mySeat
+      ? $('myScore')
+      : document.querySelector(`.seat[data-seat="${seat}"] .plaque`);
+    if (seatEl) {
+      const sr = seatEl.getBoundingClientRect();
+      fromX = sr.left + sr.width / 2;
+      fromY = sr.top + sr.height / 2;
+    }
+  }
+  floatRise(fromX, fromY - 20, `+${gained}`, 'fx-points-blue');
+  const target = $('blindProgress');
+  const tr = target.getBoundingClientRect();
+  const toX = tr.left + tr.width / 2;
+  const toY = tr.top + tr.height / 2;
+  flingOrbs(fromX, fromY, toX, toY, Math.min(10, 3 + gained), () => {
+    flashEl(target);
+    if (seat === st.mySeat) pulse($('myScore'));
+  }, 'blue');
+  floatRise(toX, tr.top - 10, `+${gained}`, 'fx-points-blue');
+}
+
+function flingOrbs(fromX, fromY, toX, toY, count, onArrive, variant = '') {
   let landed = 0;
   const finishOne = () => { if (++landed >= count && onArrive) onArrive(); };
   for (let i = 0; i < count; i++) {
     const orb = document.createElement('div');
-    orb.className = 'fx-orb';
+    orb.className = 'fx-orb' + (variant ? ' ' + variant : '');
     orb.style.left = fromX + 'px';
     orb.style.top = fromY + 'px';
     $('fx').appendChild(orb);
