@@ -15,12 +15,19 @@ const MIME = {
 const rooms = new Map(); // id -> room
 let nextRoomId = 1;
 
+function normalizeMode(mode) {
+  if (mode === 'board') return 'board';
+  if (mode === 'endless') return 'endless';
+  return 'blind';
+}
+
 function makeRoom(name, opts = {}) {
+  const mode = normalizeMode(opts.mode);
   const room = {
     id: 'r' + (nextRoomId++),
     name: (name || 'Cribbage Table').slice(0, 30),
-    mode: opts.mode === 'board' ? 'board' : 'blind',
-    goalScore: opts.mode === 'board' ? 121 : null,
+    mode,
+    goalScore: mode === 'board' ? 121 : null,
     players: [], // { id, name, ws, connected }
     game: null,
     logs: [],
@@ -85,7 +92,7 @@ function roomLog(room, text) {
 
 function startGame(room, opts = {}) {
   if (opts.mode) {
-    room.mode = opts.mode === 'board' ? 'board' : 'blind';
+    room.mode = normalizeMode(opts.mode);
     room.goalScore = room.mode === 'board' ? 121 : null;
   }
   room.game = new Game(

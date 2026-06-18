@@ -13,6 +13,12 @@ const P2P_LOBBY_BROKERS = [
 ];
 const P2P_ROOM_TOPIC_PREFIX = 'orbcrib-room-v1';
 
+function normalizeMode(mode) {
+  if (mode === 'board') return 'board';
+  if (mode === 'endless') return 'endless';
+  return 'blind';
+}
+
 export function makeCode() {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   let code = '';
@@ -24,7 +30,7 @@ export class HostSession {
   constructor(code, hostName, onLocal, onStatus, opts = {}) {
     this.code = code;
     this.solo = !!opts.solo;
-    this.gameMode = opts.mode === 'board' ? 'board' : 'blind';
+    this.gameMode = normalizeMode(opts.mode);
     this.goalScore = this.gameMode === 'board' ? 121 : null;
     this.saveKey = opts.saveKey || null;
     this.roomName = this.solo ? `${hostName} vs The House` : `${hostName}'s table`;
@@ -183,6 +189,8 @@ export class HostSession {
       connected: true, isBot: !!p.isBot,
     }));
     this.game = Game.fromSnapshot(snap, { onUpdate: () => this.broadcastRoom(), log: text => this.log(text) });
+    this.gameMode = normalizeMode(this.game.mode);
+    this.goalScore = this.gameMode === 'board' ? 121 : null;
     this.broadcastRoom();
   }
 
@@ -258,7 +266,7 @@ export class HostSession {
 
   startGame(opts = {}) {
     if (this.game && this.game.phase !== 'gameover') return;
-    this.gameMode = opts.mode === 'board' ? 'board' : this.gameMode;
+    this.gameMode = opts.mode ? normalizeMode(opts.mode) : this.gameMode;
     this.goalScore = this.gameMode === 'board' ? 121 : null;
     const connected = this.players.filter(p => p.connected);
     if (connected.length < 2) {

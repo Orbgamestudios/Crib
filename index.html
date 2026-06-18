@@ -12,7 +12,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Crib">
-<link rel="stylesheet" href="style.css?v=64">
+<link rel="stylesheet" href="style.css?v=65">
 <script src="https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js" defer></script>
 <script src="https://unpkg.com/mqtt/dist/mqtt.min.js" defer></script>
 </head>
@@ -26,6 +26,7 @@
   <div class="row lobby-actions">
     <button id="howToBtn" class="btn small"><span class="ui-icon icon-info" aria-hidden="true"></span>How to Play</button>
     <button id="profileBtn" class="btn small">Profile</button>
+    <button id="deckArtBtn" class="btn small">Decks</button>
     <button id="leaderBtn" class="btn small">Leaderboard</button>
   </div>
   <div class="panel">
@@ -35,7 +36,8 @@
     <div class="mode-box">
       <label>Game mode</label>
       <div class="segmented" id="modeToggle">
-        <button class="active" data-mode="blind" type="button">Blind</button>
+        <button class="active" data-mode="blind" type="button">Regular</button>
+        <button data-mode="endless" type="button">Endless</button>
         <button data-mode="board" type="button">Board</button>
       </div>
     </div>
@@ -190,6 +192,6 @@
 <div id="fx"></div>
 <div id="toast" class="hidden"></div>
 
-<script type="module" src="client.js?v=74"></script>
+<script type="module" src="client.js?v=75"></script>
 </body>
 </html>

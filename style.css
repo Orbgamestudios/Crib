@@ -120,7 +120,7 @@ body.my-turn #bgRush { opacity: 0.6; animation-play-state: running; }
 .row input { margin-bottom: 0; }
 .mode-box { margin-top: 10px; display: grid; gap: 8px; }
 .segmented {
-  display: grid; grid-template-columns: 1fr 1fr; gap: 4px;
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px;
   background: #00000033; border: 1px solid #ffffff22; border-radius: 8px; padding: 4px;
 }
 .segmented button {
@@ -155,6 +155,18 @@ body.my-turn #bgRush { opacity: 0.6; animation-play-state: running; }
 }
 .leader-row span:first-child { font-weight: 700; color: var(--cream); }
 .leader-row span:not(:first-child) { color: var(--gold); font-weight: 600; white-space: nowrap; }
+.deck-art-shop { display: grid; gap: 10px; }
+.deck-token-row { color: var(--gold); font-weight: 800; }
+.deck-art-item {
+  display: grid; grid-template-columns: 58px 1fr auto; gap: 12px; align-items: center;
+  padding: 10px; border: 1px solid #ffffff22; border-radius: 8px; background: #ffffff0b;
+}
+.deck-art-item.selected { border-color: var(--gold); box-shadow: 0 0 0 1px #e8c35a66; }
+.deck-art-copy { display: grid; gap: 3px; min-width: 0; }
+.deck-art-copy b { color: var(--cream); }
+.deck-art-copy span { font-size: 12px; opacity: 0.78; line-height: 1.35; }
+.deck-art-copy small { color: var(--gold); font-weight: 700; }
+.card.back.preview { width: 46px; height: 64px; transform: none; }
 .or { text-align: center; opacity: 0.5; font-size: 13px; margin: 10px 0; }
 .code { color: var(--gold); font-size: 22px; letter-spacing: 4px; }
 
@@ -443,6 +455,61 @@ body.mode-board .seat-blind-fill {
 .card.back {
   background: repeating-linear-gradient(45deg, #5b2f86, #5b2f86 4px, #6d3aa0 4px, #6d3aa0 8px);
   border: 2px solid #d9cce8;
+}
+.card.back::after {
+  content: ""; position: absolute; inset: 7px; border-radius: 4px;
+  border: 1px solid #ffffff55; box-shadow: inset 0 0 0 1px #00000033;
+}
+.card.back.deck-emerald {
+  background: repeating-linear-gradient(45deg, #145c3b, #145c3b 4px, #23965f 4px, #23965f 8px);
+  border-color: #c9f4d8;
+}
+.card.back.deck-sapphire {
+  background: repeating-linear-gradient(45deg, #17477d, #17477d 4px, #2f88d8 4px, #2f88d8 8px);
+  border-color: #c9e9ff;
+}
+.card.back.deck-ruby {
+  background: repeating-linear-gradient(45deg, #831e2a, #831e2a 4px, #d84b3c 4px, #d84b3c 8px);
+  border-color: #ffe2a0;
+}
+.card.back.deck-aurora {
+  background:
+    linear-gradient(120deg, transparent 10%, #8fe7ff99 30%, #e48cffaa 45%, #7ee08bbb 60%, transparent 82%),
+    linear-gradient(160deg, #102c45, #20143d 54%, #092d25);
+  background-size: 220% 220%, 100% 100%;
+  border-color: #d5f7ff;
+  animation: deckFlow 2.8s linear infinite;
+}
+.card.back.deck-neon {
+  background:
+    linear-gradient(90deg, transparent 0 18%, #63f7ff 19% 21%, transparent 22% 44%, #ff6bd6 45% 47%, transparent 48% 72%, #ffd76e 73% 75%, transparent 76%),
+    radial-gradient(circle at 50% 50%, #33415a, #0c1220 70%);
+  background-size: 170% 100%, 100% 100%;
+  border-color: #8fe7ff;
+  animation: deckCircuit 1.9s linear infinite;
+}
+.card.back.deck-cosmic {
+  background:
+    radial-gradient(circle at 20% 25%, #fff 0 1px, transparent 2px),
+    radial-gradient(circle at 75% 35%, #ffd76e 0 1px, transparent 2px),
+    radial-gradient(circle at 45% 75%, #8fe7ff 0 1px, transparent 2px),
+    repeating-linear-gradient(45deg, #24144c, #24144c 5px, #3d1d70 5px, #3d1d70 10px);
+  background-size: 40px 40px, 34px 34px, 30px 30px, 100% 100%;
+  border-color: #dfc8ff;
+  animation: deckStars 2.4s ease-in-out infinite;
+}
+@keyframes deckFlow {
+  from { background-position: 0% 50%, 0 0; }
+  to { background-position: 220% 50%, 0 0; }
+}
+@keyframes deckCircuit {
+  from { background-position: 0 0, 0 0; filter: saturate(1); }
+  50% { filter: saturate(1.6) brightness(1.12); }
+  to { background-position: 170% 0, 0 0; filter: saturate(1); }
+}
+@keyframes deckStars {
+  0%, 100% { background-position: 0 0, 0 0, 0 0, 0 0; filter: brightness(1); }
+  50% { background-position: 8px 10px, -6px 8px, 5px -9px, 0 0; filter: brightness(1.25); }
 }
 .card.small { width: 32px; height: 44px; font-size: 11px; padding: 2px 3px; }
 .card.small .suit { font-size: 12px; }

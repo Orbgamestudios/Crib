@@ -4,7 +4,7 @@ import { pegEvents, scoreBreakdown } from './lib/scoring.js';
 import { JOKERS, TAROTS, aggregateMods, buildScore, stampText } from './lib/jokers.js';
 
 const $ = id => document.getElementById(id);
-const SUIT_CHARS = ['♥', '♦', '♣', '♠']; // H D C S
+const SUIT_CHARS = ['â™¥', 'â™¦', 'â™£', 'â™ ']; // H D C S
 const RANK_NAMES = [null, 'A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
 const PEER_PREFIX = 'orbcrib-v1-';
 const P2P_LOBBY_TOPIC = 'orbcrib-lobbies-v1';
@@ -15,7 +15,7 @@ const P2P_LOBBY_BROKERS = [
 ];
 const P2P_ROOM_TOPIC_PREFIX = 'orbcrib-room-v1';
 const TOUCH = 'ontouchstart' in window;
-const ANIM = 1.9; // global animation slowdown — everything glides ~half speed
+const ANIM = 1.9; // global animation slowdown â€” everything glides ~half speed
 const SOLO_SAVE_KEY = 'crib_solo_house_save_v1';
 const PROFILE_KEY = 'crib_profiles_v1';
 const ACTIVE_PROFILE_KEY = 'crib_active_profile_pin';
@@ -51,7 +51,22 @@ let pointerCardDrag = null;
 let lastCoinPopKey = '';
 let lastRecordedRunKey = '';
 let deferredRender = false; // a state update arrived mid-drag; apply on release
-let selectedGameMode = localStorage.getItem('crib_game_mode') === 'board' ? 'board' : 'blind';
+function normalizeMode(mode) {
+  if (mode === 'board') return 'board';
+  if (mode === 'endless') return 'endless';
+  return 'blind';
+}
+let selectedGameMode = normalizeMode(localStorage.getItem('crib_game_mode'));
+let selectedDeckArt = localStorage.getItem('crib_deck_art') || 'classic';
+const DECK_ARTS = [
+  { id: 'classic', name: 'Classic Violet', cost: 0, desc: 'The original purple crib back.' },
+  { id: 'emerald', name: 'Emerald Felt', cost: 1, desc: 'A deep green table-felt recolor.' },
+  { id: 'sapphire', name: 'Sapphire Run', cost: 1, desc: 'Cool blue stripes with a bright center line.' },
+  { id: 'ruby', name: 'Ruby Cut', cost: 1, desc: 'A red-and-gold recolor for high-pressure runs.' },
+  { id: 'aurora', name: 'Aurora Flow', cost: 2, animated: true, desc: 'Animated northern-light bands drift across the card back.' },
+  { id: 'neon', name: 'Neon Circuit', cost: 2, animated: true, desc: 'Animated electric lines pulse like a scoring engine.' },
+  { id: 'cosmic', name: 'Cosmic Suits', cost: 2, animated: true, desc: 'Animated starry suit patterns shimmer in the background.' },
+];
 let boardView = null;
 let boardScoreDisplay = new Map();
 let boardFx = [];
@@ -255,7 +270,7 @@ function connectWs() {
   ws.onmessage = e => handle(JSON.parse(e.data));
   ws.onclose = () => {
     wsOpen = false;
-    toast('Connection lost — reconnecting…');
+    toast('Connection lost â€” reconnectingâ€¦');
     setTimeout(connectWs, 2000);
   };
 }
@@ -305,14 +320,16 @@ function gameOptions() {
 }
 
 function modeLabel(mode, goal) {
-  return mode === 'board' ? `Board to ${goal || 121}` : 'Blind';
+  if (mode === 'board') return `Board to ${goal || 121}`;
+  if (mode === 'endless') return 'Endless Blind';
+  return 'Regular Blind';
 }
 
 async function hostTable() {
   const { HostSession, makeCode } = await import('./net/host.js');
   const code = makeCode();
   hostSession = new HostSession(code, myName(), msg => handle(msg), (status, detail) => {
-    if (status === 'code-taken') { hostSession = null; toast('Code collision — try again.'); }
+    if (status === 'code-taken') { hostSession = null; toast('Code collision â€” try again.'); }
     else if (status === 'error') { hostSession = null; toast('Connection service error: ' + detail); showView('lobby'); }
   }, gameOptions());
   hostSession.peer.on('error', err => {
@@ -327,7 +344,7 @@ function joinByCode(code) {
   clearGuestTransports();
   sessionStorage.setItem('crib_code', code);
   guestPeer = new Peer({ debug: 1 });
-  toast('Connecting…');
+  toast('Connectingâ€¦');
   let failTimer = null;
   let fallingBack = false;
   const useRelay = () => {
@@ -366,12 +383,12 @@ function dropGuest(reason) {
 
 function joinByMqttCode(code) {
   if (!window.mqtt) {
-    toast('Connecting through lobby relay…');
+    toast('Connecting through lobby relayâ€¦');
     setTimeout(() => joinByMqttCode(code), 500);
     return;
   }
   clearMqttGuest();
-  toast('Connecting through lobby relay…');
+  toast('Connecting through lobby relayâ€¦');
   const guestId = 'g-' + Math.random().toString(36).slice(2);
   const hostTopic = `${P2P_ROOM_TOPIC_PREFIX}/${code}/host`;
   const guestTopic = `${P2P_ROOM_TOPIC_PREFIX}/${code}/guest/${guestId}`;
@@ -502,7 +519,7 @@ function handle(msg) {
         lastStateJson = stateJson;
       }
       if (msg.state.phase !== 'shop') selectedShopIdx = -1;
-      // Don't rebuild the table mid-drag — that yanks the card out of your
+      // Don't rebuild the table mid-drag â€” that yanks the card out of your
       // hand ("let go randomly"). Stash it and catch up when the drag ends.
       if (isDragging()) { lastState = msg.state; deferredRender = true; break; }
       prevState = lastState;
@@ -670,20 +687,20 @@ function showHowToPlay() {
     <ul>
       <li><b>Pegging is your multiplier.</b> A 12-point hand at x1 is 12, but
       peg 4 points first and it's 12 x5 = 60. Hunt 15s, 31s and pairs while
-      laying cards — often worth more than the points you keep.</li>
+      laying cards â€” often worth more than the points you keep.</li>
       <li><b>Keep Points and Mult balanced.</b> A huge hand at x1, or a tiny
       hand at x8, both fizzle. Buy jokers that lift whichever you're short on.</li>
-      <li><b>Build an engine early.</b> Round 1-2 blinds are gentle — spend
+      <li><b>Build an engine early.</b> Round 1-2 blinds are gentle â€” spend
       coins on jokers that compound (repricers, suit/rank bonuses, conditional
       pegging) rather than hoarding.</li>
       <li><b>Sculpt your deck.</b> Tarots and Standard packs let you load up on
       one suit (for flushes) or rank (for fifteens/pairs). A focused deck scores
       far more reliably than a random 52.</li>
       <li><b>Mind the crib.</b> It uses the dealer's Mult, so the dealer wants high-scoring
-      cards in it — and non-dealers should avoid handing the dealer easy points.
+      cards in it â€” and non-dealers should avoid handing the dealer easy points.
       Crib jokers (Golden/Steel Crib, Copier, Acemaker) only pay you on your deal.</li>
       <li><b>Race for the blind.</b> Clearing it first earns the most bonus
-      coins — and once everyone clears, the round ends early.</li>
+      coins â€” and once everyone clears, the round ends early.</li>
     </ul>
 
     <h4>Controls</h4>
@@ -742,7 +759,7 @@ function showItemInfo(kind, def, action) {
   showInfo(def.name, `<p>${esc(def.desc)}</p><p>${timing}</p>`);
   if (action) {
     const meta = div.querySelector('.meta');
-    if (meta) meta.textContent = `${modeLabel(r.mode, r.goalScore)} · ${r.count}/6 players - ${(r.players || []).join(', ')}`;
+    if (meta) meta.textContent = `${modeLabel(r.mode, r.goalScore)} Â· ${r.count}/6 players - ${(r.players || []).join(', ')}`;
     const btn = document.createElement('button');
     btn.className = 'btn primary';
     btn.textContent = `Use ${def.name}`;
@@ -783,6 +800,34 @@ function activeProfile() {
   return pin ? readProfiles()[pin] || null : null;
 }
 
+function normalizeProfile(p) {
+  if (!p) return null;
+  p.deckTokens = Math.max(0, p.deckTokens || 0);
+  p.ownedDecks = Array.isArray(p.ownedDecks) && p.ownedDecks.length ? [...new Set(['classic', ...p.ownedDecks])] : ['classic'];
+  p.deckArt = p.ownedDecks.includes(p.deckArt) ? p.deckArt : 'classic';
+  return p;
+}
+
+function activeDeckArt() {
+  const p = normalizeProfile(activeProfile());
+  return (p && p.deckArt) || selectedDeckArt || 'classic';
+}
+
+function saveSelectedDeckArt(id) {
+  selectedDeckArt = id;
+  localStorage.setItem('crib_deck_art', id);
+  const pin = activeProfilePin();
+  if (!pin) return;
+  const profiles = readProfiles();
+  const p = normalizeProfile(profiles[pin]);
+  if (!p || !p.ownedDecks.includes(id)) return;
+  p.deckArt = id;
+  p.updatedAt = Date.now();
+  profiles[pin] = p;
+  writeProfiles(profiles);
+  renderProfileStatus();
+}
+
 function saveActiveProfileName() {
   const pin = activeProfilePin();
   if (!pin) return;
@@ -801,7 +846,8 @@ function renderProfileStatus() {
   const el = $('profileStatus');
   if (!el) return;
   const p = activeProfile();
-  el.textContent = p ? `Profile: ${p.name}` : 'No profile saved';
+  normalizeProfile(p);
+  el.textContent = p ? `Profile: ${p.name} Â· Deck tokens ${p.deckTokens || 0}` : 'No profile saved';
 }
 
 $('nameInput').value = localStorage.getItem('crib_name') || (activeProfile() && activeProfile().name) || '';
@@ -832,11 +878,15 @@ function showProfile() {
     if (!name) return toast('Enter a name first.');
     if (!/^\d{4}$/.test(pin)) return toast('PIN must be 4 digits.');
     const profiles = readProfiles();
+    const existing = normalizeProfile(profiles[pin]) || {};
     profiles[pin] = {
       pin,
       name,
-      bestBlind: Math.max(0, profiles[pin]?.bestBlind || 0),
-      bestScore: Math.max(0, profiles[pin]?.bestScore || 0),
+      bestBlind: Math.max(0, existing.bestBlind || 0),
+      bestScore: Math.max(0, existing.bestScore || 0),
+      deckTokens: Math.max(0, existing.deckTokens || 0),
+      ownedDecks: existing.ownedDecks || ['classic'],
+      deckArt: existing.deckArt || selectedDeckArt || 'classic',
       updatedAt: Date.now(),
     };
     writeProfiles(profiles);
@@ -869,6 +919,13 @@ function recordSoloResult(st) {
   p.name = myName() || p.name;
   p.bestScore = Math.max(p.bestScore || 0, score);
   p.bestBlind = Math.max(p.bestBlind || 0, blind);
+  normalizeProfile(p);
+  const wonRegular = st.mode === 'blind' && blind >= 9;
+  if (wonRegular && p.lastDeckTokenRun !== key) {
+    p.deckTokens = (p.deckTokens || 0) + 1;
+    p.lastDeckTokenRun = key;
+    toast('Regular run cleared! +1 deck token.');
+  }
   p.updatedAt = Date.now();
   writeProfiles(profiles);
   renderProfileStatus();
@@ -884,7 +941,60 @@ function showLeaderboard() {
   showInfo('Leaderboard', `<div class="leaderboard">${rows}</div>`);
 }
 
+function showDeckArtShop() {
+  const pin = activeProfilePin();
+  const profiles = readProfiles();
+  const p = pin ? normalizeProfile(profiles[pin]) : null;
+  const tokens = p ? p.deckTokens || 0 : 0;
+  const owned = p ? p.ownedDecks : ['classic'];
+  const active = p ? p.deckArt : activeDeckArt();
+  const cards = DECK_ARTS.map(art => {
+    const has = owned.includes(art.id);
+    const selected = active === art.id;
+    return `<div class="deck-art-item${selected ? ' selected' : ''}" data-deck="${art.id}">
+      <div class="card back deck-${art.id} preview"></div>
+      <div class="deck-art-copy">
+        <b>${esc(art.name)}</b>
+        <span>${esc(art.desc)}</span>
+        <small>${art.cost ? `${art.cost} deck token${art.cost === 1 ? '' : 's'}` : 'Free'}${art.animated ? ' Â· animated' : ''}</small>
+      </div>
+      <button class="btn small ${has ? '' : 'primary'}" data-deck-action="${art.id}">${selected ? 'Selected' : has ? 'Select' : 'Buy'}</button>
+    </div>`;
+  }).join('');
+  showInfo('Decks', `<div class="deck-art-shop">
+    <div class="deck-token-row">Deck tokens: <b>${tokens}</b></div>
+    ${pin ? '' : '<p class="hint">Save a profile with a 4-digit PIN to earn and spend deck tokens.</p>'}
+    ${cards}
+  </div>`);
+  document.querySelectorAll('[data-deck-action]').forEach(btn => {
+    btn.onclick = () => {
+      const id = btn.dataset.deckAction;
+      const art = DECK_ARTS.find(a => a.id === id);
+      if (!art) return;
+      const activePin = activeProfilePin();
+      if (!activePin) return toast('Save a profile first.');
+      const all = readProfiles();
+      const prof = normalizeProfile(all[activePin]);
+      if (!prof) return toast('Save a profile first.');
+      const bought = !prof.ownedDecks.includes(id);
+      if (bought) {
+        if ((prof.deckTokens || 0) < art.cost) return toast('Not enough deck tokens.');
+        prof.deckTokens -= art.cost;
+        prof.ownedDecks.push(id);
+      }
+      prof.deckArt = id;
+      prof.updatedAt = Date.now();
+      all[activePin] = prof;
+      writeProfiles(all);
+      saveSelectedDeckArt(id);
+      showDeckArtShop();
+      toast(bought ? `${art.name} bought and selected.` : `${art.name} selected.`);
+    };
+  });
+}
+
 $('profileBtn').onclick = () => showProfile();
+$('deckArtBtn').onclick = () => showDeckArtShop();
 $('leaderBtn').onclick = () => showLeaderboard();
 
 function syncModeControls() {
@@ -895,7 +1005,7 @@ function syncModeControls() {
 
 document.querySelectorAll('#modeToggle button').forEach(btn => {
   btn.onclick = () => {
-    selectedGameMode = btn.dataset.mode === 'board' ? 'board' : 'blind';
+    selectedGameMode = normalizeMode(btn.dataset.mode);
     localStorage.setItem('crib_game_mode', selectedGameMode);
     syncModeControls();
   };
@@ -993,13 +1103,13 @@ function renderRoomList(rooms) {
   const el = $('roomList');
   el.innerHTML = '';
   if (!rooms.length) {
-    el.innerHTML = '<div class="empty">No open tables — create one!</div>';
+    el.innerHTML = '<div class="empty">No open tables â€” create one!</div>';
     return;
   }
   for (const r of rooms) {
     const div = document.createElement('div');
     div.className = 'room-item';
-    div.innerHTML = `<div><b>${esc(r.name)}</b><div class="meta">${r.count}/6 players — ${esc(r.players.join(', '))}</div></div>`;
+    div.innerHTML = `<div><b>${esc(r.name)}</b><div class="meta">${r.count}/6 players â€” ${esc(r.players.join(', '))}</div></div>`;
     const btn = document.createElement('button');
     btn.className = 'btn small primary';
     btn.textContent = 'Join';
@@ -1029,7 +1139,7 @@ function startP2pLobbyDiscovery() {
       name: msg.name || `${msg.code} table`,
       count: Number(msg.count) || 1,
       players: Array.isArray(msg.players) ? msg.players : [],
-      mode: msg.mode === 'board' ? 'board' : 'blind',
+      mode: normalizeMode(msg.mode),
       goalScore: 121,
       lastSeen: Date.now(),
     });
@@ -1097,7 +1207,7 @@ function sanitizeIcons(root = document.body) {
     [cp(0x1F0A0), icon('deck')],
     [cp(0x24D8), icon('info')],
     [cp(0x1F504), icon('refresh')],
-    ['⟳', icon('refresh')],
+    ['âŸ³', icon('refresh')],
     [cp(0x1F0CF), icon('joker')],
     [cp(0x1F52E), icon('tarot')],
   ];
@@ -1128,24 +1238,21 @@ function renderWaiting(msg) {
   for (const p of msg.players) {
     const div = document.createElement('div');
     div.className = 'wp' + (p.connected ? '' : ' off');
-    div.textContent = `${p.name}${p.id === msg.hostId ? ' (host)' : ''}${p.connected ? '' : ' — disconnected'}`;
+    div.textContent = `${p.name}${p.id === msg.hostId ? ' (host)' : ''}${p.connected ? '' : ' â€” disconnected'}`;
     el.appendChild(div);
   }
   const isHost = msg.youId === msg.hostId;
   const n = msg.players.filter(p => p.connected).length;
   $('startBtn').classList.toggle('hidden', !isHost);
   $('startBtn').disabled = n < 2;
-  queueMicrotask(() => {
-    const mode = msg.room && msg.room.mode === 'board' ? 'board' : 'blind';
-    const goal = msg.room && msg.room.goalScore;
-    $('waitHint').textContent = n < 2 ? 'Waiting for at least 2 players...' :
-      mode === 'board'
-        ? `${n} players. Board mode: classic cribbage scoring - first to ${goal || 121} wins.`
-        : `${n} players. Each round, beat the blind or you're out - last one standing wins.`;
-  });
-  $('waitHint').textContent = n < 2
-    ? 'Waiting for at least 2 players…'
-    : `${n} players. Each round, beat the blind or you're out — last one standing wins.`;
+  const mode = normalizeMode(msg.room && msg.room.mode);
+  const goal = msg.room && msg.room.goalScore;
+  $('waitHint').textContent = n < 2 ? 'Waiting for at least 2 players...' :
+    mode === 'board'
+      ? `${n} players. Board mode: classic cribbage scoring - first to ${goal || 121} wins.`
+      : mode === 'endless'
+        ? `${n} players. Endless Blind: beat as many blinds as you can.`
+        : `${n} players. Regular Blind: clear 9 blinds to win and earn a deck token.`;
 }
 
 $('startBtn').onclick = () => sendMsg({ t: 'startGame', ...gameOptions() });
@@ -1162,7 +1269,7 @@ function cardEl(card, opts = {}) {
 
 function backEl(small) {
   const div = document.createElement('div');
-  div.className = 'card back' + (small ? ' small' : '');
+  div.className = `card back deck-${activeDeckArt()}` + (small ? ' small' : '');
   return div;
 }
 
@@ -1170,7 +1277,7 @@ function backEl(small) {
 
 function renderGame(st) {
   sweepStrayFx();
-  $('dealInfo').textContent = `Round ${st.round} · Deal ${st.dealIndexInRound}/${st.dealsInRound}`;
+  $('dealInfo').textContent = `Round ${st.round} Â· Deal ${st.dealIndexInRound}/${st.dealsInRound}`;
   $('phaseInfo').textContent = phaseLabel(st);
   const turnP = st.players.find(p => p.seat === st.turnSeat);
   $('turnInfo').textContent =
@@ -1220,13 +1327,13 @@ function renderBlindBar(st) {
     fill.style.width = pct + '%';
     fill.className = pct >= 100 ? 'done' : pct >= 75 ? 'high' : pct >= 45 ? 'mid' : '';
     label.style.color = '';
-    label.textContent = st.you ? `${st.you.score} / ${goal}  ·  Board` : `Board to ${goal}`;
+    label.textContent = st.you ? `${st.you.score} / ${goal}  Â·  Board` : `Board to ${goal}`;
     return;
   }
 
   if (!st.you || !st.you.active) {
     el.classList.add('out-label');
-    label.textContent = '☠ OUT — spectating';
+    label.textContent = 'â˜  OUT â€” spectating';
     label.style.color = '#ff7b6e';
     fill.style.width = '0%';
     fill.className = '';
@@ -1244,7 +1351,7 @@ function renderBlindBar(st) {
   else if (pct >= 45) fill.classList.add('mid');
 
   label.style.color = '';
-  label.textContent = `${st.you.roundScore} / ${st.blind}  ·  Blind`;
+  label.textContent = `${st.you.roundScore} / ${st.blind}  Â·  Blind`;
 }
 
 function renderSeats(st) {
@@ -1314,7 +1421,7 @@ function renderCenter(st) {
   crib.appendChild(backEl());
   const dealer = st.players.find(p => p.isDealer);
   crib.insertAdjacentHTML('beforeend',
-    `<div class="lbl">Crib ×${st.cribCount} (${esc(dealer ? dealer.name : '')})</div>`);
+    `<div class="lbl">Crib Ã—${st.cribCount} (${esc(dealer ? dealer.name : '')})</div>`);
 
   const stack = $('pegStack');
   stack.innerHTML = '';
@@ -1514,8 +1621,8 @@ function dictionaryCard(kind, def) {
   const text = document.createElement('div');
   text.className = 'dict-copy';
   const meta = kind === 'joker'
-    ? `${def.rarity || 'common'} · cost ${def.cost}`
-    : `tarot · cost ${def.cost} · ${def.targets || 0} target${def.targets === 1 ? '' : 's'}`;
+    ? `${def.rarity || 'common'} Â· cost ${def.cost}`
+    : `tarot Â· cost ${def.cost} Â· ${def.targets || 0} target${def.targets === 1 ? '' : 's'}`;
   text.innerHTML = `<b>${esc(def.name)}</b><span>${esc(meta)}</span><p>${esc(def.desc)}</p>`;
   row.appendChild(text);
   return row;
@@ -1817,7 +1924,7 @@ function renderHand(st) {
   prompt.textContent = '';
 
   if (!you.active) {
-    prompt.textContent = "You're out — spectating the table.";
+    prompt.textContent = "You're out â€” spectating the table.";
   } else if (you.canDiscard) {
     prompt.textContent = `Select ${st.discardCount} card(s) for ${dealerName(st)} crib`;
     btn.textContent = `Send ${st.discardCount} to Crib`;
@@ -1825,13 +1932,13 @@ function renderHand(st) {
     btn.classList.remove('hidden');
     btn.onclick = () => { sendMsg({ t: 'discard', cards: selected }); selected = []; };
   } else if (st.phase === 'discard') {
-    prompt.textContent = 'Waiting for the others to discard…';
+    prompt.textContent = 'Waiting for the others to discardâ€¦';
   } else if (st.phase === 'pegging') {
     if (myTurn) {
       const canAny = you.hand.some(c => st.pegCount + Math.min(c.rank, 10) <= 31);
-      prompt.textContent = canAny ? 'Play a card' : 'No legal play — go!';
+      prompt.textContent = canAny ? 'Play a card' : 'No legal play â€” go!';
     } else {
-      prompt.textContent = 'Waiting for your turn…';
+      prompt.textContent = 'Waiting for your turnâ€¦';
     }
   }
 }
@@ -2040,9 +2147,9 @@ function shopKindTitle(kind) {
 }
 
 function shopKindHelp(kind) {
-  if (kind === 'joker') return '<p><b>Jokers</b> are permanent, passive upgrades. Once bought they sit in your joker row and boost your scoring automatically every hand — they\'re never used up. Drag them to reorder (order matters for Blueprint).</p>';
+  if (kind === 'joker') return '<p><b>Jokers</b> are permanent, passive upgrades. Once bought they sit in your joker row and boost your scoring automatically every hand â€” they\'re never used up. Drag them to reorder (order matters for Blueprint).</p>';
   if (kind === 'tarot') return '<p><b>Tarots</b> are one-time cards. Buy one, then play it during the discard phase before you throw to the crib. Most permanently change cards in your own deck.</p>';
-  if (kind === 'pack') return '<p><b>Booster packs</b> open instantly and let you choose one of three rewards — a joker, tarot, or playing card — then the rest vanish. You can also skip.</p>';
+  if (kind === 'pack') return '<p><b>Booster packs</b> open instantly and let you choose one of three rewards â€” a joker, tarot, or playing card â€” then the rest vanish. You can also skip.</p>';
   return '<p>A <b>playing card</b> bought here is added permanently to your deck, changing what you can draw in future hands.</p>';
 }
 
@@ -2055,7 +2162,7 @@ function shopTypeLabel(kind) {
 
 function packBlockedReason(item, you) {
   if (!item || item.kind !== 'pack') return '';
-  if (item.id === 'buffoon' && you.jokers.length >= (you.jokerSlots || 5)) return 'Jokers full';
+  if ((item.id === 'buffoon' || item.id === 'ultra') && you.jokers.length >= (you.jokerSlots || 5)) return 'Jokers full';
   if (item.id === 'arcana' && you.tarots.length >= 2) return 'Tarots full';
   return '';
 }
@@ -2135,7 +2242,7 @@ function renderDeckOverlay(st) {
   $('deckOverlay').classList.remove('hidden');
   const body = $('deckBody');
   const deck = st.you.deck;
-  $('deckTitle').textContent = `Your deck — ${deck.length} cards`;
+  $('deckTitle').textContent = `Your deck â€” ${deck.length} cards`;
   body.innerHTML = '';
   for (let s = 0; s < 4; s++) {
     const cards = deck.filter(c => c.suit === s);
@@ -2196,9 +2303,10 @@ function renderOverlay(st) {
 function renderGameover(oc, st) {
   if (st.solo) {
     const me = (st.standings || []).find(s => s.seat === st.mySeat) || { score: 0 };
-    oc.innerHTML = `<h2>Run Over</h2>` +
-      `<div class="run-summary">You reached <b>Round ${st.round}</b> against The House.<br>` +
-      `Final score: <b>${me.score}</b> · Blinds beaten: <b>${st.you.blindsPassed}</b></div>`;
+    const wonRegular = st.mode === 'blind' && (st.you.blindsPassed || 0) >= 9;
+    oc.innerHTML = `<h2>${wonRegular ? 'Run Cleared' : 'Run Over'}</h2>` +
+      `<div class="run-summary">You reached <b>${st.mode === 'endless' ? 'Endless Blind ' : 'Blind '}${st.you.blindsPassed || st.round}</b> against The House.<br>` +
+      `Final score: <b>${me.score}</b> · Blinds beaten: <b>${st.you.blindsPassed}</b>${wonRegular ? '<br>Deck token earned for your profile.' : ''}</div>`;
   } else {
     oc.innerHTML = st.mode === 'board'
       ? `<h2>Board Winner</h2><div class="run-summary">Goal: <b>${st.goalScore || 121}</b> points</div>`
@@ -2220,7 +2328,7 @@ function renderGameover(oc, st) {
 }
 
 // Cross-slide: the outgoing screen flies left while the new one flies in
-// from the right. Used for scoring → shop → next deal, etc.
+// from the right. Used for scoring â†’ shop â†’ next deal, etc.
 function slideOverlayTransition(build, hadPrev) {
   const oc = $('overlayContent');
   if (hadPrev && oc.innerHTML.trim()) {
@@ -2254,7 +2362,7 @@ function slideOutOverlay() {
 }
 
 function renderScoring(oc, st) {
-  oc.innerHTML = `<h2>Counting — Deal ${st.dealIndexInRound}/${st.dealsInRound}</h2>` +
+  oc.innerHTML = `<h2>Counting â€” Deal ${st.dealIndexInRound}/${st.dealsInRound}</h2>` +
     `<div class="starter-row">Starter: </div>`;
   oc.lastChild.appendChild(cardEl(st.starter, { small: true }));
 
@@ -2290,7 +2398,7 @@ function renderScoring(oc, st) {
     const last = st.dealIndexInRound >= st.dealsInRound;
     if (st.you.active) appendReadyBtn(oc, st, last ? 'Blind Check' : 'To the Shop');
   } else {
-    oc.insertAdjacentHTML('beforeend', '<div class="counting-hint">Counting…</div>');
+    oc.insertAdjacentHTML('beforeend', '<div class="counting-hint">Countingâ€¦</div>');
   }
   oc.scrollTop = oc.scrollHeight;
 }
@@ -2299,7 +2407,7 @@ function scoreBlock(r, st, fresh) {
   const div = document.createElement('div');
   div.className = 'score-block' + (fresh ? ' reveal' : '');
   const title = r.kind === 'crib'
-    ? `${icon('crown')} ${esc(r.name)} — Crib`
+    ? `${icon('crown')} ${esc(r.name)} â€” Crib`
     : esc(r.name) + (r.seat === st.mySeat ? ' (you)' : '');
   div.innerHTML = `<div class="sb-head"><span>${title}</span></div>`;
 
@@ -2337,7 +2445,7 @@ function scoreBlock(r, st, fresh) {
     if (fresh) setTimeout(() => sfx('card'), 250);
   }
 
-  // Points × Mult = Total  (Balatro-style). The crib uses the dealer's Mult.
+  // Points Ã— Mult = Total  (Balatro-style). The crib uses the dealer's Mult.
   const eqDelay = 300 + r.lines.length * 130;
   const eq = document.createElement('div');
   eq.className = 'sb-equation' + (fresh ? ' anim' : '');
@@ -2347,7 +2455,7 @@ function scoreBlock(r, st, fresh) {
       `<span class="eq-op">=</span>` +
       `<span class="eq-total">${r.total}</span>`
     : `<span class="chips" title="Hand points">${r.points}</span>` +
-      `<span class="eq-op">×</span>` +
+      `<span class="eq-op">Ã—</span>` +
       `<span class="mult" title="Pegging multiplier">${r.mult}</span>` +
       `<span class="eq-op">=</span>` +
       `<span class="eq-total">${r.total}</span>`;
@@ -2371,15 +2479,16 @@ function countUp(el, total, duration, prefix = '') {
 
 function renderRoundEnd(oc, st) {
   const d = st.roundEndData;
-  oc.innerHTML = `<h2>Blind Check — Round ${d.round}</h2>` +
-    `<div class="blind-target">Blind: <b>${d.blind}</b></div>`;
+  const title = d.finalBlind ? `Blind Check - ${d.round}/${d.finalBlind}` : `Blind Check - Round ${d.round}`;
+  oc.innerHTML = `<h2>${title}</h2>` +
+    `<div class="blind-target">Blind: <b>${d.blind}</b>${d.dealCount ? ` · cleared after deal ${d.dealCount}` : ''}</div>`;
   if (d.rescued) {
     oc.insertAdjacentHTML('beforeend',
-      '<div class="rescued">Nobody beat the blind — top score survives!</div>');
+      '<div class="rescued">Nobody beat the blind â€” top score survives!</div>');
   }
   for (const row of d.rows) {
     const pct = Math.min(100, Math.round(100 * row.roundScore / d.blind));
-    const bonus = row.bonusCoins > 0 ? ` +${chip(row.bonusCoins)}` : '';
+    const bonus = row.reward ? ` ${esc(row.reward)}` : row.bonusCoins > 0 ? ` +${chip(row.bonusCoins)}` : '';
     const place = row.passed && row.place ? `<span class="br-place">#${row.place}</span> ` : '';
     oc.insertAdjacentHTML('beforeend',
       `<div class="blind-row${row.passed ? '' : ' failed'}">` +
@@ -2391,25 +2500,26 @@ function renderRoundEnd(oc, st) {
   const left = st.players.filter(p => p.active).length;
   if (st.solo) {
     oc.insertAdjacentHTML('beforeend',
-      '<div class="hint" style="margin-top:10px">The House is exempt — your run lasts as long as you beat the blinds.</div>');
+      '<div class="hint" style="margin-top:10px">The House is exempt â€” your run lasts as long as you beat the blinds.</div>');
   } else {
     oc.insertAdjacentHTML('beforeend',
       `<div class="hint" style="margin-top:10px">${left <= 1 ? 'We have a winner!' : left + ' players remain.'}</div>`);
   }
-  if (st.you.active) appendReadyBtn(oc, st, left <= 1 ? 'Final Standings' : 'Continue');
-  else oc.insertAdjacentHTML('beforeend', '<div class="hint">Spectating…</div>');
+  const regularDone = st.mode === 'blind' && st.you && (st.you.blindsPassed || 0) >= 9;
+  if (st.you.active) appendReadyBtn(oc, st, left <= 1 || regularDone ? 'Final Standings' : 'Continue');
+  else oc.insertAdjacentHTML('beforeend', '<div class="hint">Spectatingâ€¦</div>');
 }
 
 function renderShop(oc, st) {
   const you = st.you;
   if (!you.active) {
-    oc.innerHTML = '<h2>Shop</h2><div class="hint">The survivors are shopping… you\'re spectating.</div>';
+    oc.innerHTML = '<h2>Shop</h2><div class="hint">The survivors are shoppingâ€¦ you\'re spectating.</div>';
     return;
   }
   if (you.pendingPack) return renderPackOpen(oc, st);
 
   oc.innerHTML = `<h2>Shop</h2><div class="row spread"><span class="shop-coins">${chip(you.coins)}</span>` +
-    `<span style="opacity:.7;font-size:13px">Jokers ${you.jokers.length}/${you.jokerSlots || 5} · Tarots ${you.tarots.length}/2 · Deck ${you.deck.length}</span></div>`;
+    `<span style="opacity:.7;font-size:13px">Jokers ${you.jokers.length}/${you.jokerSlots || 5} Â· Tarots ${you.tarots.length}/2 Â· Deck ${you.deck.length}</span></div>`;
   const grid = document.createElement('div');
   grid.className = 'shop-grid shop-grid-market';
   (you.shopOffer || []).forEach((item, idx) => {
@@ -2430,13 +2540,13 @@ function renderShop(oc, st) {
     addInfoButton(div, item.name, shopItemHelp(item));
     div.onclick = () => {
       if (item.sold || you.ready) return;
-      openShopFocus(item, idx, you); // tap a card → it enlarges to centre
+      openShopFocus(item, idx, you); // tap a card â†’ it enlarges to centre
     };
     grid.appendChild(div);
   });
   oc.appendChild(grid);
 
-  // your collection — tap an owned card to inspect, sell, or use it
+  // your collection â€” tap an owned card to inspect, sell, or use it
   if ((you.jokers && you.jokers.length) || (you.tarots && you.tarots.length)) {
     const sell = document.createElement('div');
     sell.className = 'shop-sell';
@@ -2490,7 +2600,7 @@ function openShopFocus(item, idx, you) {
   else if (you.ready) buy.innerHTML = 'Locked in';
   else if (packBlock) buy.innerHTML = packBlock;
   else if (you.coins < item.cost) buy.innerHTML = `Need ${chip(item.cost)}`;
-  else buy.innerHTML = `Buy · ${chip(item.cost)}`;
+  else buy.innerHTML = `Buy Â· ${chip(item.cost)}`;
   buy.disabled = !canAfford;
   buy.onclick = e => { e.stopPropagation(); sendMsg({ t: 'buy', idx }); closeFocus(); };
   card.appendChild(buy);
@@ -2560,7 +2670,7 @@ function addOwnedActions(card, kind, def, idx, st) {
     const refund = Math.max(1, Math.floor((def.cost || 2) / 2));
     const sell = document.createElement('button');
     sell.className = 'btn focus-btn';
-    sell.innerHTML = `Sell · ${chip(refund)}`;
+    sell.innerHTML = `Sell Â· ${chip(refund)}`;
     sell.onclick = e => {
       e.stopPropagation();
       sendMsg({ t: kind === 'joker' ? 'sellJoker' : 'sellTarot', idx });
@@ -2691,7 +2801,7 @@ function renderPackOpen(oc, st) {
       (firstReveal ? ' pack-rise' : '');
     if (firstReveal) div.style.animationDelay = (900 + idx * 230) + 'ms';
     if (opt.kind === 'card') {
-      div.innerHTML = `<div class="si-bigcard"></div><div class="si-name">${RANK_NAMES[opt.rank]}${SUIT_CHARS[opt.suit]} — add to your deck</div>`;
+      div.innerHTML = `<div class="si-bigcard"></div><div class="si-name">${RANK_NAMES[opt.rank]}${SUIT_CHARS[opt.suit]} â€” add to your deck</div>`;
       div.querySelector('.si-bigcard').appendChild(cardEl(opt));
       div.insertAdjacentHTML('beforeend', '<div class="shop-type card">Card</div>');
     } else {
@@ -2734,7 +2844,7 @@ function appendReadyBtn(oc, st, label) {
   div.className = 'ready-box';
   if (st.you.ready) {
     const waiting = st.players.filter(p => p.active && !p.ready && p.connected).map(p => p.name);
-    div.innerHTML = `<span style="opacity:.7">Waiting for ${esc(waiting.join(', ') || '…')}</span>`;
+    div.innerHTML = `<span style="opacity:.7">Waiting for ${esc(waiting.join(', ') || 'â€¦')}</span>`;
   } else {
     const btn = document.createElement('button');
     btn.className = 'btn primary';
@@ -2938,14 +3048,14 @@ function runAnimations(prev, st, refs = {}) {
     }), delay);
   }
 
-  // booster pack just opened — burst it before the picks rise in
+  // booster pack just opened â€” burst it before the picks rise in
   if (st.phase === 'shop' && st.you && st.you.pendingPack &&
       !(prev.you && prev.you.pendingPack)) {
     sfx('pack');
     playPackOpen(st.you.pendingPack);
   }
 
-  // a tarot was consumed — sparkle the tarot row and shimmer the edited hand
+  // a tarot was consumed â€” sparkle the tarot row and shimmer the edited hand
   if (prev.you && st.you && st.you.tarots && prev.you.tarots &&
       st.you.tarots.length < prev.you.tarots.length && st.phase === 'discard') {
     sfx('tarot');
@@ -3201,7 +3311,7 @@ function playPackOpen(pack) {
   const done = () => packEl.remove();
   anim.onfinish = done;
   anim.oncancel = done;
-  const hue = pack.type === 'arcana' ? 275 : pack.type === 'buffoon' ? 45 : 200;
+  const hue = pack.type === 'arcana' ? 275 : pack.type === 'ultra' ? 315 : pack.type === 'buffoon' ? 45 : 200;
   setTimeout(() => burstSparkles(cx, cy, 26, hue), 470 * ANIM);
   setTimeout(() => burstSparkles(cx, cy, 16, hue), 650 * ANIM);
 }
@@ -3271,13 +3381,13 @@ function tutorialMessage(st) {
     return { key: `shop-${st.dealNumber}`, text: 'Shop - spend coins before the next deal. Tap a card once to enlarge it and read the effect, tap it again to buy; jokers stay passive, tarots are single-use, and packs let you choose one reward.' };
   }
   if (!st.you.active && st.phase !== 'gameover') {
-    return { key: 'spectate', text: "You've busted out — sit back and watch the rest of the table." };
+    return { key: 'spectate', text: "You've busted out â€” sit back and watch the rest of the table." };
   }
   switch (st.phase) {
     case 'discard':
       return st.you.canDiscard
-        ? { key: 'discard', text: `Discard phase — send ${st.discardCount} card${st.discardCount > 1 ? 's' : ''} to ${dealerName(st)} crib. Tap a card to pick it (or drag it onto the crib pile), then press the button. Holding a tarot? Play it first.` }
-        : { key: 'discardWait', text: 'Everyone secretly throws to the crib. Waiting for the other players…' };
+        ? { key: 'discard', text: `Discard phase â€” send ${st.discardCount} card${st.discardCount > 1 ? 's' : ''} to ${dealerName(st)} crib. Tap a card to pick it (or drag it onto the crib pile), then press the button. Holding a tarot? Play it first.` }
+        : { key: 'discardWait', text: 'Everyone secretly throws to the crib. Waiting for the other playersâ€¦' };
     case 'pegging':
       {
         const chance = scoringOpportunity(st);
@@ -3285,17 +3395,17 @@ function tutorialMessage(st) {
       }
       return st.turnSeat === st.mySeat
         ? { key: 'pegMine', text: 'Your turn to peg! Every pegging point (15s, 31s, pairs, runs, go) adds to your red MULT for this deal. Keep the count at 31 or under. Tap a card to lift it, tap again or drag it to the pile.' }
-        : { key: 'pegWait', text: 'Pegging — players take turns laying cards. Pegging points build your red MULT, applied to your hand at the show.' };
+        : { key: 'pegWait', text: 'Pegging â€” players take turns laying cards. Pegging points build your red MULT, applied to your hand at the show.' };
     case 'scoring':
-      return { key: 'scoring', text: 'The show — your hand Points × your pegging Mult = the deal total. Hands count left of the dealer first, dealer next, crib last (crib uses the dealer\'s Mult).' };
+      return { key: 'scoring', text: 'The show â€” your hand Points Ã— your pegging Mult = the deal total. Hands count left of the dealer first, dealer next, crib last (crib uses the dealer\'s Mult).' };
     case 'roundEnd':
       return { key: 'round', text: st.solo
-        ? 'Blind check — beat the blind score or your run ends. The House can never knock you out.'
-        : "Blind check — beat this round's blind score or you're eliminated to the rail." };
+        ? 'Blind check â€” beat the blind score or your run ends. The House can never knock you out.'
+        : "Blind check â€” beat this round's blind score or you're eliminated to the rail." };
     case 'shop':
-      return { key: 'shop', text: 'Shop — jokers boost your hand Points or pegging Mult. Tap a card to flip it and read what it does, tap again to buy. The “i” button explains each type. Reroll for fresh stock.' };
+      return { key: 'shop', text: 'Shop â€” jokers boost your hand Points or pegging Mult. Tap a card to flip it and read what it does, tap again to buy. The â€œiâ€ button explains each type. Reroll for fresh stock.' };
     case 'gameover':
-      return { key: 'over', text: 'The run is over — start another from the lobby!' };
+      return { key: 'over', text: 'The run is over â€” start another from the lobby!' };
   }
   return null;
 }
