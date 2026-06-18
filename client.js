@@ -1699,7 +1699,7 @@ function attachJokerPointer(tile, idx, st) {
     jokers.splice(Math.min(toIdx, jokers.length), 0, moved);
     st.you.jokers = jokers;
     renderJokerSlots(st);
-    sendMsg({ t: 'reorderJokers', order: jokers.map(j => j.id) });
+    sendMsg({ t: 'reorderJokers', order: jokers.map(j => ({ id: j.id, stamp: j.stamp || '' })) });
     deferredRender = false; // the reorder ack will re-render us
   };
   tile.onpointerup = finish;
@@ -3095,7 +3095,7 @@ function showBoardPointGain(st, seat, gained) {
   let fromY = pc.top + pc.height / 2;
   if (!pc.width || !pc.height) {
     const seatEl = seat === st.mySeat
-      ? $('myScore')
+      ? $('blindProgress')
       : document.querySelector(`.seat[data-seat="${seat}"] .plaque`);
     if (seatEl) {
       const sr = seatEl.getBoundingClientRect();
@@ -3104,7 +3104,7 @@ function showBoardPointGain(st, seat, gained) {
     }
   }
   floatRise(fromX, fromY - 20, `+${gained}`, 'fx-points-blue');
-  const target = $('blindProgress');
+  const target = boardScoreTarget(st, seat);
   const tr = target.getBoundingClientRect();
   const toX = tr.left + tr.width / 2;
   const toY = tr.top + tr.height / 2;
@@ -3113,6 +3113,13 @@ function showBoardPointGain(st, seat, gained) {
     if (seat === st.mySeat) pulse($('myScore'));
   }, 'blue');
   floatRise(toX, tr.top - 10, `+${gained}`, 'fx-points-blue');
+}
+
+function boardScoreTarget(st, seat) {
+  if (seat === st.mySeat) return $('blindProgress');
+  return document.querySelector(`.seat[data-seat="${seat}"] .seat-blind`) ||
+    document.querySelector(`.seat[data-seat="${seat}"] .plaque`) ||
+    $('blindProgress');
 }
 
 function flingOrbs(fromX, fromY, toX, toY, count, onArrive, variant = '') {

@@ -668,7 +668,8 @@ body.mode-board #myStuff,
 body.mode-board #tarotPanel,
 body.mode-board #utilityPanel { display: none; }
 body.mode-board #myMult { display: none; }
-body.mode-board #scoreHud { grid-template-columns: 1fr; flex-basis: 150px; }
+body.mode-board #scoreHud { display: none; }
+body.mode-board #hudRow { min-height: 0; margin-top: 0; }
 
 /* ---- bottom bar ---- */
 #bottombar {
