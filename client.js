@@ -63,9 +63,9 @@ const DECK_ARTS = [
   { id: 'emerald', name: 'Emerald Felt', cost: 0, desc: 'A deep green table-felt recolor.' },
   { id: 'sapphire', name: 'Sapphire Run', cost: 0, desc: 'Cool blue stripes with a bright center line.' },
   { id: 'ruby', name: 'Ruby Cut', cost: 0, desc: 'A red-and-gold recolor for high-pressure runs.' },
-  { id: 'aurora', name: 'Aurora Flow', cost: 1, animated: true, desc: 'A shared animated aurora background clipped through every card back.' },
-  { id: 'neon', name: 'Neon Circuit', cost: 1, animated: true, desc: 'A shared electric-line background clipped through every card back.' },
-  { id: 'cosmic', name: 'Cosmic Drift', cost: 1, animated: true, desc: 'A shared starfield with dots drifting through every card back.' },
+  { id: 'aurora', name: 'Aurora Flow', cost: 0, animated: true, desc: 'A shared animated aurora background clipped through every card back.' },
+  { id: 'neon', name: 'Neon Circuit', cost: 0, animated: true, desc: 'A shared electric-line background clipped through every card back.' },
+  { id: 'cosmic', name: 'Cosmic Drift', cost: 0, animated: true, desc: 'A shared starfield with dots drifting through every card back.' },
 ];
 const FREE_DECK_IDS = DECK_ARTS.filter(a => a.cost === 0).map(a => a.id);
 let boardView = null;
