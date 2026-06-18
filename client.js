@@ -4,7 +4,7 @@ import { pegEvents, scoreBreakdown } from './lib/scoring.js';
 import { JOKERS, TAROTS, aggregateMods, buildScore, stampText } from './lib/jokers.js';
 
 const $ = id => document.getElementById(id);
-const SUIT_CHARS = ['â™¥', 'â™¦', 'â™£', 'â™ ']; // H D C S
+const SUIT_CHARS = ['♥', '♦', '♣', '♠']; // H D C S
 const RANK_NAMES = [null, 'A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
 const PEER_PREFIX = 'orbcrib-v1-';
 const P2P_LOBBY_TOPIC = 'orbcrib-lobbies-v1';
