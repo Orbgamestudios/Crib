@@ -391,7 +391,7 @@ body.phase-pegging #tutorialBar {
 }
 #turnInfo { color: var(--gold); font-weight: 600; }
 body.mode-board #phaseInfo::after {
-  content: ' · Board';
+  content: ' - Board';
   color: var(--gold);
 }
 
@@ -456,46 +456,24 @@ body.mode-board .seat-blind-fill {
   overflow: hidden;
   background:
     radial-gradient(circle at 50% 50%, #ffffff1c 0 16%, transparent 17%),
-    linear-gradient(135deg, transparent 0 40%, #ffffff22 41% 47%, transparent 48%),
     repeating-linear-gradient(45deg, #4a2471, #4a2471 5px, #6d3aa0 5px, #6d3aa0 10px);
   border: 2px solid #d9cce8;
 }
-.card.back::before {
-  content: "♠";
-  position: absolute;
-  inset: 0;
-  display: grid;
-  place-items: center;
-  color: #ffffff55;
-  font-family: Georgia, serif;
-  font-size: 26px;
-  text-shadow: 0 1px 4px #0008;
-}
-.card.back.small::before { font-size: 18px; }
-.card.back.deck-emerald::before { content: "♣"; }
-.card.back.deck-sapphire::before { content: "♦"; }
-.card.back.deck-ruby::before { content: "♥"; }
-.card.back.deck-aurora::before { content: "✦"; }
-.card.back.deck-neon::before { content: "◆"; }
-.card.back.deck-cosmic::before { content: "✧"; }
 .card.back.deck-emerald {
   background:
     radial-gradient(circle at 50% 50%, #ffffff18 0 16%, transparent 17%),
-    linear-gradient(135deg, transparent 0 40%, #ffffff22 41% 47%, transparent 48%),
     repeating-linear-gradient(45deg, #0f4d32, #0f4d32 5px, #23965f 5px, #23965f 10px);
   border-color: #c9f4d8;
 }
 .card.back.deck-sapphire {
   background:
     radial-gradient(circle at 50% 50%, #ffffff1a 0 16%, transparent 17%),
-    linear-gradient(135deg, transparent 0 40%, #ffffff24 41% 47%, transparent 48%),
     repeating-linear-gradient(45deg, #123b6d, #123b6d 5px, #2f88d8 5px, #2f88d8 10px);
   border-color: #c9e9ff;
 }
 .card.back.deck-ruby {
   background:
     radial-gradient(circle at 50% 50%, #ffe2a033 0 16%, transparent 17%),
-    linear-gradient(135deg, transparent 0 40%, #ffe2a033 41% 47%, transparent 48%),
     repeating-linear-gradient(45deg, #751825, #751825 5px, #d84b3c 5px, #d84b3c 10px);
   border-color: #ffe2a0;
 }
@@ -505,6 +483,7 @@ body.mode-board .seat-blind-fill {
     linear-gradient(120deg, transparent 10%, #8fe7ff99 30%, #e48cffaa 45%, #7ee08bbb 60%, transparent 82%),
     linear-gradient(160deg, #102c45, #20143d 54%, #092d25);
   background-size: 100% 100%, 220% 220%, 100% 100%;
+  background-attachment: scroll, fixed, fixed;
   border-color: #d5f7ff;
   animation: deckFlow 2.8s linear infinite;
 }
@@ -514,19 +493,21 @@ body.mode-board .seat-blind-fill {
     linear-gradient(90deg, transparent 0 18%, #63f7ff 19% 21%, transparent 22% 44%, #ff6bd6 45% 47%, transparent 48% 72%, #ffd76e 73% 75%, transparent 76%),
     radial-gradient(circle at 50% 50%, #33415a, #0c1220 70%);
   background-size: 100% 100%, 170% 100%, 100% 100%;
+  background-attachment: scroll, fixed, fixed;
   border-color: #8fe7ff;
   animation: deckCircuit 1.9s linear infinite;
 }
 .card.back.deck-cosmic {
   background:
     radial-gradient(circle at 50% 50%, #ffffff1a 0 15%, transparent 16%),
-    radial-gradient(circle at 20% 25%, #fff 0 1px, transparent 2px),
-    radial-gradient(circle at 75% 35%, #ffd76e 0 1px, transparent 2px),
-    radial-gradient(circle at 45% 75%, #8fe7ff 0 1px, transparent 2px),
-    repeating-linear-gradient(45deg, #24144c, #24144c 5px, #3d1d70 5px, #3d1d70 10px);
-  background-size: 100% 100%, 40px 40px, 34px 34px, 30px 30px, 100% 100%;
+    radial-gradient(circle at 18% 25%, #fff 0 1px, transparent 2px),
+    radial-gradient(circle at 68% 42%, #ffd76e 0 1.2px, transparent 2.4px),
+    radial-gradient(circle at 45% 78%, #8fe7ff 0 1px, transparent 2px),
+    linear-gradient(160deg, #151433, #24144c 48%, #0d2340);
+  background-size: 100% 100%, 52px 52px, 68px 68px, 44px 44px, 100% 100%;
+  background-attachment: scroll, fixed, fixed, fixed, fixed;
   border-color: #dfc8ff;
-  animation: deckStars 2.4s ease-in-out infinite;
+  animation: deckStars 4s linear infinite;
 }
 @keyframes deckFlow {
   from { background-position: 0 0, 0% 50%, 0 0; }
@@ -537,8 +518,8 @@ body.mode-board .seat-blind-fill {
   to { background-position: 0 0, 170% 0, 0 0; }
 }
 @keyframes deckStars {
-  0%, 100% { background-position: 0 0, 0 0, 0 0, 0 0, 0 0; }
-  50% { background-position: 0 0, 8px 10px, -6px 8px, 5px -9px, 0 0; }
+  from { background-position: 0 0, 0 0, 0 0, 0 0, 0 0; }
+  to { background-position: 0 0, 52px 72px, -68px 54px, 44px -62px, 0 0; }
 }
 .card.small { width: 32px; height: 44px; font-size: 11px; padding: 2px 3px; }
 .card.small .suit { font-size: 12px; }

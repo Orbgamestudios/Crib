@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
-<title>Crib — Roguelike Cribbage</title>
+<title>Crib - Roguelike Cribbage</title>
 <meta name="theme-color" content="#14422a">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/icon-192.png">
@@ -12,7 +12,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Crib">
-<link rel="stylesheet" href="style.css?v=66">
+<link rel="stylesheet" href="style.css?v=67">
 <script src="https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js" defer></script>
 <script src="https://unpkg.com/mqtt/dist/mqtt.min.js" defer></script>
 </head>
@@ -22,7 +22,7 @@
 
 <div id="lobby" class="view">
   <h1>♠ CRIB ♥</h1>
-  <p class="tagline">Roguelike cribbage — beat the blind or bust out</p>
+  <p class="tagline">Roguelike cribbage - beat the blind or bust out</p>
   <div class="row lobby-actions">
     <button id="howToBtn" class="btn small"><span class="ui-icon icon-info" aria-hidden="true"></span>How to Play</button>
     <button id="profileBtn" class="btn small">Profile</button>
@@ -47,7 +47,7 @@
     </div>
     <div id="p2pPanel" class="hidden">
       <button id="hostBtn" class="btn primary wide">Host a Table</button>
-      <div class="or">— or —</div>
+      <div class="or">- or -</div>
       <div class="row">
         <input id="codeInput" maxlength="5" placeholder="Table code" autocapitalize="characters" autocomplete="off" style="width:100px;">
         <button id="joinCodeBtn" class="btn primary">Join</button>
@@ -65,7 +65,7 @@
     </div>
     <div id="roomList"></div>
   </div>
-  <button id="updateBtn" class="btn small ghost">⟳ Update app</button>
+  <button id="updateBtn" class="btn small ghost">Update app</button>
 </div>
 
 <div id="waiting" class="view hidden">
@@ -93,12 +93,12 @@
     </label>
     <button id="exitSoloBtn" class="btn small hidden" title="Save and return to lobby">Exit</button>
     <button id="dictBtn" class="btn small" title="Card dictionary">Cards</button>
-    <button id="syncBtn" class="btn small" title="Force refresh game state">⟳</button>
+    <button id="syncBtn" class="btn small" title="Force refresh game state">Refresh</button>
   </div>
   <div id="table">
     <div id="tutorialBar" class="hidden">
       <span id="tutorialText"></span>
-      <button id="tutClose" title="Dismiss">×</button>
+      <button id="tutClose" title="Dismiss">&times;</button>
     </div>
     <div id="seats"></div>
     <div id="center">
@@ -183,7 +183,7 @@
   <div id="infoPanel" class="panel">
     <div class="row spread">
       <h2 id="infoTitle"></h2>
-      <button id="infoClose" class="btn small">×</button>
+      <button id="infoClose" class="btn small">&times;</button>
     </div>
     <div id="infoBody"></div>
   </div>
@@ -192,6 +192,6 @@
 <div id="fx"></div>
 <div id="toast" class="hidden"></div>
 
-<script type="module" src="client.js?v=76"></script>
+<script type="module" src="client.js?v=77"></script>
 </body>
 </html>
