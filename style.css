@@ -480,14 +480,17 @@ body.mode-board .seat-blind-fill {
 .card.back.deck-aurora {
   background:
     radial-gradient(circle at 50% 50%, #ffffff20 0 15%, transparent 16%),
-    repeating-linear-gradient(120deg, #8fe7ff00 0 54px, #8fe7ff88 82px, #e48cffaa 112px, #7ee08bbb 145px, #8fe7ff00 190px, #8fe7ff00 280px),
-    repeating-linear-gradient(60deg, #ffffff00 0 90px, #ffffff22 116px, #ffffff00 150px, #ffffff00 300px),
+    radial-gradient(ellipse at 42% 45%, #8fe7ff99 0 15%, #e48cff88 28%, transparent 52%),
+    radial-gradient(ellipse at 58% 52%, #7ee08bbb 0 14%, #8fe7ff66 34%, transparent 56%),
+    linear-gradient(115deg, transparent 0 28%, #ffffff24 42%, transparent 58%),
     linear-gradient(160deg, #102c45, #20143d 54%, #092d25);
-  background-size: 100% 100%, 420px 320px, 360px 260px, 100% 100%;
+  background-size: 100% 100%, 1400px 900px, 1200px 820px, 1300px 900px, 100% 100%;
+  background-repeat: no-repeat, no-repeat, no-repeat, no-repeat, no-repeat;
   background-position:
     0 0,
-    calc(var(--deck-bg-x, 0px) - var(--deck-card-left, 0px)) calc(var(--deck-bg-y, 0px) - var(--deck-card-top, 0px)),
-    calc(var(--deck-bg-x2, 0px) - var(--deck-card-left, 0px)) calc(var(--deck-bg-y2, 0px) - var(--deck-card-top, 0px)),
+    calc(50vw - 700px - var(--deck-card-left, 0px) + var(--aurora-x, 0px)) calc(50vh - 450px - var(--deck-card-top, 0px) + var(--aurora-y, 0px)),
+    calc(50vw - 600px - var(--deck-card-left, 0px) + var(--aurora-x2, 0px)) calc(50vh - 410px - var(--deck-card-top, 0px) + var(--aurora-y2, 0px)),
+    calc(50vw - 650px - var(--deck-card-left, 0px) - var(--aurora-x2, 0px)) calc(50vh - 450px - var(--deck-card-top, 0px) - var(--aurora-y, 0px)),
     0 0;
   border-color: #d5f7ff;
 }

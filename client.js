@@ -824,6 +824,10 @@ function animateDeckBackground(now = 0) {
   root.style.setProperty('--deck-bg-y2', `${now / 50}px`);
   root.style.setProperty('--deck-bg-x3', `${now / 22}px`);
   root.style.setProperty('--deck-bg-y3', `${-(now / 38)}px`);
+  root.style.setProperty('--aurora-x', `${Math.sin(now / 2600) * 180}px`);
+  root.style.setProperty('--aurora-y', `${Math.cos(now / 3100) * 110}px`);
+  root.style.setProperty('--aurora-x2', `${Math.cos(now / 3300) * 150}px`);
+  root.style.setProperty('--aurora-y2', `${Math.sin(now / 2900) * 95}px`);
   document.querySelectorAll('.card.back.deck-aurora, .card.back.deck-neon, .card.back.deck-cosmic').forEach((card) => {
     const rect = card.getBoundingClientRect();
     card.style.setProperty('--deck-card-left', `${rect.left}px`);
