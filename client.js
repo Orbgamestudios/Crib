@@ -818,12 +818,12 @@ function activeDeckArt() {
 
 function animateDeckBackground(now = 0) {
   const root = document.documentElement;
-  root.style.setProperty('--deck-bg-x', `${(now / 28) % 720}px`);
-  root.style.setProperty('--deck-bg-y', `${(now / 42) % 720}px`);
-  root.style.setProperty('--deck-bg-x2', `${-(now / 34) % 720}px`);
-  root.style.setProperty('--deck-bg-y2', `${(now / 50) % 720}px`);
-  root.style.setProperty('--deck-bg-x3', `${(now / 22) % 720}px`);
-  root.style.setProperty('--deck-bg-y3', `${-(now / 38) % 720}px`);
+  root.style.setProperty('--deck-bg-x', `${now / 28}px`);
+  root.style.setProperty('--deck-bg-y', `${now / 42}px`);
+  root.style.setProperty('--deck-bg-x2', `${-(now / 34)}px`);
+  root.style.setProperty('--deck-bg-y2', `${now / 50}px`);
+  root.style.setProperty('--deck-bg-x3', `${now / 22}px`);
+  root.style.setProperty('--deck-bg-y3', `${-(now / 38)}px`);
   document.querySelectorAll('.card.back.deck-aurora, .card.back.deck-neon, .card.back.deck-cosmic').forEach((card) => {
     const rect = card.getBoundingClientRect();
     card.style.setProperty('--deck-card-left', `${rect.left}px`);
