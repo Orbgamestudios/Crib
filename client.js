@@ -1,4 +1,4 @@
-import { JOKER_ICONS, TAROT_ICONS, PACK_ICONS } from './icons.js?v=12';
+import { JOKER_ICONS, TAROT_ICONS, PACK_ICONS } from './icons.js?v=13';
 import { cardValue } from './lib/cards.js';
 import { pegEvents, scoreBreakdown } from './lib/scoring.js';
 import { JOKERS, TAROTS, aggregateMods, buildScore, stampText } from './lib/jokers.js';
@@ -699,7 +699,7 @@ function showHowToPlay() {
       far more reliably than a random 52.</li>
       <li><b>Mind the crib.</b> It uses the dealer's Mult, so the dealer wants high-scoring
       cards in it - and non-dealers should avoid handing the dealer easy points.
-      Crib jokers (Golden/Steel Crib, Copier, Acemaker) only pay you on your deal.</li>
+      Crib jokers (Golden/Steel Crib, Copier, 5-Maker) only pay you on your deal.</li>
       <li><b>Race for the blind.</b> Clearing it first earns the most bonus
       coins - and once everyone clears, the round ends early.</li>
     </ul>

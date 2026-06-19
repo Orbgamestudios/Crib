@@ -307,10 +307,14 @@ export const JOKER_ICONS = {
     txt(20, 35, 'PACK', 6, '#9fd0ee')
   ),
   acemaker: svg(
-    `<path d="M10 25h28l-3 13a3 3 0 01-3 2H16a3 3 0 01-3-2z" fill="${G}" stroke="${D}" stroke-width="1.5"/>` +
-    `<path d="M10 25c0-6 6-10 14-10s14 4 14 10" fill="none" stroke="${G}" stroke-width="2.4"/>` +
-    card(16, 3, 0) + txt(24, 18, 'A', 13, R) +
-    `<path d="M33 9l1.2 3 3 1.2-3 1.2-1.2 3-1.2-3-3-1.2 3-1.2z" fill="${C}"/>`
+    `<path d="M8 26h32l-4 13a3 3 0 01-3 2H15a3 3 0 01-3-2z" fill="${G}" stroke="${D}" stroke-width="1.5"/>` +
+    `<path d="M8 26c1-7 8-11 16-11s15 4 16 11" fill="none" stroke="${G}" stroke-width="2.4"/>` +
+    `<g transform="rotate(-8 19 15)"><rect x="13" y="4" width="13" height="18" rx="2" fill="${C}" stroke="${D}" stroke-width="1.1"/></g>` +
+    `<g transform="rotate(9 30 16)"><rect x="24" y="5" width="13" height="18" rx="2" fill="${C}" stroke="${D}" stroke-width="1.1"/></g>` +
+    txt(19, 18, '5', 10, R, 'transform="rotate(-8 19 15)"') +
+    txt(30, 19, '5', 10, R, 'transform="rotate(9 30 16)"') +
+    `<path d="M24 24l2 4 4 1-4 1-2 4-2-4-4-1 4-1z" fill="${C}"/>` +
+    txt(24, 38, '5', 8, D)
   ),
 };
 
@@ -406,6 +410,14 @@ export const PACK_ICONS = {
     `<path d="M10 16q14 6 28 0" fill="none" stroke="${G}" stroke-width="1.6"/>` +
     `<path d="M24 22l2 5 5-2-2 5 5 2-5 2 2 5-5-2-2 5-2-5-5 2 2-5-5-2 5-2-2-5 5 2z" fill="${G}"/>` +
     txt(24, 43, 'JOKER', 6, G)
+  ),
+  ultra: svg(
+    `<defs><linearGradient id="ultraPack" x1="0" x2="1" y1="0" y2="1"><stop offset="0" stop-color="#fff2a8"/><stop offset=".28" stop-color="#7df5ff"/><stop offset=".62" stop-color="#b46cff"/><stop offset="1" stop-color="#ff5fd2"/></linearGradient></defs>` +
+    `<rect x="9" y="5" width="30" height="40" rx="5" fill="#10131d" stroke="url(#ultraPack)" stroke-width="2.4"/>` +
+    `<path d="M9 15q15 7 30 0" fill="none" stroke="#fff2a8" stroke-width="1.5" opacity=".85"/>` +
+    `<path d="M24 10l3.5 8 8.5 1-6.2 5.6 1.7 8.4L24 28.7 16.5 33l1.7-8.4L12 19l8.5-1z" fill="url(#ultraPack)" stroke="${C}" stroke-width=".8"/>` +
+    `<circle cx="15" cy="34" r="1.5" fill="#7df5ff"/><circle cx="33" cy="34" r="1.5" fill="#ff5fd2"/><circle cx="24" cy="36" r="1.7" fill="#fff2a8"/>` +
+    txt(24, 43, 'ULTRA', 6, '#fff2a8')
   ),
   arcana: svg(
     `<rect x="10" y="6" width="28" height="38" rx="4" fill="#2c1b42" stroke="${P}" stroke-width="2.2"/>` +
