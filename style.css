@@ -483,8 +483,10 @@ body.mode-board .seat-blind-fill {
     linear-gradient(120deg, transparent 10%, #8fe7ff99 30%, #e48cffaa 45%, #7ee08bbb 60%, transparent 82%),
     linear-gradient(160deg, #102c45, #20143d 54%, #092d25);
   background-size: 100% 100%, 620px 280px, 100% 100%;
-  background-position: 0 0, var(--deck-bg-x, 0px) 50%, 0 0;
-  background-attachment: scroll, fixed, fixed;
+  background-position:
+    0 0,
+    calc(var(--deck-bg-x, 0px) - var(--deck-card-left, 0px)) calc(var(--deck-bg-y, 0px) - var(--deck-card-top, 0px)),
+    0 0;
   border-color: #d5f7ff;
 }
 .card.back.deck-neon {
@@ -493,8 +495,10 @@ body.mode-board .seat-blind-fill {
     linear-gradient(90deg, transparent 0 18%, #63f7ff 19% 21%, transparent 22% 44%, #ff6bd6 45% 47%, transparent 48% 72%, #ffd76e 73% 75%, transparent 76%),
     radial-gradient(circle at 50% 50%, #33415a, #0c1220 70%);
   background-size: 100% 100%, 520px 100%, 100% 100%;
-  background-position: 0 0, var(--deck-bg-x, 0px) 0, 0 0;
-  background-attachment: scroll, fixed, fixed;
+  background-position:
+    0 0,
+    calc(var(--deck-bg-x, 0px) - var(--deck-card-left, 0px)) calc(var(--deck-bg-y, 0px) - var(--deck-card-top, 0px)),
+    0 0;
   border-color: #8fe7ff;
 }
 .card.back.deck-cosmic {
@@ -507,11 +511,10 @@ body.mode-board .seat-blind-fill {
   background-size: 100% 100%, 120px 120px, 170px 170px, 92px 92px, 100% 100%;
   background-position:
     0 0,
-    var(--deck-bg-x, 0px) var(--deck-bg-y, 0px),
-    var(--deck-bg-x2, 0px) var(--deck-bg-y2, 0px),
-    var(--deck-bg-x3, 0px) var(--deck-bg-y3, 0px),
+    calc(var(--deck-bg-x, 0px) - var(--deck-card-left, 0px)) calc(var(--deck-bg-y, 0px) - var(--deck-card-top, 0px)),
+    calc(var(--deck-bg-x2, 0px) - var(--deck-card-left, 0px)) calc(var(--deck-bg-y2, 0px) - var(--deck-card-top, 0px)),
+    calc(var(--deck-bg-x3, 0px) - var(--deck-card-left, 0px)) calc(var(--deck-bg-y3, 0px) - var(--deck-card-top, 0px)),
     0 0;
-  background-attachment: scroll, fixed, fixed, fixed, fixed;
   border-color: #dfc8ff;
 }
 .card.small { width: 32px; height: 44px; font-size: 11px; padding: 2px 3px; }
