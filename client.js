@@ -816,6 +816,18 @@ function activeDeckArt() {
   return (p && p.deckArt) || selectedDeckArt || 'classic';
 }
 
+function animateDeckBackground(now = 0) {
+  const root = document.documentElement;
+  root.style.setProperty('--deck-bg-x', `${(now / 28) % 720}px`);
+  root.style.setProperty('--deck-bg-y', `${(now / 42) % 720}px`);
+  root.style.setProperty('--deck-bg-x2', `${-(now / 34) % 720}px`);
+  root.style.setProperty('--deck-bg-y2', `${(now / 50) % 720}px`);
+  root.style.setProperty('--deck-bg-x3', `${(now / 22) % 720}px`);
+  root.style.setProperty('--deck-bg-y3', `${-(now / 38) % 720}px`);
+  requestAnimationFrame(animateDeckBackground);
+}
+requestAnimationFrame(animateDeckBackground);
+
 function saveSelectedDeckArt(id) {
   selectedDeckArt = id;
   localStorage.setItem('crib_deck_art', id);
