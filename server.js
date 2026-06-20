@@ -96,7 +96,7 @@ function startGame(room, opts = {}) {
     room.goalScore = room.mode === 'board' ? 121 : null;
   }
   room.game = new Game(
-    room.players.map(p => ({ id: p.id, name: p.name, connected: p.connected })),
+    room.players.map(p => ({ id: p.id, name: p.name, connected: p.connected, deckArt: p.deckArt })),
     {
       onUpdate: () => broadcastRoom(room),
       log: text => roomLog(room, text),
@@ -149,7 +149,7 @@ function handleMessage(ws, msg) {
       const name = String(msg.playerName || '').trim().slice(0, 16);
       if (!name) return send(ws, { t: 'error', text: 'Enter a name first.' });
       const newRoom = makeRoom(msg.roomName, msg);
-      joinPlayer(newRoom, ws, name);
+      joinPlayer(newRoom, ws, name, msg.deckArt);
       break;
     }
 
@@ -158,10 +158,10 @@ function handleMessage(ws, msg) {
       const name = String(msg.playerName || '').trim().slice(0, 16);
       if (!name) return send(ws, { t: 'error', text: 'Enter a name first.' });
       const soloRoom = makeRoom(`${name} vs The House`, msg);
-      joinPlayer(soloRoom, ws, name);
+      joinPlayer(soloRoom, ws, name, msg.deckArt);
       soloRoom.game = new Game(
         [
-          ...soloRoom.players.map(p => ({ id: p.id, name: p.name, connected: true })),
+          ...soloRoom.players.map(p => ({ id: p.id, name: p.name, connected: true, deckArt: p.deckArt })),
           { id: 'house-' + soloRoom.id, name: 'The House', isBot: true },
         ],
         { onUpdate: () => broadcastRoom(soloRoom), log: t => roomLog(soloRoom, t) },
@@ -207,7 +207,7 @@ function handleMessage(ws, msg) {
         target.game = null;
         target.players = target.players.filter(p => p.connected);
       }
-      joinPlayer(target, ws, name);
+      joinPlayer(target, ws, name, msg.deckArt);
       break;
     }
 
@@ -269,8 +269,8 @@ function fail(ws, err) {
   if (typeof err === 'string') send(ws, { t: 'error', text: err });
 }
 
-function joinPlayer(room, ws, name) {
-  const player = { id: 'p' + (nextPlayerId++), name, ws, connected: true };
+function joinPlayer(room, ws, name, deckArt = 'classic') {
+  const player = { id: 'p' + (nextPlayerId++), name, ws, connected: true, deckArt };
   room.players.push(player);
   ws.meta.roomId = room.id;
   ws.meta.playerId = player.id;

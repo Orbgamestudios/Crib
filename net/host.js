@@ -36,7 +36,7 @@ export class HostSession {
     this.roomName = this.solo ? `${hostName} vs The House` : `${hostName}'s table`;
     this.onLocal = onLocal;       // deliver a protocol message to the host's own client
     this.onStatus = onStatus || (() => {});
-    this.players = [{ id: 'p1', name: hostName, conn: null, connected: true }];
+    this.players = [{ id: 'p1', name: hostName, conn: null, connected: true, deckArt: opts.deckArt || 'classic' }];
     this.nextId = 2;
     this.game = null;
     this.logs = [];
@@ -53,7 +53,7 @@ export class HostSession {
         this.onLocal({ t: 'joined', roomId: 'SOLO', logs: this.logs });
         if (opts.restoreState) this.restoreSolo(opts.restoreState);
         else {
-          this.players.push({ id: 'p2', name: 'The House', conn: 'bot', connected: true, isBot: true });
+          this.players.push({ id: 'p2', name: 'The House', conn: 'bot', connected: true, isBot: true, deckArt: 'classic' });
           this.startGame();
         }
       }, 0);
@@ -185,7 +185,7 @@ export class HostSession {
     if (!snap || !Array.isArray(snap.players)) return this.startGame();
     this.logs = Array.isArray(payload.logs) ? payload.logs.slice(-60) : [];
     this.players = snap.players.map(p => ({
-      id: p.id, name: p.name, conn: p.isBot ? 'bot' : null,
+      id: p.id, name: p.name, conn: p.isBot ? 'bot' : null, deckArt: p.deckArt || 'classic',
       connected: true, isBot: !!p.isBot,
     }));
     this.game = Game.fromSnapshot(snap, { onUpdate: () => this.broadcastRoom(), log: text => this.log(text) });
@@ -259,7 +259,7 @@ export class HostSession {
     if (this.players.some(p => p.name === name)) {
       return this.sendTo(conn, { t: 'error', text: 'That name is taken in this room.' });
     }
-    this.players.push({ id: 'p' + (this.nextId++), name, conn, connected: true });
+    this.players.push({ id: 'p' + (this.nextId++), name, conn, connected: true, deckArt: msg.deckArt || 'classic' });
     this.sendTo(conn, { t: 'joined', roomId: this.code, logs: this.logs });
     this.broadcastRoom();
   }
@@ -274,7 +274,7 @@ export class HostSession {
     }
     this.players = connected;
     this.game = new Game(
-      this.players.map(p => ({ id: p.id, name: p.name, connected: p.connected, isBot: p.isBot })),
+      this.players.map(p => ({ id: p.id, name: p.name, connected: p.connected, isBot: p.isBot, deckArt: p.deckArt })),
       { onUpdate: () => this.broadcastRoom(), log: text => this.log(text) },
       { mode: this.gameMode, goalScore: this.goalScore }
     );

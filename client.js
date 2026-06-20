@@ -59,13 +59,13 @@ function normalizeMode(mode) {
 let selectedGameMode = normalizeMode(localStorage.getItem('crib_game_mode'));
 let selectedDeckArt = localStorage.getItem('crib_deck_art') || 'classic';
 const DECK_ARTS = [
-  { id: 'classic', name: 'Classic Violet', cost: 0, desc: 'The original purple crib back.' },
-  { id: 'emerald', name: 'Emerald Felt', cost: 0, desc: 'A deep green table-felt recolor.' },
-  { id: 'sapphire', name: 'Sapphire Run', cost: 0, desc: 'Cool blue stripes with a bright center line.' },
-  { id: 'ruby', name: 'Ruby Cut', cost: 0, desc: 'A red-and-gold recolor for high-pressure runs.' },
-  { id: 'aurora', name: 'Aurora Flow', cost: 0, animated: true, desc: 'A shared animated aurora background clipped through every card back.' },
-  { id: 'neon', name: 'Neon Circuit', cost: 0, animated: true, desc: 'A shared electric-line background clipped through every card back.' },
-  { id: 'cosmic', name: 'Cosmic Drift', cost: 0, animated: true, desc: 'A shared starfield with dots drifting through every card back.' },
+  { id: 'classic', name: 'Classic Violet', cost: 0, desc: 'Purple deck: one random shop pack becomes an Arcana tarot pack.' },
+  { id: 'emerald', name: 'Emerald Felt', cost: 0, desc: 'Green deck: after each deal, gain +1 coin per 10 coins you hold, up to +3.' },
+  { id: 'sapphire', name: 'Sapphire Run', cost: 0, desc: 'Blue deck: start each run with +1 joker slot.' },
+  { id: 'ruby', name: 'Ruby Cut', cost: 0, desc: 'Red deck: spades become hearts and clubs become diamonds permanently.' },
+  { id: 'aurora', name: 'Aurora Flow', cost: 0, animated: true, desc: 'Aurora deck: draw one extra card and discard one extra card to the crib.' },
+  { id: 'neon', name: 'Neon Circuit', cost: 0, animated: true, desc: 'Neon deck: score the average of Hand and Mult, but lose 1 joker and 1 tarot slot.' },
+  { id: 'cosmic', name: 'Cosmic Drift', cost: 0, animated: true, desc: 'Cosmic deck: see hands and crib, and each deal replaces 15s with a mystery target.' },
 ];
 const FREE_DECK_IDS = DECK_ARTS.filter(a => a.cost === 0).map(a => a.id);
 let boardView = null;
@@ -317,6 +317,7 @@ function gameOptions() {
   return {
     mode: selectedGameMode,
     goalScore: selectedGameMode === 'board' ? 121 : null,
+    deckArt: activeDeckArt(),
   };
 }
 
@@ -362,7 +363,7 @@ function joinByCode(code) {
     }, 12000);
     guestConn.on('open', () => {
       clearTimeout(failTimer);
-      guestConn.send({ t: 'joinRoom', playerName: myName() });
+      guestConn.send({ t: 'joinRoom', playerName: myName(), deckArt: activeDeckArt() });
     });
     guestConn.on('data', msg => handle(msg));
     guestConn.on('close', () => { clearTimeout(failTimer); if (!fallingBack) dropGuest('Connection to the host was lost.'); });
@@ -399,7 +400,7 @@ function joinByMqttCode(code) {
   const joinEnvelope = JSON.stringify({
     id: makeMsgId(),
     guestId,
-    msg: { t: 'joinRoom', playerName: myName() },
+    msg: { t: 'joinRoom', playerName: myName(), deckArt: activeDeckArt() },
   });
   const sendEnvelope = (msg, opts = {}) => {
     const envelope = JSON.stringify({ id: makeMsgId(), guestId, msg });
@@ -1140,7 +1141,7 @@ function renderRoomList(rooms) {
     btn.onclick = () => {
       if (!myName()) return toast('Enter a name first.');
       if (P2P_MODE) joinByMqttCode(r.id);
-      else sendMsg({ t: 'joinRoom', roomId: r.id, playerName: myName() });
+      else sendMsg({ t: 'joinRoom', roomId: r.id, playerName: myName(), deckArt: activeDeckArt() });
     };
     div.appendChild(btn);
     el.appendChild(div);
@@ -1309,6 +1310,7 @@ function renderGame(st) {
   document.body.classList.remove('phase-discard', 'phase-pegging', 'phase-scoring', 'phase-roundEnd', 'phase-shop', 'phase-gameover');
   document.body.classList.add(`phase-${st.phase}`);
   document.body.classList.toggle('mode-board', st.mode === 'board');
+  document.body.classList.toggle('deck-neon-active', !!(st.you && st.you.deckArt === 'neon'));
   ensureBoardShell().classList.toggle('hidden', st.mode !== 'board' || st.phase !== 'scoring');
 
   const myMove = !!st.you && st.you.active &&
@@ -1422,7 +1424,11 @@ function renderSeats(st) {
     // the backs of their hand
     const backs = document.createElement('div');
     backs.className = 'backs';
-    for (let c = 0; c < p.handCount; c++) backs.appendChild(backEl(true));
+    if (p.handCards && p.handCards.length) {
+      p.handCards.forEach(c => backs.appendChild(cardEl(c, { small: true })));
+    } else {
+      for (let c = 0; c < p.handCount; c++) backs.appendChild(backEl(true));
+    }
     seat.appendChild(backs);
     el.appendChild(seat);
   });
@@ -1441,7 +1447,8 @@ function renderCenter(st) {
 
   const crib = $('cribPile');
   crib.innerHTML = '';
-  crib.appendChild(backEl());
+  if (st.cribCards && st.cribCards.length) st.cribCards.forEach(c => crib.appendChild(cardEl(c, { small: true })));
+  else crib.appendChild(backEl());
   const dealer = st.players.find(p => p.isDealer);
   crib.insertAdjacentHTML('beforeend',
     `<div class="lbl">Crib x${st.cribCount} (${esc(dealer ? dealer.name : '')})</div>`);
@@ -1709,8 +1716,10 @@ function renderHandScore(st) {
     cards = you.hand || [];
   }
   const mods = st.mode === 'board' ? aggregateMods([]) : aggregateMods(you.jokers || []);
-  const bd = scoreBreakdown(cards, st.starter || null, false, { shortcut: mods.shortcut });
-  const score = buildScore(bd, mods, 'hand', cards, { starter: st.starter || null, coins: you.coins }).total;
+  const target = st.you && st.you.deckArt === 'cosmic' ? st.cosmicTarget || 15 : 15;
+  const bd = scoreBreakdown(cards, st.starter || null, false, { shortcut: mods.shortcut, target });
+  let score = buildScore(bd, mods, 'hand', cards, { starter: st.starter || null, coins: you.coins, target }).total;
+  if (st.mode !== 'board' && you.deckArt === 'cosmic' && bd.fifteens) score += 2;
   $('myScore').innerHTML = st.mode === 'board'
     ? `<span>Score</span><b>${you.score}</b>`
     : `<span>Hand</span><b>${score}</b>`;
@@ -1857,10 +1866,12 @@ function jokerSlotAt(x, y) {
 
 function renderTarotSlots(st) {
   const you = st.you;
-  $('tarotCount').textContent = `${you.tarots.length}/2`;
+  const cap = you.tarotSlots == null ? 2 : you.tarotSlots;
+  $('tarotCount').textContent = `${you.tarots.length}/${cap}`;
 
   const slots = $('tarotRow').querySelectorAll('.tslot');
   slots.forEach((slot, i) => {
+    slot.classList.toggle('hidden', i >= cap);
     slot.innerHTML = '';
     slot.className = 'tslot';
     slot.dataset.slot = i;
@@ -2107,7 +2118,8 @@ function playHandCard(cardId) {
 function peggingPreview(card, st) {
   const count = st.pegCount + cardValue(card.rank);
   if (count > 31) return { legal: false, points: 0, events: [] };
-  const events = pegEvents(st.pegStack.concat([card]), count);
+  const target = st.you && st.you.deckArt === 'cosmic' ? st.cosmicTarget || 15 : 15;
+  const events = pegEvents(st.pegStack.concat([card]), count, { target });
   return {
     legal: true,
     points: events.reduce((sum, e) => sum + e.pts, 0),
@@ -2116,7 +2128,7 @@ function peggingPreview(card, st) {
 }
 
 function peggingEventText(ev) {
-  if (ev.type === 'fifteen') return 'making 15';
+  if (ev.type === 'fifteen') return `making ${ev.target || 15}`;
   if (ev.type === 'thirtyone') return 'hitting 31';
   if (ev.type === 'pair') {
     if (ev.size === 2) return 'pairing the last card';
@@ -2186,7 +2198,7 @@ function shopTypeLabel(kind) {
 function packBlockedReason(item, you) {
   if (!item || item.kind !== 'pack') return '';
   if ((item.id === 'buffoon' || item.id === 'ultra') && you.jokers.length >= (you.jokerSlots || 5)) return 'Jokers full';
-  if (item.id === 'arcana' && you.tarots.length >= 2) return 'Tarots full';
+  if (item.id === 'arcana' && you.tarots.length >= (you.tarotSlots == null ? 2 : you.tarotSlots)) return 'Tarots full';
   return '';
 }
 
@@ -2542,7 +2554,7 @@ function renderShop(oc, st) {
   if (you.pendingPack) return renderPackOpen(oc, st);
 
   oc.innerHTML = `<h2>Shop</h2><div class="row spread"><span class="shop-coins">${chip(you.coins)}</span>` +
-    `<span style="opacity:.7;font-size:13px">Jokers ${you.jokers.length}/${you.jokerSlots || 5} - Tarots ${you.tarots.length}/2 - Deck ${you.deck.length}</span></div>`;
+    `<span style="opacity:.7;font-size:13px">Jokers ${you.jokers.length}/${you.jokerSlots || 5} - Tarots ${you.tarots.length}/${you.tarotSlots == null ? 2 : you.tarotSlots} - Deck ${you.deck.length}</span></div>`;
   const grid = document.createElement('div');
   grid.className = 'shop-grid shop-grid-market';
   (you.shopOffer || []).forEach((item, idx) => {
@@ -2838,7 +2850,7 @@ function renderPackOpen(oc, st) {
     }
     addInfoButton(div, opt.name || cardLabel(opt), shopItemHelp(opt));
     const full = (opt.kind === 'joker' && st.you.jokers.length >= (st.you.jokerSlots || 5) && opt.stamp !== 'white') ||
-      (opt.kind === 'tarot' && st.you.tarots.length >= 2);
+      (opt.kind === 'tarot' && st.you.tarots.length >= (st.you.tarotSlots == null ? 2 : st.you.tarotSlots));
     const btn = document.createElement('button');
     btn.className = 'btn small primary';
     btn.textContent = full ? (opt.kind === 'joker' ? 'Jokers full' : 'Tarots full') : 'Take';
@@ -2990,7 +3002,7 @@ function runAnimations(prev, st, refs = {}) {
       }
       if (!fromRect) continue;
       sfx('discard');
-      for (let i = 0; i < st.discardCount; i++) {
+      for (let i = 0; i < (p.discardCount || st.discardCount); i++) {
         setTimeout(() => {
           const tgt = document.querySelector('#cribPile .card');
           if (tgt) flyClone(backEl(), fromRect, tgt.getBoundingClientRect(), 460, { rot: p.seat === st.mySeat ? -8 : 8 });
@@ -3055,7 +3067,8 @@ function runAnimations(prev, st, refs = {}) {
 
     // how much pegging Mult this play earned (raw event points), shown rising
     // off the count; if it was MY play, orbs stream into the Mult box.
-    const gained = pegEvents(st.pegStack, st.pegCount).reduce((s, e) => s + e.pts, 0);
+    const scoreTarget = st.you && st.you.deckArt === 'cosmic' ? st.cosmicTarget || 15 : 15;
+    const gained = pegEvents(st.pegStack, st.pegCount, { target: scoreTarget }).reduce((s, e) => s + e.pts, 0);
     if (gained > 0) {
       showMultGainForSeat(prev, st, played.seat, gained);
     }
