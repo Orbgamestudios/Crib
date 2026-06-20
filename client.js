@@ -1307,6 +1307,8 @@ function renderGame(st) {
   const turnP = st.players.find(p => p.seat === st.turnSeat);
   $('turnInfo').textContent =
     st.phase === 'pegging' && turnP ? (turnP.seat === st.mySeat ? 'Your turn' : `${turnP.name}'s turn`) : '';
+  const cosmicTarget = st.you && st.you.deckArt === 'cosmic' && st.cosmicTarget ? st.cosmicTarget : null;
+  if (cosmicTarget) $('turnInfo').textContent += `${$('turnInfo').textContent ? ' - ' : ''}Target ${cosmicTarget}`;
   $('exitSoloBtn').classList.toggle('hidden', !st.solo || st.phase === 'gameover');
   document.body.classList.remove('phase-discard', 'phase-pegging', 'phase-scoring', 'phase-roundEnd', 'phase-shop', 'phase-gameover');
   document.body.classList.add(`phase-${st.phase}`);
@@ -1424,7 +1426,7 @@ function renderSeats(st) {
 
     // the backs of their hand
     const backs = document.createElement('div');
-    backs.className = 'backs';
+    backs.className = 'backs' + (p.handCards && p.handCards.length ? ' cosmic-reveal' : '');
     if (p.handCards && p.handCards.length) {
       p.handCards.forEach(c => backs.appendChild(cardEl(c, { small: true })));
     } else {
@@ -1453,7 +1455,6 @@ function renderCenter(st) {
   const dealer = st.players.find(p => p.isDealer);
   crib.insertAdjacentHTML('beforeend',
     `<div class="lbl">Crib x${st.cribCount} (${esc(dealer ? dealer.name : '')})</div>`);
-
   const stack = $('pegStack');
   stack.innerHTML = '';
   for (const c of st.pegStack) {
@@ -1462,6 +1463,9 @@ function renderCenter(st) {
     stack.appendChild(el);
   }
   $('pegCount').textContent = st.phase === 'pegging' ? st.pegCount : '';
+  const cosmicTarget = st.you && st.you.deckArt === 'cosmic' && st.cosmicTarget ? st.cosmicTarget : null;
+  if (cosmicTarget) $('pegCount').dataset.target = `Target ${cosmicTarget}`;
+  else delete $('pegCount').dataset.target;
 }
 
 const BOARD_COLORS = ['#ffd76e', '#63b8ff', '#ff6262', '#7ee08b', '#dfc8ff', '#ff9f43'];
@@ -2445,7 +2449,8 @@ function scoreBlock(r, st, fresh) {
   const title = r.kind === 'crib'
     ? `${icon('crown')} ${esc(r.name)} - Crib`
     : esc(r.name) + (r.seat === st.mySeat ? ' (you)' : '');
-  div.innerHTML = `<div class="sb-head"><span>${title}</span></div>`;
+  const targetBadge = r.deckArt === 'cosmic' && st.cosmicTarget ? `<span class="target-pill">Target ${st.cosmicTarget}</span>` : '';
+  div.innerHTML = `<div class="sb-head"><span>${title}</span>${targetBadge}</div>`;
 
   // hand cards + the shared starter (shows how the hand is scored)
   const cards = document.createElement('div');

@@ -433,6 +433,15 @@ body.mode-board .seat-blind-fill {
 }
 .seat .backs { display: flex; justify-content: center; margin-top: 4px; height: 44px; }
 .seat .backs .card { margin: 0 -9px; }
+.seat .backs.cosmic-reveal {
+  gap: 4px;
+  height: 52px;
+  min-width: max-content;
+}
+.seat .backs.cosmic-reveal .card {
+  margin: 0;
+  box-shadow: 0 2px 6px #0008;
+}
 .dealer-chip {
   display: inline-block; background: var(--gold); color: var(--ink); border-radius: 50%;
   width: 18px; height: 18px; line-height: 18px; font-size: 11px; font-weight: 700;
@@ -659,6 +668,14 @@ body.mode-board .seat-blind-fill {
 #pegStack { display: flex; }
 #pegStack .card { margin-right: -18px; }
 #pegCount { font-size: 30px; font-weight: 800; color: var(--gold); min-width: 50px; text-align: center; }
+#pegCount[data-target]::after {
+  content: attr(data-target);
+  display: block;
+  font-size: 11px;
+  line-height: 1;
+  color: #d9c7ff;
+  text-shadow: 0 0 7px #9f66ff99;
+}
 
 /* ---- blind progress bar ---- */
 #blindProgress {
@@ -1159,6 +1176,13 @@ body.deck-neon-active .mult-chip {
     padding: 3px 4px;
     margin: 0 -17px;
   }
+  .seat .backs.cosmic-reveal {
+    gap: 8px;
+    height: 84px;
+  }
+  .seat .backs.cosmic-reveal .card {
+    margin: 0;
+  }
   .seat .backs .card .suit {
     font-size: 19px;
   }
@@ -1250,6 +1274,15 @@ body.deck-neon-active .mult-chip {
   100% { transform: translateY(0) scale(1); opacity: 1; }
 }
 .score-block .sb-head { display: flex; justify-content: space-between; font-weight: 600; margin-bottom: 6px; }
+.target-pill {
+  color: #d9c7ff;
+  border: 1px solid #b48be077;
+  border-radius: 999px;
+  padding: 2px 7px;
+  font-size: 12px;
+  box-shadow: 0 0 8px #9f66ff44;
+  white-space: nowrap;
+}
 .score-block .sb-total { color: var(--gold); font-size: 18px; }
 .score-block .sb-cards { display: flex; gap: 4px; margin-bottom: 6px; }
 .score-block .sb-line { display: flex; justify-content: space-between; font-size: 13px; opacity: 0.85; }
