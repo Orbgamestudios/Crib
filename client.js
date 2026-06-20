@@ -64,7 +64,7 @@ const DECK_ARTS = [
   { id: 'sapphire', name: 'Sapphire Run', cost: 0, desc: 'Blue deck: start each run with +1 joker slot.' },
   { id: 'ruby', name: 'Ruby Cut', cost: 0, desc: 'Red deck: spades become hearts and clubs become diamonds permanently.' },
   { id: 'aurora', name: 'Aurora Flow', cost: 0, animated: true, desc: 'Aurora deck: draw one extra card and discard one extra card to the crib.' },
-  { id: 'neon', name: 'Neon Circuit', cost: 0, animated: true, desc: 'Neon deck: score the average of Hand and Mult, but lose 1 joker and 1 tarot slot.' },
+  { id: 'neon', name: 'Neon Circuit', cost: 0, animated: true, desc: 'Neon deck: score the square of the average of Hand and Mult, but lose 1 joker and 1 tarot slot.' },
   { id: 'cosmic', name: 'Cosmic Drift', cost: 0, animated: true, desc: 'Cosmic deck: see hands and crib, and each deal replaces 15s with a mystery target.' },
 ];
 const FREE_DECK_IDS = DECK_ARTS.filter(a => a.cost === 0).map(a => a.id);
@@ -2486,7 +2486,7 @@ function scoreBlock(r, st, fresh) {
     if (fresh) setTimeout(() => sfx('card'), 250);
   }
 
-  // Normal decks use Points x Mult. Neon averages Points and Mult instead.
+  // Normal decks use Points x Mult. Neon squares the average of Points and Mult.
   const eqDelay = 300 + r.lines.length * 130;
   const eq = document.createElement('div');
   const neon = r.deckArt === 'neon' && !r.noMult;
@@ -2500,7 +2500,8 @@ function scoreBlock(r, st, fresh) {
       ? `<span class="chips" title="Hand points">${r.points}</span>` +
         `<span class="eq-op">+</span>` +
         `<span class="mult" title="Pegging Mult">${r.mult}</span>` +
-        `<span class="eq-op">/ 2 =</span>` +
+        `<span class="eq-op">/ 2</span>` +
+        `<span class="eq-op">squared =</span>` +
         `<span class="eq-total">${r.total}</span>`
       : `<span class="chips" title="Hand points">${r.points}</span>` +
       `<span class="eq-op">x</span>` +
