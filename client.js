@@ -1724,6 +1724,7 @@ function renderHandScore(st) {
   const target = st.you && st.you.deckArt === 'cosmic' ? st.cosmicTarget || 15 : 15;
   const bd = scoreBreakdown(cards, st.starter || null, false, { shortcut: mods.shortcut, target });
   let score = buildScore(bd, mods, 'hand', cards, { starter: st.starter || null, coins: you.coins, target }).total;
+  if (st.mode !== 'board' && you.deckArt === 'cosmic') score += you.cosmicHandBonus || 0;
   if (st.mode !== 'board' && you.deckArt === 'cosmic' && bd.fifteens) score += 2;
   $('myScore').innerHTML = st.mode === 'board'
     ? `<span>Score</span><b>${you.score}</b>`
@@ -2125,10 +2126,12 @@ function peggingPreview(card, st) {
   if (count > 31) return { legal: false, points: 0, events: [] };
   const target = st.you && st.you.deckArt === 'cosmic' ? st.cosmicTarget || 15 : 15;
   const events = pegEvents(st.pegStack.concat([card]), count, { target });
+  const cosmicHit = st.mode !== 'board' && st.you && st.you.deckArt === 'cosmic' && events.some(e => e.type === 'fifteen');
   return {
     legal: true,
-    points: events.reduce((sum, e) => sum + e.pts, 0),
+    points: events.reduce((sum, e) => sum + e.pts, 0) + (cosmicHit ? 2 : 0),
     events,
+    cosmicHit,
   };
 }
 
@@ -2154,9 +2157,10 @@ function scoringOpportunity(st) {
   const best = options[0];
   const why = best.preview.events.map(peggingEventText).join(' and ');
   const count = st.pegCount + cardValue(best.card.rank);
+  const cosmicText = best.preview.cosmicHit ? ' and bank +2 Hand' : '';
   return {
     key: `score-${best.card.id}-${st.pegCount}-${best.preview.points}`,
-    text: `Scoring chance: play ${cardLabel(best.card)} to make the count ${count} and gain +${best.preview.points} Mult for ${why}.`
+    text: `Scoring chance: play ${cardLabel(best.card)} to make the count ${count} and gain +${best.preview.points} Mult${cosmicText} for ${why}.`
   };
 }
 
