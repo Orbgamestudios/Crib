@@ -813,6 +813,7 @@ function normalizeProfile(p) {
 }
 
 function activeDeckArt() {
+  if (view === 'game' && lastState && lastState.you && lastState.you.deckArt) return lastState.you.deckArt;
   const p = normalizeProfile(activeProfile());
   return (p && p.deckArt) || selectedDeckArt || 'classic';
 }
@@ -2480,16 +2481,23 @@ function scoreBlock(r, st, fresh) {
     if (fresh) setTimeout(() => sfx('card'), 250);
   }
 
-  // Points x Mult = Total  (Balatro-style). The crib uses the dealer's Mult.
+  // Normal decks use Points x Mult. Neon averages Points and Mult instead.
   const eqDelay = 300 + r.lines.length * 130;
   const eq = document.createElement('div');
-  eq.className = 'sb-equation' + (fresh ? ' anim' : '');
+  const neon = r.deckArt === 'neon' && !r.noMult;
+  eq.className = 'sb-equation' + (neon ? ' neon-eq' : '') + (fresh ? ' anim' : '');
   if (fresh) eq.style.animationDelay = eqDelay + 'ms';
   eq.innerHTML = r.noMult
     ? `<span class="chips" title="Crib points">${r.points}</span>` +
       `<span class="eq-op">=</span>` +
       `<span class="eq-total">${r.total}</span>`
-    : `<span class="chips" title="Hand points">${r.points}</span>` +
+    : neon
+      ? `<span class="chips" title="Hand points">${r.points}</span>` +
+        `<span class="eq-op">+</span>` +
+        `<span class="mult" title="Pegging Mult">${r.mult}</span>` +
+        `<span class="eq-op">/ 2 =</span>` +
+        `<span class="eq-total">${r.total}</span>`
+      : `<span class="chips" title="Hand points">${r.points}</span>` +
       `<span class="eq-op">x</span>` +
       `<span class="mult" title="Pegging multiplier">${r.mult}</span>` +
       `<span class="eq-op">=</span>` +

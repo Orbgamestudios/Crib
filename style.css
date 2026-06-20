@@ -1012,9 +1012,9 @@ body.deck-neon-active .mult-chip {
     position: fixed;
     left: 390px;
     right: 450px;
-    bottom: -42px;
-    height: 205px;
-    padding: 0 0 18px;
+    bottom: 30px;
+    height: 178px;
+    padding: 0 0 8px;
     background: transparent;
     pointer-events: none;
     z-index: 30;
@@ -1047,7 +1047,7 @@ body.deck-neon-active .mult-chip {
   #myCards {
     width: min(900px, calc(100vw - 900px));
     min-width: 560px;
-    min-height: 150px;
+    min-height: 142px;
     justify-content: flex-end;
     pointer-events: auto;
   }
@@ -1278,6 +1278,13 @@ body.deck-neon-active .mult-chip {
 }
 .sb-equation .eq-op { opacity: 0.7; font-size: 17px; }
 .sb-equation .eq-total { color: var(--gold); font-size: 24px; min-width: 40px; text-align: right; }
+.sb-equation.neon-eq .chips,
+.sb-equation.neon-eq .mult {
+  background: linear-gradient(145deg, #6531a6, #a34ac9);
+}
+.sb-equation.neon-eq {
+  box-shadow: inset 0 0 0 1px #c991ff55, 0 0 12px #a34ac933;
+}
 
 /* blind check */
 .blind-target { font-size: 16px; margin-bottom: 10px; }
