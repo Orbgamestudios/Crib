@@ -64,7 +64,7 @@ const DECK_ARTS = [
   { id: 'sapphire', name: 'Sapphire Run', cost: 0, desc: 'Blue deck: start each run with +1 joker slot.' },
   { id: 'ruby', name: 'Ruby Cut', cost: 0, desc: 'Red deck: spades become hearts and clubs become diamonds permanently.' },
   { id: 'aurora', name: 'Aurora Flow', cost: 0, animated: true, desc: 'Aurora deck: draw one extra card and discard one extra card to the crib.' },
-  { id: 'neon', name: 'Neon Circuit', cost: 0, animated: true, desc: 'Neon deck: score the square of the average of Hand and Mult, but lose 1 joker and 1 tarot slot.' },
+  { id: 'neon', name: 'Neon Circuit', cost: 0, animated: true, desc: 'Neon deck: score the square of the average of Hand and Mult, but your blinds are doubled.' },
   { id: 'cosmic', name: 'Cosmic Drift', cost: 0, animated: true, desc: 'Cosmic deck: see hands and crib, and each deal replaces 15s with a mystery target.' },
 ];
 const FREE_DECK_IDS = DECK_ARTS.filter(a => a.cost === 0).map(a => a.id);
@@ -1369,7 +1369,8 @@ function renderBlindBar(st) {
   }
 
   el.classList.remove('out-label');
-  const pct = Math.min(100, Math.round(100 * st.you.roundScore / st.blind));
+  const blind = st.you.blind || st.blind;
+  const pct = Math.min(100, Math.round(100 * st.you.roundScore / blind));
   fill.style.width = pct + '%';
 
   // Color classes based on progress
@@ -1379,7 +1380,7 @@ function renderBlindBar(st) {
   else if (pct >= 45) fill.classList.add('mid');
 
   label.style.color = '';
-  label.textContent = `${st.you.roundScore} / ${st.blind}  -  Blind`;
+  label.textContent = `${st.you.roundScore} / ${blind}  -  Blind`;
 }
 
 function renderSeats(st) {
@@ -1411,7 +1412,7 @@ function renderSeats(st) {
     }
     // how far this player is toward the round's blind
     if (p.active && (st.blind || st.mode === 'board')) {
-      const goal = st.mode === 'board' ? (st.goalScore || 121) : st.blind;
+      const goal = st.mode === 'board' ? (st.goalScore || 121) : (p.blind || st.blind);
       const score = st.mode === 'board' ? p.score : p.roundScore;
       const pct = Math.min(100, Math.round(100 * score / goal));
       const done = score >= goal;
@@ -2490,7 +2491,7 @@ function scoreBlock(r, st, fresh) {
     if (fresh) setTimeout(() => sfx('card'), 250);
   }
 
-  // Normal decks use Points x Mult. Neon squares the average of Points and Mult.
+  // Normal decks use Points x Mult. Neon keeps the math hidden and shows only the animated values.
   const eqDelay = 300 + r.lines.length * 130;
   const eq = document.createElement('div');
   const neon = r.deckArt === 'neon' && !r.noMult;
@@ -2502,10 +2503,7 @@ function scoreBlock(r, st, fresh) {
       `<span class="eq-total">${r.total}</span>`
     : neon
       ? `<span class="chips" title="Hand points">${r.points}</span>` +
-        `<span class="eq-op">+</span>` +
         `<span class="mult" title="Pegging Mult">${r.mult}</span>` +
-        `<span class="eq-op">/ 2</span>` +
-        `<span class="eq-op">squared =</span>` +
         `<span class="eq-total">${r.total}</span>`
       : `<span class="chips" title="Hand points">${r.points}</span>` +
       `<span class="eq-op">x</span>` +
@@ -2514,6 +2512,10 @@ function scoreBlock(r, st, fresh) {
       `<span class="eq-total">${r.total}</span>`;
   div.appendChild(eq);
   if (fresh) {
+    if (neon) {
+      countUp(eq.querySelector('.chips'), r.points, eqDelay + 80);
+      countUp(eq.querySelector('.mult'), r.mult, eqDelay + 160);
+    }
     countUp(eq.querySelector('.eq-total'), r.total, eqDelay + 250);
     setTimeout(() => sfx('scoreTotal'), eqDelay + 120);
   }
@@ -2533,21 +2535,23 @@ function countUp(el, total, duration, prefix = '') {
 function renderRoundEnd(oc, st) {
   const d = st.roundEndData;
   const title = d.finalBlind ? `Blind Check - ${d.round}/${d.finalBlind}` : `Blind Check - Round ${d.round}`;
+  const blindLabel = d.rows.some(r => r.blind !== d.blind) ? `${d.blind} base` : d.blind;
   oc.innerHTML = `<h2>${title}</h2>` +
-    `<div class="blind-target">Blind: <b>${d.blind}</b>${d.dealCount ? ` - cleared after deal ${d.dealCount}` : ''}</div>`;
+    `<div class="blind-target">Blind: <b>${blindLabel}</b>${d.dealCount ? ` - cleared after deal ${d.dealCount}` : ''}</div>`;
   if (d.rescued) {
     oc.insertAdjacentHTML('beforeend',
       '<div class="rescued">Nobody beat the blind - top score survives!</div>');
   }
   for (const row of d.rows) {
-    const pct = Math.min(100, Math.round(100 * row.roundScore / d.blind));
+    const blind = row.blind || d.blind;
+    const pct = Math.min(100, Math.round(100 * row.roundScore / blind));
     const bonus = row.reward ? ` ${esc(row.reward)}` : row.bonusCoins > 0 ? ` +${chip(row.bonusCoins)}` : '';
     const place = row.passed && row.place ? `<span class="br-place">#${row.place}</span> ` : '';
     oc.insertAdjacentHTML('beforeend',
       `<div class="blind-row${row.passed ? '' : ' failed'}">` +
       `<span class="br-name">${esc(row.name)}${row.seat === st.mySeat ? ' (you)' : ''}</span>` +
       `<div class="br-bar"><div class="br-fill${row.passed ? ' pass' : ''}" style="width:${pct}%"></div></div>` +
-      `<span class="br-score">${row.roundScore}/${d.blind}</span>` +
+      `<span class="br-score">${row.roundScore}/${blind}</span>` +
       `<span class="br-tag">${row.passed ? place + 'SAFE' + bonus : 'ELIMINATED'}</span></div>`);
   }
   const left = st.players.filter(p => p.active).length;
