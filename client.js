@@ -2491,10 +2491,11 @@ function scoreBlock(r, st, fresh) {
     if (fresh) setTimeout(() => sfx('card'), 250);
   }
 
-  // Normal decks use Points x Mult. Neon keeps the math hidden and shows only the animated values.
+  // Normal decks use Points x Mult. Neon rolls both values into their shared average first.
   const eqDelay = 300 + r.lines.length * 130;
   const eq = document.createElement('div');
   const neon = r.deckArt === 'neon' && !r.noMult;
+  const neonAvg = neon ? Math.round(((r.points + r.mult) / 2) * 10) / 10 : 0;
   eq.className = 'sb-equation' + (neon ? ' neon-eq' : '') + (fresh ? ' anim' : '');
   if (fresh) eq.style.animationDelay = eqDelay + 'ms';
   eq.innerHTML = r.noMult
@@ -2502,8 +2503,10 @@ function scoreBlock(r, st, fresh) {
       `<span class="eq-op">=</span>` +
       `<span class="eq-total">${r.total}</span>`
     : neon
-      ? `<span class="chips" title="Hand points">${r.points}</span>` +
-        `<span class="mult" title="Pegging Mult">${r.mult}</span>` +
+      ? `<span class="chips" title="Hand points">${fresh ? r.points : neonAvg.toFixed(1)}</span>` +
+        `<span class="eq-op">x</span>` +
+        `<span class="mult" title="Pegging Mult">${fresh ? r.mult : neonAvg.toFixed(1)}</span>` +
+        `<span class="eq-op">=</span>` +
         `<span class="eq-total">${r.total}</span>`
       : `<span class="chips" title="Hand points">${r.points}</span>` +
       `<span class="eq-op">x</span>` +
@@ -2513,8 +2516,8 @@ function scoreBlock(r, st, fresh) {
   div.appendChild(eq);
   if (fresh) {
     if (neon) {
-      countUp(eq.querySelector('.chips'), r.points, eqDelay + 80);
-      countUp(eq.querySelector('.mult'), r.mult, eqDelay + 160);
+      countBetween(eq.querySelector('.chips'), r.points, neonAvg, eqDelay + 180, 1);
+      countBetween(eq.querySelector('.mult'), r.mult, neonAvg, eqDelay + 180, 1);
     }
     countUp(eq.querySelector('.eq-total'), r.total, eqDelay + 250);
     setTimeout(() => sfx('scoreTotal'), eqDelay + 120);
@@ -2527,6 +2530,17 @@ function countUp(el, total, duration, prefix = '') {
   function tick(now) {
     const t = Math.min(1, (now - start) / duration);
     el.textContent = prefix + Math.round(t * total);
+    if (t < 1 && el.isConnected) requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+}
+
+function countBetween(el, from, to, duration, decimals = 0, prefix = '') {
+  const start = performance.now();
+  function tick(now) {
+    const t = Math.min(1, (now - start) / duration);
+    const value = from + (to - from) * t;
+    el.textContent = prefix + value.toFixed(decimals);
     if (t < 1 && el.isConnected) requestAnimationFrame(tick);
   }
   requestAnimationFrame(tick);
