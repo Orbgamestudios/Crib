@@ -530,6 +530,7 @@ function handle(msg) {
       break;
     case 'joined':
       myRoomId = msg.roomId;
+      intentionalLobbyReturn = false;
       if (!P2P_MODE) sessionStorage.setItem('crib_room', msg.roomId);
       if (mqttGuest) startMqttSync();
       $('log').innerHTML = '';
@@ -540,6 +541,7 @@ function handle(msg) {
       renderWaiting(msg);
       break;
     case 'state':
+      intentionalLobbyReturn = false;
       stopMqttSync();
       showView('game');
       {
@@ -565,6 +567,10 @@ function handle(msg) {
       addLog(msg.text);
       break;
     case 'error':
+      if (view === 'game' && /room no longer exists/i.test(msg.text || '')) {
+        recordDiagnostic('Ignored stale room error', msg.text || 'Room no longer exists.');
+        break;
+      }
       recordDiagnostic('server/client error', msg.text || 'Unknown error');
       toast(msg.text);
       break;
@@ -572,6 +578,10 @@ function handle(msg) {
       dropGuest(msg.text || 'The host closed the table.');
       break;
     case 'left':
+      if (!intentionalLobbyReturn && view === 'game') {
+        recordDiagnostic('Ignored stale lobby return', 'Received a left message after a new game was already active.');
+        break;
+      }
       if (!intentionalLobbyReturn) {
         recordDiagnostic('unexpected lobby return', 'Received a left message without pressing Leave/Exit.');
       }
