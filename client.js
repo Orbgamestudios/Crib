@@ -65,7 +65,7 @@ const DECK_ARTS = [
   { id: 'ruby', name: 'Ruby Cut', cost: 0, desc: 'Red deck: spades become hearts and clubs become diamonds permanently.' },
   { id: 'aurora', name: 'Aurora Flow', cost: 0, animated: true, desc: 'Aurora deck: draw one extra card and discard one extra card to the crib.' },
   { id: 'neon', name: 'Neon Circuit', cost: 0, animated: true, desc: 'Neon deck: score the square of the average of Hand and Mult, but your blinds are doubled.' },
-  { id: 'cosmic', name: 'Cosmic Drift', cost: 0, animated: true, desc: 'Cosmic deck: see hands and crib, and each deal replaces 15s with a mystery target.' },
+  { id: 'cosmic', name: 'Cosmic Drift', cost: 0, animated: true, desc: 'Cosmic deck: see hands, reveal the crib after discards, and each deal replaces 15s with a mystery target.' },
 ];
 const FREE_DECK_IDS = DECK_ARTS.filter(a => a.cost === 0).map(a => a.id);
 let boardView = null;
@@ -820,16 +820,18 @@ function activeDeckArt() {
 
 function animateDeckBackground(now = 0) {
   const root = document.documentElement;
-  root.style.setProperty('--deck-bg-x', `${now / 28}px`);
-  root.style.setProperty('--deck-bg-y', `${now / 42}px`);
-  root.style.setProperty('--deck-bg-x2', `${-(now / 34)}px`);
-  root.style.setProperty('--deck-bg-y2', `${now / 50}px`);
-  root.style.setProperty('--deck-bg-x3', `${now / 22}px`);
-  root.style.setProperty('--deck-bg-y3', `${-(now / 38)}px`);
-  root.style.setProperty('--aurora-x', `${Math.sin(now / 2600) * 180}px`);
-  root.style.setProperty('--aurora-y', `${Math.cos(now / 3100) * 110}px`);
-  root.style.setProperty('--aurora-x2', `${Math.cos(now / 3300) * 150}px`);
-  root.style.setProperty('--aurora-y2', `${Math.sin(now / 2900) * 95}px`);
+  root.style.setProperty('--deck-bg-x', `${now / 18}px`);
+  root.style.setProperty('--deck-bg-y', `${now / 60}px`);
+  root.style.setProperty('--deck-bg-x2', `${now / 30}px`);
+  root.style.setProperty('--deck-bg-y2', `${now / 84}px`);
+  root.style.setProperty('--deck-bg-x3', `${now / 46}px`);
+  root.style.setProperty('--deck-bg-y3', `${now / 120}px`);
+  root.style.setProperty('--neon-bolt-x', `${now / 72}px`);
+  root.style.setProperty('--neon-bolt-y', `${now / 130}px`);
+  root.style.setProperty('--aurora-x', `${Math.sin(now / 2200) * 95}px`);
+  root.style.setProperty('--aurora-y', `${Math.cos(now / 2500) * 62}px`);
+  root.style.setProperty('--aurora-x2', `${Math.cos(now / 2600) * 80}px`);
+  root.style.setProperty('--aurora-y2', `${Math.sin(now / 2300) * 55}px`);
   document.querySelectorAll('.card.back.deck-aurora, .card.back.deck-neon, .card.back.deck-cosmic').forEach((card) => {
     const rect = card.getBoundingClientRect();
     card.style.setProperty('--deck-card-left', `${rect.left}px`);
@@ -1725,8 +1727,6 @@ function renderHandScore(st) {
   const target = st.you && st.you.deckArt === 'cosmic' ? st.cosmicTarget || 15 : 15;
   const bd = scoreBreakdown(cards, st.starter || null, false, { shortcut: mods.shortcut, target });
   let score = buildScore(bd, mods, 'hand', cards, { starter: st.starter || null, coins: you.coins, target }).total;
-  if (st.mode !== 'board' && you.deckArt === 'cosmic') score += you.cosmicHandBonus || 0;
-  if (st.mode !== 'board' && you.deckArt === 'cosmic' && bd.fifteens) score += 2;
   $('myScore').innerHTML = st.mode === 'board'
     ? `<span>Score</span><b>${you.score}</b>`
     : `<span>Hand</span><b>${score}</b>`;
@@ -2127,12 +2127,10 @@ function peggingPreview(card, st) {
   if (count > 31) return { legal: false, points: 0, events: [] };
   const target = st.you && st.you.deckArt === 'cosmic' ? st.cosmicTarget || 15 : 15;
   const events = pegEvents(st.pegStack.concat([card]), count, { target });
-  const cosmicHit = st.mode !== 'board' && st.you && st.you.deckArt === 'cosmic' && events.some(e => e.type === 'fifteen');
   return {
     legal: true,
-    points: events.reduce((sum, e) => sum + e.pts, 0) + (cosmicHit ? 2 : 0),
+    points: events.reduce((sum, e) => sum + e.pts, 0),
     events,
-    cosmicHit,
   };
 }
 
@@ -2158,10 +2156,9 @@ function scoringOpportunity(st) {
   const best = options[0];
   const why = best.preview.events.map(peggingEventText).join(' and ');
   const count = st.pegCount + cardValue(best.card.rank);
-  const cosmicText = best.preview.cosmicHit ? ' and bank +2 Hand' : '';
   return {
     key: `score-${best.card.id}-${st.pegCount}-${best.preview.points}`,
-    text: `Scoring chance: play ${cardLabel(best.card)} to make the count ${count} and gain +${best.preview.points} Mult${cosmicText} for ${why}.`
+    text: `Scoring chance: play ${cardLabel(best.card)} to make the count ${count} and gain +${best.preview.points} Mult for ${why}.`
   };
 }
 

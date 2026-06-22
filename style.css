@@ -488,29 +488,31 @@ body.mode-board .seat-blind-fill {
 }
 .card.back.deck-aurora {
   background:
-    radial-gradient(circle at 50% 50%, #ffffff20 0 15%, transparent 16%),
-    radial-gradient(ellipse at 42% 45%, #8fe7ff99 0 15%, #e48cff88 28%, transparent 52%),
-    radial-gradient(ellipse at 58% 52%, #7ee08bbb 0 14%, #8fe7ff66 34%, transparent 56%),
-    linear-gradient(115deg, transparent 0 28%, #ffffff24 42%, transparent 58%),
+    radial-gradient(circle at 50% 50%, #ffffff22 0 15%, transparent 16%),
+    radial-gradient(ellipse at 47% 48%, #8fe7ffb0 0 18%, #e48cff9c 27%, transparent 45%),
+    radial-gradient(ellipse at 53% 52%, #7ee08bcc 0 17%, #8fe7ff80 29%, transparent 47%),
+    linear-gradient(115deg, transparent 0 33%, #ffffff28 45%, transparent 57%),
     linear-gradient(160deg, #102c45, #20143d 54%, #092d25);
-  background-size: 100% 100%, 1400px 900px, 1200px 820px, 1300px 900px, 100% 100%;
+  background-size: 100% 100%, 900px 620px, 780px 560px, 760px 520px, 100% 100%;
   background-repeat: no-repeat, no-repeat, no-repeat, no-repeat, no-repeat;
   background-position:
     0 0,
-    calc(50vw - 700px - var(--deck-card-left, 0px) + var(--aurora-x, 0px)) calc(50vh - 450px - var(--deck-card-top, 0px) + var(--aurora-y, 0px)),
-    calc(50vw - 600px - var(--deck-card-left, 0px) + var(--aurora-x2, 0px)) calc(50vh - 410px - var(--deck-card-top, 0px) + var(--aurora-y2, 0px)),
-    calc(50vw - 650px - var(--deck-card-left, 0px) - var(--aurora-x2, 0px)) calc(50vh - 450px - var(--deck-card-top, 0px) - var(--aurora-y, 0px)),
+    calc(50vw - 450px - var(--deck-card-left, 0px) + var(--aurora-x, 0px)) calc(50vh - 310px - var(--deck-card-top, 0px) + var(--aurora-y, 0px)),
+    calc(50vw - 390px - var(--deck-card-left, 0px) + var(--aurora-x2, 0px)) calc(50vh - 280px - var(--deck-card-top, 0px) + var(--aurora-y2, 0px)),
+    calc(50vw - 380px - var(--deck-card-left, 0px) - var(--aurora-x2, 0px)) calc(50vh - 260px - var(--deck-card-top, 0px) - var(--aurora-y, 0px)),
     0 0;
   border-color: #d5f7ff;
 }
 .card.back.deck-neon {
   background:
     radial-gradient(circle at 50% 50%, #ffffff18 0 15%, transparent 16%),
-    linear-gradient(90deg, transparent 0 18%, #63f7ff 19% 21%, transparent 22% 44%, #ff6bd6 45% 47%, transparent 48% 72%, #ffd76e 73% 75%, transparent 76%),
+    linear-gradient(122deg, transparent 0 42%, #aafcff88 42.5% 43.4%, transparent 44% 58%, #ff6bd666 58.4% 59.2%, transparent 60%),
+    linear-gradient(90deg, transparent 0 8%, #63f7ff 8.5% 9.3%, transparent 9.8% 23%, #ff6bd6 23.5% 24.4%, transparent 25% 40%, #ffd76e 40.5% 41.3%, transparent 42% 58%, #63f7ff 58.5% 59.2%, transparent 60% 78%, #ff6bd6 78.4% 79.2%, transparent 80%),
     radial-gradient(circle at 50% 50%, #33415a, #0c1220 70%);
-  background-size: 100% 100%, 520px 100%, 100% 100%;
+  background-size: 100% 100%, 210px 160px, 260px 100%, 100% 100%;
   background-position:
     0 0,
+    calc(var(--neon-bolt-x, 0px) - var(--deck-card-left, 0px)) calc(var(--neon-bolt-y, 0px) - var(--deck-card-top, 0px)),
     calc(var(--deck-bg-x, 0px) - var(--deck-card-left, 0px)) calc(var(--deck-bg-y, 0px) - var(--deck-card-top, 0px)),
     0 0;
   border-color: #8fe7ff;
@@ -519,15 +521,21 @@ body.mode-board .seat-blind-fill {
   background:
     radial-gradient(circle at 50% 50%, #ffffff1a 0 15%, transparent 16%),
     radial-gradient(circle at 18% 25%, #fff 0 1px, transparent 2px),
-    radial-gradient(circle at 68% 42%, #ffd76e 0 1.2px, transparent 2.4px),
+    radial-gradient(circle at 72% 22%, #ffffffcc 0 0.8px, transparent 1.8px),
+    radial-gradient(circle at 68% 42%, #ffd76e 0 1.1px, transparent 2.2px),
+    radial-gradient(circle at 32% 63%, #dfc8ff 0 0.9px, transparent 1.9px),
     radial-gradient(circle at 45% 78%, #8fe7ff 0 1px, transparent 2px),
+    radial-gradient(circle at 82% 76%, #ffffffaa 0 0.7px, transparent 1.7px),
     linear-gradient(160deg, #151433, #24144c 48%, #0d2340);
-  background-size: 100% 100%, 120px 120px, 170px 170px, 92px 92px, 100% 100%;
+  background-size: 100% 100%, 92px 92px, 138px 138px, 126px 126px, 176px 176px, 72px 72px, 152px 152px, 100% 100%;
   background-position:
     0 0,
     calc(var(--deck-bg-x, 0px) - var(--deck-card-left, 0px)) calc(var(--deck-bg-y, 0px) - var(--deck-card-top, 0px)),
     calc(var(--deck-bg-x2, 0px) - var(--deck-card-left, 0px)) calc(var(--deck-bg-y2, 0px) - var(--deck-card-top, 0px)),
     calc(var(--deck-bg-x3, 0px) - var(--deck-card-left, 0px)) calc(var(--deck-bg-y3, 0px) - var(--deck-card-top, 0px)),
+    calc(var(--deck-bg-x2, 0px) - var(--deck-card-left, 0px) + 30px) calc(var(--deck-bg-y2, 0px) - var(--deck-card-top, 0px) + 18px),
+    calc(var(--deck-bg-x, 0px) - var(--deck-card-left, 0px) + 12px) calc(var(--deck-bg-y, 0px) - var(--deck-card-top, 0px) + 26px),
+    calc(var(--deck-bg-x3, 0px) - var(--deck-card-left, 0px) + 44px) calc(var(--deck-bg-y3, 0px) - var(--deck-card-top, 0px) + 8px),
     0 0;
   border-color: #dfc8ff;
 }
