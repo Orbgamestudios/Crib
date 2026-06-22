@@ -28,6 +28,7 @@ function makeRoom(name, opts = {}) {
     name: (name || 'Cribbage Table').slice(0, 30),
     mode,
     goalScore: mode === 'board' ? 121 : null,
+    deckEffects: opts.deckEffects !== false,
     players: [], // { id, name, ws, connected }
     game: null,
     logs: [],
@@ -43,6 +44,7 @@ function roomSummary(room) {
     count: room.players.filter(p => p.connected).length,
     mode: room.mode,
     goalScore: room.goalScore,
+    deckEffects: room.deckEffects,
     inGame: !!room.game && room.game.phase !== 'gameover',
   };
 }
@@ -76,7 +78,7 @@ function broadcastRoom(room) {
         room: roomSummary(room),
         hostId: room.players[0] && room.players[0].id,
         youId: p.id,
-        players: room.players.map(pl => ({ id: pl.id, name: pl.name, connected: pl.connected })),
+        players: room.players.map(pl => ({ id: pl.id, name: pl.name, connected: pl.connected, deckArt: pl.deckArt })),
       });
     }
   }
@@ -95,13 +97,14 @@ function startGame(room, opts = {}) {
     room.mode = normalizeMode(opts.mode);
     room.goalScore = room.mode === 'board' ? 121 : null;
   }
+  if (typeof opts.deckEffects === 'boolean') room.deckEffects = opts.deckEffects;
   room.game = new Game(
     room.players.map(p => ({ id: p.id, name: p.name, connected: p.connected, deckArt: p.deckArt })),
     {
       onUpdate: () => broadcastRoom(room),
       log: text => roomLog(room, text),
     },
-    { mode: room.mode, goalScore: room.goalScore }
+    { mode: room.mode, goalScore: room.goalScore, deckEffects: room.deckEffects }
   );
   broadcastRoom(room);
   broadcastRooms();
@@ -165,7 +168,7 @@ function handleMessage(ws, msg) {
           { id: 'house-' + soloRoom.id, name: 'The House', isBot: true },
         ],
         { onUpdate: () => broadcastRoom(soloRoom), log: t => roomLog(soloRoom, t) },
-        { mode: soloRoom.mode, goalScore: soloRoom.goalScore }
+        { mode: soloRoom.mode, goalScore: soloRoom.goalScore, deckEffects: soloRoom.deckEffects }
       );
       broadcastRoom(soloRoom);
       broadcastRooms();
@@ -187,6 +190,7 @@ function handleMessage(ws, msg) {
       const seat = target.players.find(p => !p.connected && p.name === name);
       if (seat) {
         seat.ws = ws; seat.connected = true;
+        if (!target.game && msg.deckArt) seat.deckArt = msg.deckArt;
         meta.roomId = target.id; meta.playerId = seat.id;
         if (target.game) target.game.playerReconnected(seat.id);
         roomLog(target, `${name} reconnected`);
@@ -225,6 +229,27 @@ function handleMessage(ws, msg) {
       if (connected.length < 2) return send(ws, { t: 'error', text: 'Need at least 2 players.' });
       room.players = connected;
       startGame(room, msg);
+      break;
+    }
+
+    case 'setDeckArt': {
+      if (!room || room.game) return;
+      const p = room.players.find(pl => pl.id === meta.playerId);
+      if (!p) return;
+      p.deckArt = String(msg.deckArt || 'classic');
+      broadcastRoom(room);
+      broadcastRooms();
+      break;
+    }
+
+    case 'setDeckEffects': {
+      if (!room || room.game) return;
+      if (room.players[0].id !== meta.playerId) {
+        return send(ws, { t: 'error', text: 'Only the host can change deck effects.' });
+      }
+      room.deckEffects = msg.enabled !== false;
+      broadcastRoom(room);
+      broadcastRooms();
       break;
     }
 

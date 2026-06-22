@@ -32,6 +32,7 @@ export class HostSession {
     this.solo = !!opts.solo;
     this.gameMode = normalizeMode(opts.mode);
     this.goalScore = this.gameMode === 'board' ? 121 : null;
+    this.deckEffects = opts.deckEffects !== false;
     this.saveKey = opts.saveKey || null;
     this.roomName = this.solo ? `${hostName} vs The House` : `${hostName}'s table`;
     this.onLocal = onLocal;       // deliver a protocol message to the host's own client
@@ -139,6 +140,7 @@ export class HostSession {
       count: this.players.filter(p => p.connected).length,
       mode: this.gameMode,
       goalScore: this.goalScore,
+      deckEffects: this.deckEffects,
       inGame: !!this.game && this.game.phase !== 'gameover',
     };
   }
@@ -156,7 +158,7 @@ export class HostSession {
           code: this.code,
           hostId: 'p1',
           youId: p.id,
-          players: this.players.map(pl => ({ id: pl.id, name: pl.name, connected: pl.connected })),
+          players: this.players.map(pl => ({ id: pl.id, name: pl.name, connected: pl.connected, deckArt: pl.deckArt })),
         });
       }
     }
@@ -191,6 +193,7 @@ export class HostSession {
     this.game = Game.fromSnapshot(snap, { onUpdate: () => this.broadcastRoom(), log: text => this.log(text) });
     this.gameMode = normalizeMode(this.game.mode);
     this.goalScore = this.gameMode === 'board' ? 121 : null;
+    this.deckEffects = this.game.deckEffects !== false;
     this.broadcastRoom();
   }
 
@@ -206,6 +209,12 @@ export class HostSession {
     if (this.destroyed) return;
     const p = this.players[0];
     if (msg.t === 'startGame') return this.startGame(msg);
+    if (msg.t === 'setDeckEffects') {
+      if (this.game) return;
+      this.deckEffects = msg.enabled !== false;
+      this.broadcastRoom();
+      return;
+    }
     if (msg.t === 'leaveRoom' || msg.t === 'backToLobby') {
       this.saveSolo();
       return this.destroy('Host closed the table.');
@@ -228,6 +237,15 @@ export class HostSession {
       case 'ready': if (gp) this.fail(conn, game.setReady(gp)); break;
       case 'reorderJokers': if (gp) this.fail(conn, game.reorderJokers(gp, msg.order)); break;
       case 'sync': this.broadcastRoom(); break;
+      case 'setDeckArt':
+        if (!this.game) {
+          p.deckArt = msg.deckArt || 'classic';
+          this.broadcastRoom();
+        }
+        break;
+      case 'setDeckEffects':
+        if (!this.game) this.sendTo(conn, { t: 'error', text: 'Only the host can change deck effects.' });
+        break;
       case 'leaveRoom':
       case 'backToLobby':
         this.dropConn(conn);
@@ -246,6 +264,7 @@ export class HostSession {
     const seat = this.players.find(p => !p.connected && p.name === name);
     if (seat) {
       seat.conn = conn; seat.connected = true;
+      if (!this.game && msg.deckArt) seat.deckArt = msg.deckArt;
       if (this.game) this.game.playerReconnected(seat.id);
       this.log(`${name} reconnected`);
       this.sendTo(conn, { t: 'joined', roomId: this.code, logs: this.logs });
@@ -268,6 +287,7 @@ export class HostSession {
     if (this.game && this.game.phase !== 'gameover') return;
     this.gameMode = opts.mode ? normalizeMode(opts.mode) : this.gameMode;
     this.goalScore = this.gameMode === 'board' ? 121 : null;
+    if (typeof opts.deckEffects === 'boolean') this.deckEffects = opts.deckEffects;
     const connected = this.players.filter(p => p.connected);
     if (connected.length < 2) {
       return this.onLocal({ t: 'error', text: 'Need at least 2 players.' });
@@ -276,7 +296,7 @@ export class HostSession {
     this.game = new Game(
       this.players.map(p => ({ id: p.id, name: p.name, connected: p.connected, isBot: p.isBot, deckArt: p.deckArt })),
       { onUpdate: () => this.broadcastRoom(), log: text => this.log(text) },
-      { mode: this.gameMode, goalScore: this.goalScore }
+      { mode: this.gameMode, goalScore: this.goalScore, deckEffects: this.deckEffects }
     );
     this.stopLobbyAdvertising();
     this.broadcastRoom();

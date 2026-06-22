@@ -377,8 +377,32 @@ body.phase-pegging #tutorialBar {
 #roomList .empty { opacity: 0.6; padding: 12px 0; text-align: center; }
 
 #waitPlayers { margin: 12px 0; }
-#waitPlayers .wp { padding: 6px 10px; background: var(--panel-light); border-radius: 6px; margin-bottom: 6px; }
+#waitPlayers .wp {
+  padding: 6px 10px; background: var(--panel-light); border-radius: 6px; margin-bottom: 6px;
+  display: flex; align-items: center; gap: 8px;
+}
+#waitPlayers .wp .card { flex: 0 0 auto; }
+#waitPlayers .wait-player-main { min-width: 0; overflow-wrap: anywhere; }
 #waitPlayers .wp.off { opacity: 0.45; }
+.wait-deck-controls {
+  display: grid; gap: 8px; margin: 12px 0; padding: 10px;
+  background: #ffffff0b; border: 1px solid #ffffff1f; border-radius: 8px;
+}
+.wait-deck-title { font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: var(--gold); font-weight: 800; }
+.wait-deck-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.wait-deck-choice {
+  width: 88px; min-height: 72px; display: grid; justify-items: center; align-content: center; gap: 4px;
+  background: #13283a; color: var(--cream); border: 1px solid #ffffff2a; border-radius: 8px;
+  padding: 6px 5px; cursor: pointer; font: inherit;
+}
+.wait-deck-choice.selected { border-color: var(--gold); box-shadow: 0 0 0 1px #e8c35a66, 0 0 12px #e8c35a33; }
+.wait-deck-choice span { font-size: 10px; line-height: 1.1; text-align: center; overflow-wrap: anywhere; }
+.wait-effects-toggle {
+  display: flex; align-items: center; gap: 8px; width: fit-content;
+  font-size: 13px; font-weight: 800; cursor: pointer;
+}
+.wait-effects-toggle.disabled { opacity: 0.65; cursor: default; }
+.wait-effects-toggle input { width: 18px; height: 18px; accent-color: var(--gold); }
 .hint { font-size: 13px; opacity: 0.7; margin-bottom: 12px; }
 
 /* ---- game layout ---- */

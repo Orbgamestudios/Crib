@@ -50,6 +50,7 @@ let focusMode = null;
 let pointerCardDrag = null;
 let lastCoinPopKey = '';
 let lastRecordedRunKey = '';
+let waitingDeckEffects = true;
 let deferredRender = false; // a state update arrived mid-drag; apply on release
 function normalizeMode(mode) {
   if (mode === 'board') return 'board';
@@ -265,7 +266,7 @@ function connectWs() {
     const savedRoom = sessionStorage.getItem('crib_room');
     const name = localStorage.getItem('crib_name');
     if (savedRoom && name) {
-      ws.send(JSON.stringify({ t: 'joinRoom', roomId: savedRoom, playerName: name }));
+      ws.send(JSON.stringify({ t: 'joinRoom', roomId: savedRoom, playerName: name, deckArt: activeDeckArt() }));
     }
   };
   ws.onmessage = e => handle(JSON.parse(e.data));
@@ -318,6 +319,7 @@ function gameOptions() {
     mode: selectedGameMode,
     goalScore: selectedGameMode === 'board' ? 121 : null,
     deckArt: activeDeckArt(),
+    deckEffects: waitingDeckEffects,
   };
 }
 
@@ -573,7 +575,10 @@ function showView(v) {
     document.body.classList.remove('my-turn', 'mode-board', 'phase-discard', 'phase-pegging', 'phase-scoring', 'phase-roundEnd', 'phase-shop', 'phase-gameover');
     ensureBoardShell().classList.add('hidden');
   }
-  if (v === 'lobby') refreshSoloContinue();
+  if (v === 'lobby') {
+    waitingDeckEffects = true;
+    refreshSoloContinue();
+  }
 }
 
 function toast(text) {
@@ -818,6 +823,14 @@ function activeDeckArt() {
   return (p && p.deckArt) || selectedDeckArt || 'classic';
 }
 
+function normalizeDeckArtId(id) {
+  return DECK_ARTS.some(a => a.id === id) ? id : 'classic';
+}
+
+function deckEffectsOn(st) {
+  return !st || !st.you || st.you.deckEffects !== false;
+}
+
 function animateDeckBackground(now = 0) {
   const root = document.documentElement;
   root.style.setProperty('--deck-bg-x', `${now / 18}px`);
@@ -842,6 +855,7 @@ function animateDeckBackground(now = 0) {
 requestAnimationFrame(animateDeckBackground);
 
 function saveSelectedDeckArt(id) {
+  id = normalizeDeckArtId(id);
   selectedDeckArt = id;
   localStorage.setItem('crib_deck_art', id);
   const pin = activeProfilePin();
@@ -959,6 +973,11 @@ function recordSoloResult(st) {
   renderProfileStatus();
 }
 
+function selectDeckArt(id, sync = true) {
+  saveSelectedDeckArt(id);
+  if (sync && view === 'waiting') sendMsg({ t: 'setDeckArt', deckArt: id });
+}
+
 function showLeaderboard() {
   const profiles = Object.values(readProfiles())
     .filter(p => p && p.name)
@@ -1014,7 +1033,7 @@ function showDeckArtShop() {
       prof.updatedAt = Date.now();
       all[activePin] = prof;
       writeProfiles(all);
-      saveSelectedDeckArt(id);
+      selectDeckArt(id);
       showDeckArtShop();
       toast(bought ? `${art.name} bought and selected.` : `${art.name} selected.`);
     };
@@ -1265,11 +1284,14 @@ function renderWaiting(msg) {
   for (const p of msg.players) {
     const div = document.createElement('div');
     div.className = 'wp' + (p.connected ? '' : ' off');
-    div.textContent = `${p.name}${p.id === msg.hostId ? ' (host)' : ''}${p.connected ? '' : ' - disconnected'}`;
+    div.innerHTML = `<span class="wait-player-main">${esc(p.name)}${p.id === msg.hostId ? ' (host)' : ''}${p.connected ? '' : ' - disconnected'}</span>`;
+    div.prepend(backEl(true, p.deckArt || 'classic'));
     el.appendChild(div);
   }
   const isHost = msg.youId === msg.hostId;
   const n = msg.players.filter(p => p.connected).length;
+  waitingDeckEffects = !(msg.room && msg.room.deckEffects === false);
+  renderWaitingDeckControls(msg, isHost);
   $('startBtn').classList.toggle('hidden', !isHost);
   $('startBtn').disabled = n < 2;
   const mode = normalizeMode(msg.room && msg.room.mode);
@@ -1280,6 +1302,38 @@ function renderWaiting(msg) {
       : mode === 'endless'
         ? `${n} players. Endless Blind: beat as many blinds as you can.`
         : `${n} players. Regular Blind: clear 9 blinds to win and earn a deck token.`;
+}
+
+function renderWaitingDeckControls(msg, isHost) {
+  const el = $('waitDeckControls');
+  if (!el) return;
+  const current = normalizeDeckArtId((msg.players.find(p => p.id === msg.youId) || {}).deckArt || activeDeckArt());
+  el.innerHTML = `<div class="wait-deck-title">Your deck</div>`;
+  const row = document.createElement('div');
+  row.className = 'wait-deck-row';
+  for (const art of DECK_ARTS) {
+    const btn = document.createElement('button');
+    btn.className = `wait-deck-choice${art.id === current ? ' selected' : ''}`;
+    btn.title = art.name;
+    btn.dataset.deck = art.id;
+    btn.appendChild(backEl(true, art.id));
+    btn.insertAdjacentHTML('beforeend', `<span>${esc(art.name)}</span>`);
+    btn.onclick = () => selectDeckArt(art.id);
+    row.appendChild(btn);
+  }
+  el.appendChild(row);
+  const effects = document.createElement('label');
+  effects.className = `wait-effects-toggle${isHost ? '' : ' disabled'}`;
+  effects.innerHTML = `<input type="checkbox" ${waitingDeckEffects ? 'checked' : ''} ${isHost ? '' : 'disabled'}>` +
+    `<span>Deck effects ${waitingDeckEffects ? 'on' : 'off'}</span>`;
+  if (isHost) {
+    const input = effects.querySelector('input');
+    input.onchange = () => {
+      waitingDeckEffects = input.checked;
+      sendMsg({ t: 'setDeckEffects', enabled: waitingDeckEffects });
+    };
+  }
+  el.appendChild(effects);
 }
 
 $('startBtn').onclick = () => sendMsg({ t: 'startGame', ...gameOptions() });
@@ -1294,9 +1348,9 @@ function cardEl(card, opts = {}) {
   return div;
 }
 
-function backEl(small) {
+function backEl(small, deckArt = activeDeckArt()) {
   const div = document.createElement('div');
-  div.className = `card back deck-${activeDeckArt()}` + (small ? ' small' : '');
+  div.className = `card back deck-${normalizeDeckArtId(deckArt)}` + (small ? ' small' : '');
   return div;
 }
 
@@ -1309,13 +1363,14 @@ function renderGame(st) {
   const turnP = st.players.find(p => p.seat === st.turnSeat);
   $('turnInfo').textContent =
     st.phase === 'pegging' && turnP ? (turnP.seat === st.mySeat ? 'Your turn' : `${turnP.name}'s turn`) : '';
-  const cosmicTarget = st.you && st.you.deckArt === 'cosmic' && st.cosmicTarget ? st.cosmicTarget : null;
+  const effectsOn = deckEffectsOn(st);
+  const cosmicTarget = effectsOn && st.you && st.you.deckArt === 'cosmic' && st.cosmicTarget ? st.cosmicTarget : null;
   if (cosmicTarget) $('turnInfo').textContent += `${$('turnInfo').textContent ? ' - ' : ''}Target ${cosmicTarget}`;
   $('exitSoloBtn').classList.toggle('hidden', !st.solo || st.phase === 'gameover');
   document.body.classList.remove('phase-discard', 'phase-pegging', 'phase-scoring', 'phase-roundEnd', 'phase-shop', 'phase-gameover');
   document.body.classList.add(`phase-${st.phase}`);
   document.body.classList.toggle('mode-board', st.mode === 'board');
-  document.body.classList.toggle('deck-neon-active', !!(st.you && st.you.deckArt === 'neon'));
+  document.body.classList.toggle('deck-neon-active', !!(effectsOn && st.you && st.you.deckArt === 'neon'));
   ensureBoardShell().classList.toggle('hidden', st.mode !== 'board' || st.phase !== 'scoring');
 
   const myMove = !!st.you && st.you.active &&
@@ -1433,7 +1488,7 @@ function renderSeats(st) {
     if (p.handCards && p.handCards.length) {
       p.handCards.forEach(c => backs.appendChild(cardEl(c, { small: true })));
     } else {
-      for (let c = 0; c < p.handCount; c++) backs.appendChild(backEl(true));
+      for (let c = 0; c < p.handCount; c++) backs.appendChild(backEl(true, p.deckArt));
     }
     seat.appendChild(backs);
     el.appendChild(seat);
@@ -1466,7 +1521,7 @@ function renderCenter(st) {
     stack.appendChild(el);
   }
   $('pegCount').textContent = st.phase === 'pegging' ? st.pegCount : '';
-  const cosmicTarget = st.you && st.you.deckArt === 'cosmic' && st.cosmicTarget ? st.cosmicTarget : null;
+  const cosmicTarget = deckEffectsOn(st) && st.you && st.you.deckArt === 'cosmic' && st.cosmicTarget ? st.cosmicTarget : null;
   if (cosmicTarget) $('pegCount').dataset.target = `Target ${cosmicTarget}`;
   else delete $('pegCount').dataset.target;
 }
@@ -1724,7 +1779,7 @@ function renderHandScore(st) {
     cards = you.hand || [];
   }
   const mods = st.mode === 'board' ? aggregateMods([]) : aggregateMods(you.jokers || []);
-  const target = st.you && st.you.deckArt === 'cosmic' ? st.cosmicTarget || 15 : 15;
+  const target = deckEffectsOn(st) && st.you && st.you.deckArt === 'cosmic' ? st.cosmicTarget || 15 : 15;
   const bd = scoreBreakdown(cards, st.starter || null, false, { shortcut: mods.shortcut, target });
   let score = buildScore(bd, mods, 'hand', cards, { starter: st.starter || null, coins: you.coins, target }).total;
   $('myScore').innerHTML = st.mode === 'board'
@@ -2125,7 +2180,7 @@ function playHandCard(cardId) {
 function peggingPreview(card, st) {
   const count = st.pegCount + cardValue(card.rank);
   if (count > 31) return { legal: false, points: 0, events: [] };
-  const target = st.you && st.you.deckArt === 'cosmic' ? st.cosmicTarget || 15 : 15;
+  const target = deckEffectsOn(st) && st.you && st.you.deckArt === 'cosmic' ? st.cosmicTarget || 15 : 15;
   const events = pegEvents(st.pegStack.concat([card]), count, { target });
   return {
     legal: true,
@@ -2451,7 +2506,7 @@ function scoreBlock(r, st, fresh) {
   const title = r.kind === 'crib'
     ? `${icon('crown')} ${esc(r.name)} - Crib`
     : esc(r.name) + (r.seat === st.mySeat ? ' (you)' : '');
-  const targetBadge = r.deckArt === 'cosmic' && st.cosmicTarget ? `<span class="target-pill">Target ${st.cosmicTarget}</span>` : '';
+  const targetBadge = r.deckEffects !== false && r.deckArt === 'cosmic' && st.cosmicTarget ? `<span class="target-pill">Target ${st.cosmicTarget}</span>` : '';
   div.innerHTML = `<div class="sb-head"><span>${title}</span>${targetBadge}</div>`;
 
   // hand cards + the shared starter (shows how the hand is scored)
@@ -2491,7 +2546,7 @@ function scoreBlock(r, st, fresh) {
   // Normal decks use Points x Mult. Neon rolls both values into their shared average first.
   const eqDelay = 300 + r.lines.length * 130;
   const eq = document.createElement('div');
-  const neon = r.deckArt === 'neon' && !r.noMult;
+  const neon = r.deckEffects !== false && r.deckArt === 'neon' && !r.noMult;
   const neonAvg = neon ? Math.round(((r.points + r.mult) / 2) * 10) / 10 : 0;
   eq.className = 'sb-equation' + (neon ? ' neon-eq' : '') + (fresh ? ' anim' : '');
   if (fresh) eq.style.animationDelay = eqDelay + 'ms';
@@ -3038,7 +3093,7 @@ function runAnimations(prev, st, refs = {}) {
       for (let i = 0; i < (p.discardCount || st.discardCount); i++) {
         setTimeout(() => {
           const tgt = document.querySelector('#cribPile .card');
-          if (tgt) flyClone(backEl(), fromRect, tgt.getBoundingClientRect(), 460, { rot: p.seat === st.mySeat ? -8 : 8 });
+          if (tgt) flyClone(backEl(false, p.deckArt), fromRect, tgt.getBoundingClientRect(), 460, { rot: p.seat === st.mySeat ? -8 : 8 });
         }, i * 110);
       }
     }
@@ -3100,7 +3155,7 @@ function runAnimations(prev, st, refs = {}) {
 
     // how much pegging Mult this play earned (raw event points), shown rising
     // off the count; if it was MY play, orbs stream into the Mult box.
-    const scoreTarget = st.you && st.you.deckArt === 'cosmic' ? st.cosmicTarget || 15 : 15;
+    const scoreTarget = deckEffectsOn(st) && st.you && st.you.deckArt === 'cosmic' ? st.cosmicTarget || 15 : 15;
     const gained = pegEvents(st.pegStack, st.pegCount, { target: scoreTarget }).reduce((s, e) => s + e.pts, 0);
     if (gained > 0) {
       showMultGainForSeat(prev, st, played.seat, gained);
