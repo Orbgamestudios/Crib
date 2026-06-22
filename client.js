@@ -20,6 +20,7 @@ const SOLO_SAVE_KEY = 'crib_solo_house_save_v1';
 const PROFILE_KEY = 'crib_profiles_v1';
 const ACTIVE_PROFILE_KEY = 'crib_active_profile_pin';
 const DIAG_KEY = 'crib_last_diagnostic_v1';
+const APP_BUILD = 'client-v98';
 
 // GitHub Pages (or any static host) has no WebSocket server: use P2P rooms.
 const P2P_MODE = location.hostname.endsWith('github.io') ||
@@ -55,6 +56,8 @@ let waitingDeckEffects = true;
 let intentionalLobbyReturn = false;
 let p2pReconnectTimer = null;
 let deferredRender = false; // a state update arrived mid-drag; apply on release
+let lastUserAction = 'app start';
+const messageTrace = [];
 function normalizeMode(mode) {
   if (mode === 'board') return 'board';
   if (mode === 'endless') return 'endless';
@@ -272,7 +275,10 @@ function connectWs() {
       ws.send(JSON.stringify({ t: 'joinRoom', roomId: savedRoom, playerName: name, deckArt: activeDeckArt() }));
     }
   };
-  ws.onmessage = e => handle(JSON.parse(e.data));
+  ws.onmessage = e => {
+    try { safeHandle(JSON.parse(e.data), 'websocket'); }
+    catch (err) { reportCrash('Crash reading server message', err, { raw: e.data }); }
+  };
   ws.onclose = () => {
     wsOpen = false;
     toast('Connection lost - reconnecting...');
@@ -282,6 +288,7 @@ function connectWs() {
 
 function sendMsg(msg) {
   playMessageSfx(msg);
+  lastUserAction = msg && msg.t ? `sent ${msg.t}` : 'sent message';
   if (msg && (msg.t === 'leaveRoom' || msg.t === 'backToLobby')) intentionalLobbyReturn = true;
   if (hostSession) hostSession.handleLocal(msg);
   else if (guestConn && guestConn.open) guestConn.send(msg);
@@ -336,7 +343,7 @@ function modeLabel(mode, goal) {
 async function hostTable() {
   const { HostSession, makeCode } = await import('./net/host.js');
   const code = makeCode();
-  hostSession = new HostSession(code, myName(), msg => handle(msg), (status, detail) => {
+  hostSession = new HostSession(code, myName(), msg => safeHandle(msg, 'host'), (status, detail) => {
     if (status === 'code-taken') { hostSession = null; toast('Code collision - try again.'); }
     else if (status === 'error') {
       hostSession = null;
@@ -374,7 +381,7 @@ function joinByCode(code) {
       clearTimeout(failTimer);
       guestConn.send({ t: 'joinRoom', playerName: myName(), deckArt: activeDeckArt() });
     });
-    guestConn.on('data', msg => handle(msg));
+    guestConn.on('data', msg => safeHandle(msg, 'direct guest'));
     guestConn.on('close', () => {
       clearTimeout(failTimer);
       if (!fallingBack) recoverP2pGuest('direct host connection closed');
@@ -459,7 +466,7 @@ function joinByMqttCode(code) {
       joined = true;
       clearTimeout(failTimer);
     }
-    if (envelope.msg) handle(envelope.msg);
+    if (envelope.msg) safeHandle(envelope.msg, 'relay guest');
   };
   for (let i = 0; i < P2P_LOBBY_BROKERS.length; i++) {
     const client = window.mqtt.connect(P2P_LOBBY_BROKERS[i], {
@@ -511,6 +518,35 @@ function stopMqttSync() {
 
 function makeMsgId() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2);
+}
+
+function compactJson(value, limit = 2400) {
+  let text;
+  try { text = JSON.stringify(value); }
+  catch (err) { text = String(value); }
+  if (text && text.length > limit) return `${text.slice(0, limit)}...`;
+  return text || '';
+}
+
+function rememberMessage(source, msg) {
+  const entry = {
+    at: new Date().toISOString(),
+    source,
+    type: msg && msg.t || typeof msg,
+    phase: msg && msg.state && msg.state.phase || '',
+    summary: compactJson(msg, 700),
+  };
+  messageTrace.push(entry);
+  while (messageTrace.length > 8) messageTrace.shift();
+}
+
+function safeHandle(msg, source = 'message') {
+  rememberMessage(source, msg);
+  try {
+    handle(msg);
+  } catch (err) {
+    reportCrash(`Crash while handling ${msg && msg.t || 'message'}`, err, { source, message: compactJson(msg) });
+  }
 }
 
 function leaveP2p() {
@@ -622,18 +658,65 @@ function showView(v) {
   }
 }
 
-function recordDiagnostic(title, detail = '') {
+function recordDiagnostic(title, detail = '', extra = {}) {
   const diag = {
     title: String(title || 'Diagnostic'),
     detail: String(detail || ''),
+    build: APP_BUILD,
     view,
     roomId: myRoomId || '',
     p2p: !!P2P_MODE,
+    phase: lastState && lastState.phase || '',
+    mode: lastState && lastState.mode || selectedGameMode || '',
+    lastAction: lastUserAction,
+    recentMessages: messageTrace.slice(),
+    url: location.href,
+    userAgent: navigator.userAgent,
     at: new Date().toLocaleString(),
+    ...extra,
   };
   try { localStorage.setItem(DIAG_KEY, JSON.stringify(diag)); } catch { /* ignore */ }
   console.warn('[Crib diagnostic]', diag);
   return diag;
+}
+
+function diagnosticText(diag) {
+  return [
+    `${diag.title || 'Diagnostic'} (${diag.at || 'unknown time'})`,
+    `Detail: ${diag.detail || ''}`,
+    `Build: ${diag.build || ''}`,
+    `View: ${diag.view || ''}`,
+    `Phase: ${diag.phase || ''}`,
+    `Mode: ${diag.mode || ''}`,
+    `Room: ${diag.roomId || ''}`,
+    `P2P: ${diag.p2p ? 'yes' : 'no'}`,
+    `Last action: ${diag.lastAction || ''}`,
+    `URL: ${diag.url || ''}`,
+    `User agent: ${diag.userAgent || ''}`,
+    diag.stack ? `\nStack:\n${diag.stack}` : '',
+    diag.message ? `\nMessage:\n${diag.message}` : '',
+    diag.raw ? `\nRaw:\n${diag.raw}` : '',
+    `\nRecent messages:\n${(diag.recentMessages || []).map(m => `${m.at} ${m.source} ${m.type} ${m.phase} ${m.summary}`).join('\n')}`,
+  ].filter(Boolean).join('\n');
+}
+
+async function copyDiagnostic(diag) {
+  const text = diagnosticText(diag);
+  try {
+    await navigator.clipboard.writeText(text);
+    toast('Crash report copied.');
+  } catch {
+    showInfo('Crash Report', `<textarea class="diagnostic-copy" readonly>${esc(text)}</textarea>`);
+  }
+}
+
+function showDiagnosticDetails(diag) {
+  showInfo('Crash Report', `<div class="diagnostic-details">
+    <p>This is saved locally so you can send it after a crash drops you back here.</p>
+    <textarea class="diagnostic-copy" readonly>${esc(diagnosticText(diag))}</textarea>
+    <button id="copyDiagBtn" class="btn primary wide" type="button">Copy Report</button>
+  </div>`);
+  $('copyDiagBtn').onclick = () => copyDiagnostic(diag);
 }
 
 function renderDiagnosticBanner() {
@@ -643,12 +726,28 @@ function renderDiagnosticBanner() {
   try { diag = JSON.parse(localStorage.getItem(DIAG_KEY) || 'null'); } catch { diag = null; }
   if (!diag) { el.classList.add('hidden'); el.innerHTML = ''; return; }
   el.classList.remove('hidden');
-  el.innerHTML = `<b>${esc(diag.title)}</b><span>${esc(diag.detail || '')}</span><small>${esc(diag.at || '')}${diag.roomId ? ` - room ${esc(diag.roomId)}` : ''}</small><button type="button" class="btn small">Dismiss</button>`;
-  const btn = el.querySelector('button');
-  if (btn) btn.onclick = () => {
+  el.innerHTML = `<b>${esc(diag.title)}</b><span>${esc(diag.detail || '')}</span><small>${esc(diag.at || '')}${diag.phase ? ` - ${esc(diag.phase)}` : ''}${diag.roomId ? ` - room ${esc(diag.roomId)}` : ''}</small><div class="diagnostic-actions"><button type="button" class="btn small" data-diag="details">Details</button><button type="button" class="btn small" data-diag="copy">Copy</button><button type="button" class="btn small" data-diag="dismiss">Dismiss</button></div>`;
+  const detailsBtn = el.querySelector('[data-diag="details"]');
+  const copyBtn = el.querySelector('[data-diag="copy"]');
+  const dismissBtn = el.querySelector('[data-diag="dismiss"]');
+  if (detailsBtn) detailsBtn.onclick = () => showDiagnosticDetails(diag);
+  if (copyBtn) copyBtn.onclick = () => copyDiagnostic(diag);
+  if (dismissBtn) dismissBtn.onclick = () => {
     localStorage.removeItem(DIAG_KEY);
     renderDiagnosticBanner();
   };
+}
+
+function reportCrash(title, err, extra = {}) {
+  const detail = err && (err.message || String(err)) || 'Unknown error';
+  const diag = recordDiagnostic(title, detail, {
+    stack: err && err.stack || '',
+    ...extra,
+  });
+  showView('lobby');
+  renderDiagnosticBanner();
+  toast('Crash report saved on the home screen.');
+  return diag;
 }
 
 function forceLobby(reason, meta = {}) {
@@ -675,14 +774,13 @@ function toast(text) {
 }
 
 window.addEventListener('error', e => {
-  recordDiagnostic('JavaScript error', `${e.message || 'Unknown error'}${e.filename ? ` at ${e.filename}:${e.lineno || 0}` : ''}`);
-  if (view === 'lobby') renderDiagnosticBanner();
+  const err = e.error || new Error(`${e.message || 'Unknown error'}${e.filename ? ` at ${e.filename}:${e.lineno || 0}` : ''}`);
+  reportCrash('JavaScript error', err, { filename: e.filename || '', line: e.lineno || 0, column: e.colno || 0 });
 });
 
 window.addEventListener('unhandledrejection', e => {
-  const reason = e.reason && (e.reason.stack || e.reason.message || String(e.reason));
-  recordDiagnostic('Unhandled app error', reason || 'Unknown promise rejection');
-  if (view === 'lobby') renderDiagnosticBanner();
+  const err = e.reason instanceof Error ? e.reason : new Error(e.reason && String(e.reason) || 'Unknown promise rejection');
+  reportCrash('Unhandled app error', err);
 });
 
 function showInfo(title, body) {
@@ -694,6 +792,11 @@ function showInfo(title, body) {
 }
 
 document.addEventListener('click', e => {
+  const actionEl = e.target.closest('button, .card, .shop-item, .jtile, .sell-cell, .info-btn, [data-solo-deck]');
+  if (actionEl) {
+    const label = actionEl.textContent && actionEl.textContent.trim().replace(/\s+/g, ' ').slice(0, 80);
+    lastUserAction = `clicked ${actionEl.id || actionEl.dataset && Object.keys(actionEl.dataset)[0] || actionEl.className || actionEl.tagName}${label ? ` (${label})` : ''}`;
+  }
   const stamp = e.target.closest('.stamp-pill');
   if (stamp) {
     e.stopPropagation();
@@ -701,7 +804,7 @@ document.addEventListener('click', e => {
     showInfo('Stamp', `<p>${esc(stampText(stamp.dataset.stamp))}</p>`);
     return;
   }
-  if (e.target.closest('button, .card, .shop-item, .jtile, .sell-cell, .info-btn')) sfx('click');
+  if (actionEl) sfx('click');
 });
 
 $('howToBtn').innerHTML = icon('info', 'How to Play');
@@ -1269,7 +1372,7 @@ async function startSoloVsHouse(deckArt) {
   $('infoOverlay').classList.add('hidden');
   if (P2P_MODE) {
     const { HostSession, makeCode } = await import('./net/host.js');
-    hostSession = new HostSession(makeCode(), myName(), msg => handle(msg), () => {}, { solo: true, saveKey: SOLO_SAVE_KEY, ...gameOptions() });
+    hostSession = new HostSession(makeCode(), myName(), msg => safeHandle(msg, 'solo host'), () => {}, { solo: true, saveKey: SOLO_SAVE_KEY, ...gameOptions() });
   } else {
     sendMsg({ t: 'createSolo', playerName: myName(), ...gameOptions() });
   }
@@ -1299,7 +1402,7 @@ async function continueSoloRun() {
   $('nameInput').value = hostName;
   $('infoOverlay').classList.add('hidden');
   const { HostSession, makeCode } = await import('./net/host.js');
-  hostSession = new HostSession(makeCode(), hostName, msg => handle(msg), () => {}, {
+  hostSession = new HostSession(makeCode(), hostName, msg => safeHandle(msg, 'solo restore'), () => {}, {
     solo: true,
     saveKey: SOLO_SAVE_KEY,
     restoreState: saved,

@@ -154,7 +154,16 @@ body.my-turn #bgRush { opacity: 0.6; animation-play-state: running; }
 .diagnostic-banner span,
 .diagnostic-banner small { grid-column: 1; overflow-wrap: anywhere; }
 .diagnostic-banner small { opacity: 0.72; font-size: 12px; }
-.diagnostic-banner button { grid-column: 2; grid-row: 1 / span 3; }
+.diagnostic-actions {
+  grid-column: 2; grid-row: 1 / span 3;
+  display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end;
+}
+.diagnostic-details { display: grid; gap: 10px; }
+.diagnostic-copy {
+  width: 100%; min-height: 260px; resize: vertical; box-sizing: border-box;
+  padding: 10px; border-radius: 8px; border: 1px solid #ffffff33;
+  background: #081420; color: var(--cream); font: 12px/1.35 ui-monospace, SFMono-Regular, Consolas, monospace;
+}
 .profile-status {
   min-height: 18px; margin: -4px 0 10px; color: var(--gold);
   font-size: 12px; opacity: 0.85;
