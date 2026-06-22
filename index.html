@@ -12,7 +12,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Crib">
-<link rel="stylesheet" href="style.css?v=79">
+<link rel="stylesheet" href="style.css?v=80">
 <script src="https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js" defer></script>
 <script src="https://unpkg.com/mqtt/dist/mqtt.min.js" defer></script>
 </head>
@@ -27,8 +27,6 @@
   <div class="row lobby-actions">
     <button id="howToBtn" class="btn small"><span class="ui-icon icon-info" aria-hidden="true"></span>How to Play</button>
     <button id="profileBtn" class="btn small">Profile</button>
-    <button id="deckArtBtn" class="btn small">Decks</button>
-    <button id="leaderBtn" class="btn small">Leaderboard</button>
   </div>
   <div class="panel">
     <label>Your name</label>
@@ -48,13 +46,8 @@
     </div>
     <div id="p2pPanel" class="hidden">
       <button id="hostBtn" class="btn primary wide">Host a Table</button>
-      <div class="or">- or -</div>
-      <div class="row">
-        <input id="codeInput" maxlength="5" placeholder="Table code" autocapitalize="characters" autocomplete="off" style="width:100px;">
-        <button id="joinCodeBtn" class="btn primary">Join</button>
-      </div>
       <div style="margin-top:10px;font-size:12px;opacity:0.6;line-height:1.4">
-        One player clicks <b>Host a Table</b> and shares the 5-letter code. Others enter the code and click <b>Join</b>.
+        Host a table or join from the open tables list below.
       </div>
     </div>
     <button id="soloBtn" class="btn wide" style="margin-top:10px"><span class="ui-icon icon-bot" aria-hidden="true"></span>Play Solo vs The House</button>
@@ -194,6 +187,6 @@
 <div id="fx"></div>
 <div id="toast" class="hidden"></div>
 
-<script type="module" src="client.js?v=96"></script>
+<script type="module" src="client.js?v=97"></script>
 </body>
 </html>

@@ -706,7 +706,6 @@ document.addEventListener('click', e => {
 
 $('howToBtn').innerHTML = icon('info', 'How to Play');
 $('profileBtn').textContent = 'Profile';
-$('leaderBtn').textContent = 'Leaderboard';
 $('soloBtn').innerHTML = icon('bot', 'Play Solo vs The House');
 $('syncBtn').innerHTML = icon('refresh');
 $('exitSoloBtn').textContent = 'Exit';
@@ -720,6 +719,7 @@ continueSoloBtn.className = 'btn primary wide';
 continueSoloBtn.style.marginTop = '10px';
 continueSoloBtn.innerHTML = icon('deck', 'Continue Solo Run');
 $('soloBtn').insertAdjacentElement('beforebegin', continueSoloBtn);
+continueSoloBtn.classList.add('hidden');
 refreshSoloContinue();
 
 $('infoClose').onclick = () => $('infoOverlay').classList.add('hidden');
@@ -783,6 +783,13 @@ function showHowToPlay() {
     <b>booster packs</b> - open a pack to pick 1 of 3 (jokers, tarots, or cards
     to add to your deck). Tap a shop card to flip it and read it, tap again to
     buy. Reroll for fresh stock.</p>
+
+    <h4>Deck styles</h4>
+    <p>Before a House run or while waiting at a table, choose a deck. Hosts can
+    turn deck effects off so decks become artwork only.</p>
+    <ul>
+      ${DECK_ARTS.map(d => `<li><b>${esc(d.name)}</b>: ${esc(d.desc)}</li>`).join('')}
+    </ul>
 
     <h4>Strategy</h4>
     <ul>
@@ -932,17 +939,17 @@ function generateLightningSvg(seed, width, height, color = '#63f7ff') {
     return n / 4294967296;
   };
   const pts = [];
-  const steps = 9;
-  const startY = 18 + rand() * (height - 36);
+  const steps = 8;
+  const startY = height * (0.32 + rand() * 0.36);
   for (let i = 0; i <= steps; i++) {
     const x = -18 + (width + 36) * (i / steps);
-    const y = startY + (rand() - 0.5) * height * 0.72 + Math.sin(i * 1.45 + seed) * height * 0.11;
+    const y = startY + (rand() - 0.5) * height * 0.44 + Math.sin(i * 1.45 + seed) * height * 0.12;
     pts.push([Math.round(x), Math.round(Math.max(-12, Math.min(height + 12, y)))]);
   }
   const path = pts.map((p, i) => `${i ? 'L' : 'M'}${p[0]} ${p[1]}`).join(' ');
   const branches = [];
   for (let i = 2; i < pts.length - 1; i++) {
-    if (rand() < 0.82) {
+    if (rand() < 0.92) {
       const [x, y] = pts[i];
       const dir = rand() < 0.5 ? -1 : 1;
       const len = 24 + rand() * 42;
@@ -961,14 +968,14 @@ function generateLightningSvg(seed, width, height, color = '#63f7ff') {
   const branchPath = branches.join(' ');
   const glow = encodeURIComponent(color);
   const core = encodeURIComponent('#ffffff');
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><g fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="${path} ${branchPath}" stroke="${glow}" stroke-width="8" stroke-opacity=".16"/><path d="${path} ${branchPath}" stroke="${glow}" stroke-width="4" stroke-opacity=".30"/><path d="${path}" stroke="${core}" stroke-width="1.8" stroke-opacity=".78"/><path d="${branchPath}" stroke="${core}" stroke-width="1.15" stroke-opacity=".56"/></g></svg>`;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><g fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="${path} ${branchPath}" stroke="${glow}" stroke-width="13" stroke-opacity=".24"/><path d="${path} ${branchPath}" stroke="${glow}" stroke-width="6" stroke-opacity=".50"/><path d="${path}" stroke="${core}" stroke-width="2.8" stroke-opacity=".96"/><path d="${branchPath}" stroke="${core}" stroke-width="1.8" stroke-opacity=".76"/></g></svg>`;
   return `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
 }
 
 function initNeonLightning() {
   const root = document.documentElement;
-  root.style.setProperty('--neon-lightning-a', generateLightningSvg(0xC1A011, 260, 180, '#63f7ff'));
-  root.style.setProperty('--neon-lightning-b', generateLightningSvg(0xB0177A, 190, 145, '#8fe7ff'));
+  root.style.setProperty('--neon-lightning-a', generateLightningSvg(0xC1A011, 170, 125, '#63f7ff'));
+  root.style.setProperty('--neon-lightning-b', generateLightningSvg(0xB0177A, 140, 108, '#8fe7ff'));
 }
 initNeonLightning();
 
@@ -1044,16 +1051,40 @@ renderProfileStatus();
 
 function showProfile() {
   const p = activeProfile();
-  showInfo('Profile', `<div class="profile-box">
-    <label>Name</label>
-    <input id="profileNameInput" maxlength="16" value="${esc(myName() || (p && p.name) || '')}" placeholder="Your name">
-    <label>4-digit PIN</label>
-    <input id="profilePinInput" maxlength="4" inputmode="numeric" pattern="[0-9]*" value="${esc(activeProfilePin())}" placeholder="1234">
-    <div class="profile-actions">
-      <button id="profileSaveBtn" class="btn primary">Save Profile</button>
-      <button id="profileLogoutBtn" class="btn">Forget PIN</button>
+  const saved = readSoloSave();
+  const leaderboard = leaderboardRows();
+  const savedDeck = saved && saved.game && saved.game.players
+    ? (saved.game.players.find(x => !x.isBot) || {}).deckArt || 'classic'
+    : 'classic';
+  const savedRound = saved && saved.game ? saved.game.round || 1 : 1;
+  const savedScore = saved && saved.game && saved.game.players
+    ? (saved.game.players.find(x => !x.isBot) || {}).score || 0
+    : 0;
+  showInfo('Profile', `<div class="profile-box profile-grid">
+    <div class="profile-section">
+      <h4>Account</h4>
+      <label>Name</label>
+      <input id="profileNameInput" maxlength="16" value="${esc(myName() || (p && p.name) || '')}" placeholder="Your name">
+      <label>4-digit PIN</label>
+      <input id="profilePinInput" maxlength="4" inputmode="numeric" pattern="[0-9]*" value="${esc(activeProfilePin())}" placeholder="1234">
+      <div class="profile-actions">
+        <button id="profileSaveBtn" class="btn primary">Save / Login</button>
+        <button id="profileLogoutBtn" class="btn">Forget PIN</button>
+      </div>
+      <p class="hint">Profiles and leaderboard scores are saved on this device.</p>
     </div>
-    <p class="hint">Profiles and leaderboard scores are saved on this device.</p>
+    <div class="profile-section">
+      <h4>House Games</h4>
+      ${saved ? `<div class="solo-save-row"><b>Saved House run</b><span>Round ${savedRound} - ${Math.round(savedScore)} points</span><div class="card back deck-${esc(savedDeck)} small"></div><button id="profileContinueSoloBtn" class="btn primary wide">Continue Run</button></div>` : '<p class="hint">No saved House run on this device.</p>'}
+    </div>
+    <div class="profile-section">
+      <h4>Leaderboard</h4>
+      <div class="leaderboard">${leaderboard}</div>
+    </div>
+    <div class="profile-section">
+      <h4>Deck Collection</h4>
+      <button id="profileDecksBtn" class="btn wide">Choose Deck Artwork</button>
+    </div>
   </div>`);
   const nameInput = $('profileNameInput');
   const pinInput = $('profilePinInput');
@@ -1086,6 +1117,9 @@ function showProfile() {
     renderProfileStatus();
     toast('PIN forgotten on this device.');
   };
+  const cont = $('profileContinueSoloBtn');
+  if (cont) cont.onclick = () => continueSoloRun();
+  $('profileDecksBtn').onclick = () => showDeckArtShop();
 }
 
 function recordSoloResult(st) {
@@ -1121,13 +1155,17 @@ function selectDeckArt(id, sync = true) {
   if (sync && view === 'waiting') sendMsg({ t: 'setDeckArt', deckArt: id });
 }
 
-function showLeaderboard() {
+function leaderboardRows() {
   const profiles = Object.values(readProfiles())
     .filter(p => p && p.name)
     .sort((a, b) => (b.bestBlind || 0) - (a.bestBlind || 0) || (b.bestScore || 0) - (a.bestScore || 0) || a.name.localeCompare(b.name));
-  const rows = profiles.length ? profiles.map((p, i) =>
+  return profiles.length ? profiles.map((p, i) =>
     `<div class="leader-row"><span>${i + 1}. ${esc(p.name)}</span><span>Blind ${p.bestBlind || 0}</span><span>${p.bestScore || 0} pts</span></div>`
   ).join('') : '<p class="hint">No solo runs recorded yet. Save a profile, play The House, then come back.</p>';
+}
+
+function showLeaderboard() {
+  const rows = leaderboardRows();
   showInfo('Leaderboard', `<div class="leaderboard">${rows}</div>`);
 }
 
@@ -1184,8 +1222,6 @@ function showDeckArtShop() {
 }
 
 $('profileBtn').onclick = () => showProfile();
-$('deckArtBtn').onclick = () => showDeckArtShop();
-$('leaderBtn').onclick = () => showLeaderboard();
 
 function syncModeControls() {
   document.querySelectorAll('#modeToggle button').forEach(btn => {
@@ -1205,14 +1241,9 @@ syncModeControls();
 if (P2P_MODE) {
   $('wsPanel').classList.add('hidden');
   $('p2pPanel').classList.remove('hidden');
-  $('codeInput').value = sessionStorage.getItem('crib_code') || '';
   $('hostBtn').onclick = () => {
     if (!myName()) return toast('Enter a name first.');
     hostTable();
-  };
-  $('joinCodeBtn').onclick = () => {
-    if (!myName()) return toast('Enter a name first.');
-    joinByCode($('codeInput').value);
   };
   $('refreshBtn').onclick = () => {
     pruneP2pRooms();
@@ -1228,29 +1259,54 @@ if (P2P_MODE) {
   $('refreshBtn').onclick = () => sendMsg({ t: 'listRooms' });
 }
 
-$('soloBtn').onclick = async () => {
+$('soloBtn').onclick = () => {
   if (!myName()) return toast('Enter a name first.');
+  showSoloDeckPicker();
+};
+
+async function startSoloVsHouse(deckArt) {
+  selectDeckArt(deckArt, false);
+  $('infoOverlay').classList.add('hidden');
   if (P2P_MODE) {
     const { HostSession, makeCode } = await import('./net/host.js');
     hostSession = new HostSession(makeCode(), myName(), msg => handle(msg), () => {}, { solo: true, saveKey: SOLO_SAVE_KEY, ...gameOptions() });
   } else {
     sendMsg({ t: 'createSolo', playerName: myName(), ...gameOptions() });
   }
-};
+}
 
-continueSoloBtn.onclick = async () => {
+function showSoloDeckPicker() {
+  const active = activeDeckArt();
+  const cards = DECK_ARTS.map(art => `<div class="deck-art-item${active === art.id ? ' selected' : ''}" data-solo-deck="${art.id}">
+    <div class="card back deck-${art.id} preview"></div>
+    <div class="deck-art-copy">
+      <b>${esc(art.name)}</b>
+      <span>${esc(art.desc)}</span>
+      <small>${art.animated ? 'Animated' : 'Classic'}</small>
+    </div>
+  </div>`).join('');
+  showInfo('Choose Deck', `<div class="solo-deck-picker">${cards}</div>`);
+  document.querySelectorAll('[data-solo-deck]').forEach(el => {
+    el.onclick = () => startSoloVsHouse(el.dataset.soloDeck);
+  });
+}
+
+async function continueSoloRun() {
   const saved = readSoloSave();
   if (!saved) return refreshSoloContinue();
   const hostName = (saved.game && saved.game.players && saved.game.players.find(p => !p.isBot)?.name) || myName() || 'Player';
   localStorage.setItem('crib_name', hostName);
   $('nameInput').value = hostName;
+  $('infoOverlay').classList.add('hidden');
   const { HostSession, makeCode } = await import('./net/host.js');
   hostSession = new HostSession(makeCode(), hostName, msg => handle(msg), () => {}, {
     solo: true,
     saveKey: SOLO_SAVE_KEY,
     restoreState: saved,
   });
-};
+}
+
+continueSoloBtn.onclick = () => continueSoloRun();
 
 function readSoloSave() {
   try {
@@ -1266,7 +1322,7 @@ function readSoloSave() {
 }
 
 function refreshSoloContinue() {
-  continueSoloBtn.classList.toggle('hidden', !readSoloSave());
+  continueSoloBtn.classList.add('hidden');
 }
 
 $('syncBtn').onclick = () => { sendMsg({ t: 'sync' }); toast('Refreshed.'); };

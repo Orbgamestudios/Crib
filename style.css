@@ -13,6 +13,7 @@
 }
 
 html, body { height: 100%; }
+html { overflow-x: hidden; }
 
 body {
   font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
@@ -20,6 +21,7 @@ body {
   color: var(--cream);
   min-height: 100vh;
   overflow: hidden;
+  overflow-x: hidden;
   -webkit-tap-highlight-color: transparent;
   padding: env(safe-area-inset-top) env(safe-area-inset-right) 0 env(safe-area-inset-left);
 }
@@ -94,6 +96,9 @@ body.my-turn #bgRush { opacity: 0.6; animation-play-state: running; }
   height: 100vh;
   height: 100dvh;
   overflow-y: auto;
+  overflow-x: hidden;
+  width: 100%;
+  box-sizing: border-box;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
 }
@@ -160,6 +165,15 @@ body.my-turn #bgRush { opacity: 0.6; animation-play-state: running; }
   background: var(--panel-light); color: var(--cream); font-size: 16px;
 }
 .profile-actions { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+.profile-grid { display: grid; gap: 14px; }
+.profile-section { display: grid; gap: 8px; }
+.profile-section h4 { margin: 0; color: var(--gold); }
+.profile-section .wide { width: 100%; }
+.solo-save-row {
+  display: grid; gap: 6px; padding: 10px; background: #ffffff0d;
+  border: 1px solid #ffffff1f; border-radius: 8px;
+}
+.solo-save-row b { color: var(--cream); }
 .leaderboard { display: grid; gap: 8px; }
 .leader-row {
   display: grid; grid-template-columns: 1fr auto auto; gap: 10px; align-items: center;
@@ -168,6 +182,8 @@ body.my-turn #bgRush { opacity: 0.6; animation-play-state: running; }
 .leader-row span:first-child { font-weight: 700; color: var(--cream); }
 .leader-row span:not(:first-child) { color: var(--gold); font-weight: 600; white-space: nowrap; }
 .deck-art-shop { display: grid; gap: 10px; }
+.solo-deck-picker { display: grid; gap: 10px; }
+.solo-deck-picker .deck-art-item { cursor: pointer; }
 .deck-token-row { color: var(--gold); font-weight: 800; }
 .deck-art-item {
   display: grid; grid-template-columns: 58px 1fr auto; gap: 12px; align-items: center;
@@ -545,7 +561,7 @@ body.mode-board .seat-blind-fill {
     var(--neon-lightning-a),
     var(--neon-lightning-b),
     radial-gradient(circle at 50% 50%, #33415a, #0c1220 70%);
-  background-size: 100% 100%, 210px 140px, 150px 110px, 100% 100%;
+  background-size: 100% 100%, 132px 96px, 104px 82px, 100% 100%;
   background-position:
     0 0,
     calc(var(--neon-bolt-x, 0px) - var(--deck-card-left, 0px)) calc(var(--neon-bolt-y, 0px) - var(--deck-card-top, 0px)),
