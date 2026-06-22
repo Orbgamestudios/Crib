@@ -12,7 +12,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Crib">
-<link rel="stylesheet" href="style.css?v=76">
+<link rel="stylesheet" href="style.css?v=77">
 <script src="https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js" defer></script>
 <script src="https://unpkg.com/mqtt/dist/mqtt.min.js" defer></script>
 </head>
@@ -23,6 +23,7 @@
 <div id="lobby" class="view">
   <h1>♠ CRIB ♥</h1>
   <p class="tagline">Roguelike cribbage - beat the blind or bust out</p>
+  <div id="diagnosticBanner" class="diagnostic-banner hidden"></div>
   <div class="row lobby-actions">
     <button id="howToBtn" class="btn small"><span class="ui-icon icon-info" aria-hidden="true"></span>How to Play</button>
     <button id="profileBtn" class="btn small">Profile</button>
@@ -193,6 +194,6 @@
 <div id="fx"></div>
 <div id="toast" class="hidden"></div>
 
-<script type="module" src="client.js?v=92"></script>
+<script type="module" src="client.js?v=93"></script>
 </body>
 </html>

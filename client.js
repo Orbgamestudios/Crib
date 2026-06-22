@@ -19,6 +19,7 @@ const ANIM = 1.9; // global animation slowdown - everything glides ~half speed
 const SOLO_SAVE_KEY = 'crib_solo_house_save_v1';
 const PROFILE_KEY = 'crib_profiles_v1';
 const ACTIVE_PROFILE_KEY = 'crib_active_profile_pin';
+const DIAG_KEY = 'crib_last_diagnostic_v1';
 
 // GitHub Pages (or any static host) has no WebSocket server: use P2P rooms.
 const P2P_MODE = location.hostname.endsWith('github.io') ||
@@ -51,6 +52,8 @@ let pointerCardDrag = null;
 let lastCoinPopKey = '';
 let lastRecordedRunKey = '';
 let waitingDeckEffects = true;
+let intentionalLobbyReturn = false;
+let p2pReconnectTimer = null;
 let deferredRender = false; // a state update arrived mid-drag; apply on release
 function normalizeMode(mode) {
   if (mode === 'board') return 'board';
@@ -279,6 +282,7 @@ function connectWs() {
 
 function sendMsg(msg) {
   playMessageSfx(msg);
+  if (msg && (msg.t === 'leaveRoom' || msg.t === 'backToLobby')) intentionalLobbyReturn = true;
   if (hostSession) hostSession.handleLocal(msg);
   else if (guestConn && guestConn.open) guestConn.send(msg);
   else if (mqttGuest && mqttGuest.open) mqttGuest.send(msg, { qos: 1 });
@@ -334,7 +338,10 @@ async function hostTable() {
   const code = makeCode();
   hostSession = new HostSession(code, myName(), msg => handle(msg), (status, detail) => {
     if (status === 'code-taken') { hostSession = null; toast('Code collision - try again.'); }
-    else if (status === 'error') { hostSession = null; toast('Connection service error: ' + detail); showView('lobby'); }
+    else if (status === 'error') {
+      hostSession = null;
+      forceLobby('host connection service error', { detail });
+    }
   }, gameOptions());
   hostSession.peer.on('error', err => {
     console.warn('Host PeerJS error:', err.type);
@@ -368,21 +375,36 @@ function joinByCode(code) {
       guestConn.send({ t: 'joinRoom', playerName: myName(), deckArt: activeDeckArt() });
     });
     guestConn.on('data', msg => handle(msg));
-    guestConn.on('close', () => { clearTimeout(failTimer); if (!fallingBack) dropGuest('Connection to the host was lost.'); });
+    guestConn.on('close', () => {
+      clearTimeout(failTimer);
+      if (!fallingBack) recoverP2pGuest('direct host connection closed');
+    });
     guestConn.on('error', () => useRelay());
   });
   guestPeer.on('error', err => {
     clearTimeout(failTimer);
     if (err.type === 'peer-unavailable' || err.type === 'network') useRelay();
-    else dropGuest('Connection error: ' + err.type);
+    else dropGuest('Connection error: ' + err.type, { detail: err.type });
   });
 }
 
-function dropGuest(reason) {
+function recoverP2pGuest(reason) {
+  const code = sessionStorage.getItem('crib_code') || myRoomId;
+  if (!code || !/^[A-Z0-9]{5}$/.test(code) || intentionalLobbyReturn) {
+    dropGuest('Connection to the host was lost.', { detail: reason });
+    return;
+  }
+  recordDiagnostic('connection hiccup', `${reason}; trying relay reconnect to ${code}`);
+  toast('Connection hiccup - trying to reconnect...');
+  clearGuestPeer();
+  clearTimeout(p2pReconnectTimer);
+  p2pReconnectTimer = setTimeout(() => joinByMqttCode(code), 250);
+}
+
+function dropGuest(reason, meta = {}) {
   if (!guestPeer && !mqttGuest) return;
   clearGuestTransports();
-  toast(reason);
-  showView('lobby');
+  forceLobby(reason, meta);
 }
 
 function joinByMqttCode(code) {
@@ -415,17 +437,18 @@ function joinByMqttCode(code) {
       if (client.connected) client.publish(hostTopic, joinEnvelope, { qos: 1 });
     }
   };
+  const failTimer = setTimeout(() => {
+    if (!joined) dropGuest('No table found with that code. Make sure the host tab is open.', { detail: `relay join timeout for ${code}` });
+  }, 12000);
   mqttGuest = {
     open: true,
     send: sendEnvelope,
     destroy() {
       this.open = false;
+      clearTimeout(failTimer);
       for (const client of clients) client.end(true);
     },
   };
-  const failTimer = setTimeout(() => {
-    if (!joined) dropGuest('No table found with that code. Make sure the host tab is open.');
-  }, 12000);
   const onMessage = (topic, payload) => {
     if (topic !== guestTopic) return;
     let envelope;
@@ -468,6 +491,8 @@ function clearMqttGuest() {
 }
 
 function clearGuestTransports() {
+  clearTimeout(p2pReconnectTimer);
+  p2pReconnectTimer = null;
   clearGuestPeer();
   clearMqttGuest();
 }
@@ -540,18 +565,23 @@ function handle(msg) {
       addLog(msg.text);
       break;
     case 'error':
+      recordDiagnostic('server/client error', msg.text || 'Unknown error');
       toast(msg.text);
       break;
     case 'hostLeft':
       dropGuest(msg.text || 'The host closed the table.');
       break;
     case 'left':
+      if (!intentionalLobbyReturn) {
+        recordDiagnostic('unexpected lobby return', 'Received a left message without pressing Leave/Exit.');
+      }
       myRoomId = null;
       sessionStorage.removeItem('crib_room');
       hostSession = null;
       stopMqttSync();
       clearGuestTransports();
       showView('lobby');
+      intentionalLobbyReturn = false;
       if (!P2P_MODE) renderRoomList(msg.rooms || []);
       refreshSoloContinue();
       break;
@@ -578,7 +608,50 @@ function showView(v) {
   if (v === 'lobby') {
     waitingDeckEffects = true;
     refreshSoloContinue();
+    renderDiagnosticBanner();
   }
+}
+
+function recordDiagnostic(title, detail = '') {
+  const diag = {
+    title: String(title || 'Diagnostic'),
+    detail: String(detail || ''),
+    view,
+    roomId: myRoomId || '',
+    p2p: !!P2P_MODE,
+    at: new Date().toLocaleString(),
+  };
+  try { localStorage.setItem(DIAG_KEY, JSON.stringify(diag)); } catch { /* ignore */ }
+  console.warn('[Crib diagnostic]', diag);
+  return diag;
+}
+
+function renderDiagnosticBanner() {
+  const el = $('diagnosticBanner');
+  if (!el) return;
+  let diag = null;
+  try { diag = JSON.parse(localStorage.getItem(DIAG_KEY) || 'null'); } catch { diag = null; }
+  if (!diag) { el.classList.add('hidden'); el.innerHTML = ''; return; }
+  el.classList.remove('hidden');
+  el.innerHTML = `<b>${esc(diag.title)}</b><span>${esc(diag.detail || '')}</span><small>${esc(diag.at || '')}${diag.roomId ? ` - room ${esc(diag.roomId)}` : ''}</small><button type="button" class="btn small">Dismiss</button>`;
+  const btn = el.querySelector('button');
+  if (btn) btn.onclick = () => {
+    localStorage.removeItem(DIAG_KEY);
+    renderDiagnosticBanner();
+  };
+}
+
+function forceLobby(reason, meta = {}) {
+  const detail = meta.detail ? `${reason}: ${meta.detail}` : reason;
+  recordDiagnostic('Returned to home screen', detail);
+  clearGuestTransports();
+  stopMqttSync();
+  myRoomId = null;
+  sessionStorage.removeItem('crib_room');
+  hostSession = null;
+  intentionalLobbyReturn = false;
+  toast(reason);
+  showView('lobby');
 }
 
 function toast(text) {
@@ -590,6 +663,17 @@ function toast(text) {
   clearTimeout(t._timer);
   t._timer = setTimeout(() => t.classList.add('hidden'), 3000);
 }
+
+window.addEventListener('error', e => {
+  recordDiagnostic('JavaScript error', `${e.message || 'Unknown error'}${e.filename ? ` at ${e.filename}:${e.lineno || 0}` : ''}`);
+  if (view === 'lobby') renderDiagnosticBanner();
+});
+
+window.addEventListener('unhandledrejection', e => {
+  const reason = e.reason && (e.reason.stack || e.reason.message || String(e.reason));
+  recordDiagnostic('Unhandled app error', reason || 'Unknown promise rejection');
+  if (view === 'lobby') renderDiagnosticBanner();
+});
 
 function showInfo(title, body) {
   $('infoTitle').textContent = title;

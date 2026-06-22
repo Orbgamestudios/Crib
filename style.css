@@ -138,6 +138,18 @@ body.my-turn #bgRush { opacity: 0.6; animation-play-state: running; }
   font: inherit;
 }
 .lobby-actions { flex-wrap: wrap; justify-content: center; }
+.diagnostic-banner {
+  width: min(640px, calc(100vw - 32px));
+  display: grid; grid-template-columns: 1fr auto; gap: 4px 10px;
+  align-items: center; padding: 10px 12px; border-radius: 8px;
+  border: 1px solid #ffb36e; background: #3a2215ee; color: var(--cream);
+  box-shadow: 0 8px 20px #0007;
+}
+.diagnostic-banner b { color: #ffd08c; }
+.diagnostic-banner span,
+.diagnostic-banner small { grid-column: 1; overflow-wrap: anywhere; }
+.diagnostic-banner small { opacity: 0.72; font-size: 12px; }
+.diagnostic-banner button { grid-column: 2; grid-row: 1 / span 3; }
 .profile-status {
   min-height: 18px; margin: -4px 0 10px; color: var(--gold);
   font-size: 12px; opacity: 0.85;
