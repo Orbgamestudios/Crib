@@ -542,14 +542,14 @@ body.mode-board .seat-blind-fill {
 .card.back.deck-neon {
   background:
     radial-gradient(circle at 50% 50%, #ffffff18 0 15%, transparent 16%),
-    linear-gradient(122deg, transparent 0 42%, #aafcff88 42.5% 43.4%, transparent 44% 58%, #ff6bd666 58.4% 59.2%, transparent 60%),
-    linear-gradient(90deg, transparent 0 8%, #63f7ff 8.5% 9.3%, transparent 9.8% 23%, #ff6bd6 23.5% 24.4%, transparent 25% 40%, #ffd76e 40.5% 41.3%, transparent 42% 58%, #63f7ff 58.5% 59.2%, transparent 60% 78%, #ff6bd6 78.4% 79.2%, transparent 80%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='210' height='140' viewBox='0 0 210 140'%3E%3Cg fill='none' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M-16 78 L28 50 L51 61 L84 34 L112 48 L149 18 L226 42' stroke='%2363f7ff' stroke-width='7' stroke-opacity='.20'/%3E%3Cpath d='M51 61 L39 92 M84 34 L94 10 M112 48 L127 76 M149 18 L141 55' stroke='%2363f7ff' stroke-width='5' stroke-opacity='.16'/%3E%3Cpath d='M-16 78 L28 50 L51 61 L84 34 L112 48 L149 18 L226 42' stroke='%23ffffff' stroke-width='2' stroke-opacity='.66'/%3E%3Cpath d='M51 61 L39 92 M84 34 L94 10 M112 48 L127 76 M149 18 L141 55' stroke='%23ffffff' stroke-width='1.4' stroke-opacity='.48'/%3E%3C/g%3E%3C/svg%3E"),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='110' viewBox='0 0 150 110'%3E%3Cg fill='none' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M-10 34 L20 47 L41 28 L61 35 L83 17 L105 28 L160 8' stroke='%238fe7ff' stroke-width='5' stroke-opacity='.18'/%3E%3Cpath d='M41 28 L33 11 M61 35 L70 58 M83 17 L88 42 M105 28 L98 49' stroke='%238fe7ff' stroke-width='3.5' stroke-opacity='.14'/%3E%3Cpath d='M-10 34 L20 47 L41 28 L61 35 L83 17 L105 28 L160 8' stroke='%23dffbff' stroke-width='1.5' stroke-opacity='.58'/%3E%3Cpath d='M41 28 L33 11 M61 35 L70 58 M83 17 L88 42 M105 28 L98 49' stroke='%23dffbff' stroke-width='1' stroke-opacity='.42'/%3E%3C/g%3E%3C/svg%3E"),
     radial-gradient(circle at 50% 50%, #33415a, #0c1220 70%);
-  background-size: 100% 100%, 210px 160px, 260px 100%, 100% 100%;
+  background-size: 100% 100%, 210px 140px, 150px 110px, 100% 100%;
   background-position:
     0 0,
     calc(var(--neon-bolt-x, 0px) - var(--deck-card-left, 0px)) calc(var(--neon-bolt-y, 0px) - var(--deck-card-top, 0px)),
-    calc(var(--deck-bg-x, 0px) - var(--deck-card-left, 0px)) calc(var(--deck-bg-y, 0px) - var(--deck-card-top, 0px)),
+    calc(var(--neon-bolt-x2, 0px) - var(--deck-card-left, 0px)) calc(var(--neon-bolt-y2, 0px) - var(--deck-card-top, 0px)),
     0 0;
   border-color: #8fe7ff;
 }

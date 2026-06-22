@@ -923,8 +923,10 @@ function animateDeckBackground(now = 0) {
   root.style.setProperty('--deck-bg-y2', `${now / 84}px`);
   root.style.setProperty('--deck-bg-x3', `${now / 46}px`);
   root.style.setProperty('--deck-bg-y3', `${now / 120}px`);
-  root.style.setProperty('--neon-bolt-x', `${now / 72}px`);
-  root.style.setProperty('--neon-bolt-y', `${now / 130}px`);
+  root.style.setProperty('--neon-bolt-x', `${now / 96}px`);
+  root.style.setProperty('--neon-bolt-y', `${now / 160}px`);
+  root.style.setProperty('--neon-bolt-x2', `${-(now / 140)}px`);
+  root.style.setProperty('--neon-bolt-y2', `${now / 210}px`);
   root.style.setProperty('--aurora-x', `${Math.sin(now / 2200) * 95}px`);
   root.style.setProperty('--aurora-y', `${Math.cos(now / 2500) * 62}px`);
   root.style.setProperty('--aurora-x2', `${Math.cos(now / 2600) * 80}px`);
