@@ -68,7 +68,7 @@ const DECK_ARTS = [
   { id: 'sapphire', name: 'Sapphire Run', cost: 0, desc: 'Blue deck: start each run with +1 joker slot.' },
   { id: 'ruby', name: 'Ruby Cut', cost: 0, desc: 'Red deck: spades become hearts and clubs become diamonds permanently.' },
   { id: 'aurora', name: 'Aurora Flow', cost: 0, animated: true, desc: 'Aurora deck: draw one extra card and discard one extra card to the crib.' },
-  { id: 'neon', name: 'Neon Circuit', cost: 0, animated: true, desc: 'Neon deck: score the square of the average of Hand and Mult, but your blinds are doubled.' },
+  { id: 'neon', name: 'Neon Circuit', cost: 0, animated: true, desc: 'Neon deck: score the square of the average of Hand and Mult, but your blinds are 2.5x higher.' },
   { id: 'cosmic', name: 'Cosmic Drift', cost: 0, animated: true, desc: 'Cosmic deck: see hands, reveal the crib after discards, and each deal replaces 15s with a mystery target.' },
 ];
 const FREE_DECK_IDS = DECK_ARTS.filter(a => a.cost === 0).map(a => a.id);
@@ -925,6 +925,53 @@ function deckEffectsOn(st) {
   return !st || !st.you || st.you.deckEffects !== false;
 }
 
+function generateLightningSvg(seed, width, height, color = '#63f7ff') {
+  let n = seed >>> 0;
+  const rand = () => {
+    n = (n * 1664525 + 1013904223) >>> 0;
+    return n / 4294967296;
+  };
+  const pts = [];
+  const steps = 9;
+  const startY = 18 + rand() * (height - 36);
+  for (let i = 0; i <= steps; i++) {
+    const x = -18 + (width + 36) * (i / steps);
+    const y = startY + (rand() - 0.5) * height * 0.72 + Math.sin(i * 1.45 + seed) * height * 0.11;
+    pts.push([Math.round(x), Math.round(Math.max(-12, Math.min(height + 12, y)))]);
+  }
+  const path = pts.map((p, i) => `${i ? 'L' : 'M'}${p[0]} ${p[1]}`).join(' ');
+  const branches = [];
+  for (let i = 2; i < pts.length - 1; i++) {
+    if (rand() < 0.82) {
+      const [x, y] = pts[i];
+      const dir = rand() < 0.5 ? -1 : 1;
+      const len = 24 + rand() * 42;
+      const bx = x + (18 + rand() * 28);
+      const by = y + dir * len;
+      const kinkX = x + 8 + rand() * 16;
+      const kinkY = y + dir * (10 + rand() * 18);
+      branches.push(`M${x} ${y} L${Math.round(kinkX)} ${Math.round(kinkY)} L${Math.round(bx)} ${Math.round(by)}`);
+      if (rand() < 0.45) {
+        const twigX = kinkX + 14 + rand() * 18;
+        const twigY = kinkY - dir * (8 + rand() * 18);
+        branches.push(`M${Math.round(kinkX)} ${Math.round(kinkY)} L${Math.round(twigX)} ${Math.round(twigY)}`);
+      }
+    }
+  }
+  const branchPath = branches.join(' ');
+  const glow = encodeURIComponent(color);
+  const core = encodeURIComponent('#ffffff');
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><g fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="${path} ${branchPath}" stroke="${glow}" stroke-width="8" stroke-opacity=".16"/><path d="${path} ${branchPath}" stroke="${glow}" stroke-width="4" stroke-opacity=".30"/><path d="${path}" stroke="${core}" stroke-width="1.8" stroke-opacity=".78"/><path d="${branchPath}" stroke="${core}" stroke-width="1.15" stroke-opacity=".56"/></g></svg>`;
+  return `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
+}
+
+function initNeonLightning() {
+  const root = document.documentElement;
+  root.style.setProperty('--neon-lightning-a', generateLightningSvg(0xC1A011, 260, 180, '#63f7ff'));
+  root.style.setProperty('--neon-lightning-b', generateLightningSvg(0xB0177A, 190, 145, '#8fe7ff'));
+}
+initNeonLightning();
+
 function animateDeckBackground(now = 0) {
   const root = document.documentElement;
   root.style.setProperty('--deck-bg-x', `${now / 18}px`);
@@ -933,10 +980,10 @@ function animateDeckBackground(now = 0) {
   root.style.setProperty('--deck-bg-y2', `${now / 84}px`);
   root.style.setProperty('--deck-bg-x3', `${now / 46}px`);
   root.style.setProperty('--deck-bg-y3', `${now / 120}px`);
-  root.style.setProperty('--neon-bolt-x', `${now / 96}px`);
-  root.style.setProperty('--neon-bolt-y', `${now / 160}px`);
-  root.style.setProperty('--neon-bolt-x2', `${-(now / 140)}px`);
-  root.style.setProperty('--neon-bolt-y2', `${now / 210}px`);
+  root.style.setProperty('--neon-bolt-x', `${now / 170}px`);
+  root.style.setProperty('--neon-bolt-y', `${now / 280}px`);
+  root.style.setProperty('--neon-bolt-x2', `${-(now / 230)}px`);
+  root.style.setProperty('--neon-bolt-y2', `${now / 340}px`);
   root.style.setProperty('--aurora-x', `${Math.sin(now / 2200) * 95}px`);
   root.style.setProperty('--aurora-y', `${Math.cos(now / 2500) * 62}px`);
   root.style.setProperty('--aurora-x2', `${Math.cos(now / 2600) * 80}px`);
