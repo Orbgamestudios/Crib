@@ -699,6 +699,11 @@ body.mode-board .seat-blind-fill {
   background: #61e88f; color: #0b2514; border-radius: 999px; padding: 2px 6px;
   font-size: 11px; font-weight: 900; box-shadow: 0 2px 6px #00000066;
 }
+.card .handscoretag {
+  position: absolute; bottom: -13px; left: 50%; transform: translateX(-50%);
+  background: #69bdf5; color: #08233a; border-radius: 999px; padding: 2px 6px;
+  font-size: 10px; font-weight: 900; white-space: nowrap; box-shadow: 0 2px 7px #001b2f88, 0 0 8px #69bdf588;
+}
 .info-btn {
   position: absolute; top: 4px; right: 4px; width: 18px; height: 18px;
   border-radius: 50%; border: 1px solid #ffffffaa; background: #00000088; color: #fff;

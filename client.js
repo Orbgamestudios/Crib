@@ -1,7 +1,7 @@
 import { JOKER_ICONS, TAROT_ICONS, PACK_ICONS } from './icons.js?v=13';
 import { cardValue } from './lib/cards.js';
 import { pegEvents, scoreBreakdown } from './lib/scoring.js';
-import { JOKERS, TAROTS, aggregateMods, buildScore, stampText } from './lib/jokers.js';
+import { JOKERS, TAROTS, aggregateMods, buildScore, effectiveJokerIds, jokerDef, normalizeJoker, stampText } from './lib/jokers.js';
 
 const $ = id => document.getElementById(id);
 const SUIT_CHARS = ['♥', '♦', '♣', '♠']; // H D C S
@@ -20,7 +20,7 @@ const SOLO_SAVE_KEY = 'crib_solo_house_save_v1';
 const PROFILE_KEY = 'crib_profiles_v1';
 const ACTIVE_PROFILE_KEY = 'crib_active_profile_pin';
 const DIAG_KEY = 'crib_last_diagnostic_v1';
-const APP_BUILD = 'client-v100';
+const APP_BUILD = 'client-v101';
 
 // GitHub Pages (or any static host) has no WebSocket server: use P2P rooms.
 const P2P_MODE = location.hostname.endsWith('github.io') ||
@@ -2179,7 +2179,7 @@ function renderHandScore(st) {
   const target = deckEffectsOn(st) && st.you && st.you.deckArt === 'cosmic' ? st.cosmicTarget || 15 : 15;
   const bd = scoreBreakdown(cards, st.starter || null, false, { shortcut: mods.shortcut, target });
   let score = buildScore(bd, mods, 'hand', cards, { starter: st.starter || null, coins: you.coins, target }).total;
-  if (st.mode !== 'board') score += you.gambitHandBonus || 0;
+  if (st.mode !== 'board') score += you.dealHandBonus || 0;
   $('myScore').innerHTML = st.mode === 'board'
     ? `<span>Score</span><b>${you.score}</b>`
     : `<span>Hand</span><b>${score}</b>`;
@@ -2396,6 +2396,7 @@ function renderHand(st) {
         if (preview && preview.points > 0) {
           el.classList.add('scores');
           el.insertAdjacentHTML('beforeend', `<span class="scoretag">+${preview.points}</span>`);
+          if (preview.handPoints > 0) el.insertAdjacentHTML('beforeend', `<span class="handscoretag">+${preview.handPoints}H</span>`);
         }
         el.onclick = () => {
           if (el.dataset.dragged === '1') {
@@ -2591,8 +2592,30 @@ function peggingPreview(card, st) {
   return {
     legal: true,
     points: events.reduce((sum, e) => sum + e.pts, 0),
+    handPoints: peggingHandBonusPreview(card, events, count, st),
     events,
   };
+}
+
+function peggingHandBonusPreview(card, events, count, st) {
+  if (!events.length || st.mode === 'board') return 0;
+  let total = deckEffectsOn(st) && st.you.deckArt === 'gambit' &&
+    events.some(ev => ev.type === 'fifteen' || ev.type === 'thirtyone') ? 2 : 0;
+  for (const raw of effectiveJokerIds(st.you.jokers || [])) {
+    const owned = normalizeJoker(raw);
+    const def = owned && jokerDef(owned);
+    const bonus = def && def.mods && def.mods.pegHandBonus;
+    if (!bonus) continue;
+    if (bonus.ranks && !bonus.ranks.includes(card.rank)) continue;
+    if (bonus.suit != null && bonus.suit !== card.suit) continue;
+    if (bonus.eventType && !events.some(ev => ev.type === bonus.eventType)) continue;
+    if (bonus.count != null && count !== bonus.count) continue;
+    if (bonus.minCount != null && count < bonus.minCount) continue;
+    if (bonus.minEvents != null && events.length < bonus.minEvents) continue;
+    const base = bonus.coinDivisor ? Math.floor(st.you.coins / bonus.coinDivisor) * bonus.pts : bonus.pts;
+    if (base > 0) total += base + (owned.stamp === 'blue' ? 2 : 0);
+  }
+  return total;
 }
 
 function peggingEventText(ev) {
@@ -2618,8 +2641,8 @@ function scoringOpportunity(st) {
   const why = best.preview.events.map(peggingEventText).join(' and ');
   const count = st.pegCount + cardValue(best.card.rank);
   return {
-    key: `score-${best.card.id}-${st.pegCount}-${best.preview.points}`,
-    text: `Scoring chance: play ${cardLabel(best.card)} to make the count ${count} and gain +${best.preview.points} Mult for ${why}.`
+    key: `score-${best.card.id}-${st.pegCount}-${best.preview.points}-${best.preview.handPoints}`,
+    text: `Scoring chance: play ${cardLabel(best.card)} to make the count ${count} and gain +${best.preview.points} Mult for ${why}${best.preview.handPoints ? `, plus +${best.preview.handPoints} Hand Points from your deck and jokers` : ''}.`
   };
 }
 
@@ -2634,7 +2657,7 @@ function cardInfo(card, st, preview) {
   if (st.phase === 'pegging') {
     if (preview && preview.legal) {
       const events = preview.events.map(e => e.type === 'thirtyone' ? '31' : e.type).join(', ');
-      bits.push(`<p>Pegging now: playing it makes the count ${st.pegCount + value}${preview.points ? ` and scores ${preview.points} (${events})` : ' with no immediate points'}.</p>`);
+      bits.push(`<p>Pegging now: playing it makes the count ${st.pegCount + value}${preview.points ? ` and scores ${preview.points} Mult (${events})${preview.handPoints ? ` plus ${preview.handPoints} Hand Points` : ''}` : ' with no immediate points'}.</p>`);
     } else {
       bits.push('<p>Pegging now: this card would push the count over 31, so it cannot be played.</p>');
     }

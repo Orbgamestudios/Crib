@@ -89,7 +89,7 @@ function testDeckEffects() {
   gambit.pegStack = [];
   gambit.starter = makeCard(1, 2);
   gambit.playCard(gp, charged.id);
-  if (gp.gambitHandBonus !== 2 || gp.dealPegMult < 2 || !charged.gambitCharged || gambit.lastPlayAnim.pointGain !== 2) {
+  if (gp.dealHandBonus !== 2 || gp.dealPegMult < 2 || !charged.gambitCharged || gambit.lastPlayAnim.pointGain !== 2) {
     console.error('FAIL: Gambit 15 did not grant Mult, Hand points, and charge the card');
     process.exit(1);
   }
@@ -102,7 +102,7 @@ function testDeckEffects() {
   gambit.pegCount = 21;
   gambit.pegStack = [];
   gambit.playCard(gp, charged31.id);
-  if (gp.gambitHandBonus !== 4 || !charged31.gambitCharged || gambit.lastPlayAnim.pointGain !== 2) {
+  if (gp.dealHandBonus !== 4 || !charged31.gambitCharged || gambit.lastPlayAnim.pointGain !== 2) {
     console.error('FAIL: Gambit 31 did not add another Hand bonus and charge the card');
     process.exit(1);
   }
@@ -119,6 +119,56 @@ function testDeckEffects() {
     process.exit(1);
   }
   gambit.destroy();
+
+  const triggerGame = new Game([
+    { id: 'p1', name: 'Triggers', connected: true },
+    { id: 'p2', name: 'Other', connected: true },
+  ], { onUpdate() {}, log() {} });
+  const tp = triggerGame.players[0];
+  const triggerCard = makeCard(3, 0);
+  tp.jokers = [{ id: 'odd_todd', stamp: 'blue' }, 'lusty_joker', 'low_rider'];
+  tp.hand = [triggerCard];
+  tp.kept = [triggerCard];
+  tp.pegLeft = [triggerCard];
+  triggerGame.players[1].kept = [];
+  triggerGame.players[1].pegLeft = [makeCard(10, 1)];
+  triggerGame.phase = 'pegging';
+  triggerGame.turnSeat = tp.seat;
+  triggerGame.pegCount = 12;
+  triggerGame.pegStack = [];
+  triggerGame.starter = makeCard(1, 2);
+  triggerGame.playCard(tp, triggerCard.id);
+  if (tp.dealHandBonus !== 12 || triggerGame.lastPlayAnim.pointGain !== 12) {
+    console.error('FAIL: stacked pegging Hand jokers did not trigger with blue stamp', tp.dealHandBonus);
+    process.exit(1);
+  }
+  triggerGame.doScoring();
+  const triggerHand = triggerGame.scoringResults.find(r => r.kind === 'hand' && r.seat === tp.seat);
+  if (!triggerHand || triggerHand.points !== 12 || !triggerHand.lines.some(l => l.label.includes('Odd Todd'))) {
+    console.error('FAIL: pegging Hand bonuses were not carried into hand scoring', triggerHand);
+    process.exit(1);
+  }
+  triggerGame.destroy();
+
+  const missGame = new Game([
+    { id: 'p1', name: 'Miss', connected: true },
+    { id: 'p2', name: 'Other', connected: true },
+  ], { onUpdate() {}, log() {} });
+  const mp = missGame.players[0];
+  const missCard = makeCard(3, 0);
+  mp.jokers = ['odd_todd', 'lusty_joker', 'low_rider'];
+  mp.pegLeft = [missCard];
+  missGame.players[1].pegLeft = [makeCard(10, 1)];
+  missGame.phase = 'pegging';
+  missGame.turnSeat = mp.seat;
+  missGame.pegCount = 0;
+  missGame.pegStack = [];
+  missGame.playCard(mp, missCard.id);
+  if (mp.dealHandBonus !== 0 || missGame.lastPlayAnim.pointGain !== 0) {
+    console.error('FAIL: pegging Hand jokers triggered without a scoring play');
+    process.exit(1);
+  }
+  missGame.destroy();
 }
 
 function bot(name, opts) {
