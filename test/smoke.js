@@ -138,13 +138,14 @@ function testDeckEffects() {
   triggerGame.pegStack = [];
   triggerGame.starter = makeCard(1, 2);
   triggerGame.playCard(tp, triggerCard.id);
-  if (tp.dealHandBonus !== 12 || triggerGame.lastPlayAnim.pointGain !== 12) {
+  if (tp.dealHandBonus !== 9 || triggerGame.lastPlayAnim.pointGain !== 9) {
     console.error('FAIL: stacked pegging Hand jokers did not trigger with blue stamp', tp.dealHandBonus);
     process.exit(1);
   }
   triggerGame.doScoring();
   const triggerHand = triggerGame.scoringResults.find(r => r.kind === 'hand' && r.seat === tp.seat);
-  if (!triggerHand || triggerHand.points !== 12 || !triggerHand.lines.some(l => l.label.includes('Odd Todd'))) {
+  if (!triggerHand || triggerHand.points !== 10 || !triggerHand.lines.some(l => l.label.includes('Odd Todd')) ||
+      !triggerHand.lines.some(l => l.label.includes('Lusty Joker'))) {
     console.error('FAIL: pegging Hand bonuses were not carried into hand scoring', triggerHand);
     process.exit(1);
   }
