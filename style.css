@@ -663,6 +663,25 @@ body.mode-board .seat-blind-fill {
   outline: 2px solid #61e88f;
   box-shadow: 0 0 12px #61e88f88, 0 2px 4px #00000055;
 }
+.card.gambit-charged {
+  outline: 2px solid #ff72d6;
+  box-shadow: 0 0 10px #ff4ecbcc, 0 0 22px #b72cff88, 0 2px 4px #00000066;
+  animation: gambitCardGlow 1.15s ease-in-out infinite alternate;
+}
+.card.gambit-charged::before {
+  content: ''; position: absolute; inset: -4px; border-radius: 8px; pointer-events: none;
+  background: radial-gradient(circle at 25% 30%, #fff 0 1px, transparent 2px), radial-gradient(circle at 78% 65%, #ffb5ed 0 1px, transparent 2px);
+  filter: drop-shadow(0 0 4px #ff42cd); opacity: 0.8;
+}
+.card.gambit-charged.gambit-removed {
+  opacity: 0.28; filter: saturate(0.55) brightness(0.8); transform: scale(0.88);
+  box-shadow: 0 0 5px #ff4ecb66; animation: none;
+  transition: opacity 0.5s ease, filter 0.5s ease, transform 0.5s ease, box-shadow 0.5s ease;
+}
+@keyframes gambitCardGlow {
+  from { box-shadow: 0 0 8px #ff4ecbaa, 0 0 15px #b72cff66, 0 2px 4px #00000066; }
+  to { box-shadow: 0 0 15px #ff8ce9ee, 0 0 30px #d12cffbb, 0 2px 4px #00000066; }
+}
 .card.selected:hover, .card.raised:hover { transform: translateY(calc(var(--fan-y, 0px) - 18px)) rotate(var(--fan-rot, 0deg)) scale(1.06); }
 .card.dim { opacity: 0.45; }
 .discard-order-tag {

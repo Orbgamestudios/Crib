@@ -20,7 +20,7 @@ const SOLO_SAVE_KEY = 'crib_solo_house_save_v1';
 const PROFILE_KEY = 'crib_profiles_v1';
 const ACTIVE_PROFILE_KEY = 'crib_active_profile_pin';
 const DIAG_KEY = 'crib_last_diagnostic_v1';
-const APP_BUILD = 'client-v99';
+const APP_BUILD = 'client-v100';
 
 // GitHub Pages (or any static host) has no WebSocket server: use P2P rooms.
 const P2P_MODE = location.hostname.endsWith('github.io') ||
@@ -73,7 +73,7 @@ const DECK_ARTS = [
   { id: 'aurora', name: 'Aurora Flow', cost: 0, animated: true, desc: 'Draw one extra card during discard. Select one extra card last; that final card is removed from the run instead of entering the crib.' },
   { id: 'neon', name: 'Neon Circuit', cost: 0, animated: true, desc: 'Neon deck: score the square of the average of Hand and Mult, but your blinds are 2.5x higher.' },
   { id: 'cosmic', name: 'Cosmic Drift', cost: 0, animated: true, desc: 'Cosmic deck: see hands, reveal the crib after discards, and each deal replaces 15s with a mystery target.' },
-  { id: 'gambit', name: 'Gambit', cost: 0, animated: true, desc: 'At the start of the run, all 52 cards become random ranks and suits. Duplicates are possible, so every run starts with a volatile new deck.' },
+  { id: 'gambit', name: 'Gambit', cost: 0, animated: true, desc: 'Randomize all 52 ranks and suits. A card that lands pegging on 15 or 31 glows pink, gives +2 Hand Points in addition to its Mult, then leaves the deck after that deal scores.' },
 ];
 const FREE_DECK_IDS = DECK_ARTS.filter(a => a.cost === 0).map(a => a.id);
 let boardView = null;
@@ -1740,6 +1740,7 @@ $('leaveBtn').onclick = () => { if (P2P_MODE) leaveP2p(); else sendMsg({ t: 'lea
 function cardEl(card, opts = {}) {
   const div = document.createElement('div');
   div.className = 'card' + (card.suit < 2 ? ' red' : '') + (opts.small ? ' small' : '');
+  if (card.gambitCharged) div.classList.add('gambit-charged');
   div.innerHTML = `<span>${RANK_NAMES[card.rank]}</span><span class="suit">${SUIT_CHARS[card.suit]}</span>`;
   return div;
 }
@@ -2178,6 +2179,7 @@ function renderHandScore(st) {
   const target = deckEffectsOn(st) && st.you && st.you.deckArt === 'cosmic' ? st.cosmicTarget || 15 : 15;
   const bd = scoreBreakdown(cards, st.starter || null, false, { shortcut: mods.shortcut, target });
   let score = buildScore(bd, mods, 'hand', cards, { starter: st.starter || null, coins: you.coins, target }).total;
+  if (st.mode !== 'board') score += you.gambitHandBonus || 0;
   $('myScore').innerHTML = st.mode === 'board'
     ? `<span>Score</span><b>${you.score}</b>`
     : `<span>Hand</span><b>${score}</b>`;
@@ -2916,9 +2918,24 @@ function scoreBlock(r, st, fresh) {
   // hand cards + the shared starter (shows how the hand is scored)
   const cards = document.createElement('div');
   cards.className = 'sb-cards';
+  const gambitRemoveDelay = 720 + r.lines.length * 130;
   r.cards.forEach((c, i) => {
     const el = cardEl(c, { small: true });
     if (fresh) { el.classList.add('deal-in'); el.style.animationDelay = (i * 80) + 'ms'; }
+    if (c.gambitCharged) {
+      el.title = 'Gambit charge: +2 Hand Points; removed from the deck after scoring';
+      if (fresh) {
+        setTimeout(() => {
+          if (!el.isConnected) return;
+          el.classList.add('gambit-removed');
+          const rect = el.getBoundingClientRect();
+          burstSparkles(rect.left + rect.width / 2, rect.top + rect.height / 2, 12, 320);
+          sfx('card');
+        }, gambitRemoveDelay + i * 70);
+      } else {
+        el.classList.add('gambit-removed');
+      }
+    }
     cards.appendChild(el);
   });
   if (r.starter) {
@@ -3541,6 +3558,10 @@ function runAnimations(prev, st, refs = {}) {
       fromMult: multFrom,
       toMult: queuedCloseout && multFrom != null ? multFrom + playGain : null,
     });
+    const pointGain = st.lastPlayAnim.pointGain || 0;
+    if (pointGain > 0) {
+      setTimeout(() => showHandPointGainForSeat(st, playAnim.seat, pointGain), playGain > 0 ? 280 : 0);
+    }
   } else if (st.phase === 'pegging' && prev.dealNumber === st.dealNumber &&
       Array.isArray(prev.pegStack) && st.pegStack.length > prev.pegStack.length) {
     const played = st.pegStack[st.pegStack.length - 1];
@@ -3723,6 +3744,27 @@ function showMultGainForSeat(prev, st, seat, gained, opts = {}) {
     else if (b && prev.you && st.you && st.you.dealMult > prev.you.dealMult) b.textContent = 'x' + prev.you.dealMult;
     if (st.you.jokers && st.you.jokers.length) flashEl($('jokerRow'));
   }
+}
+
+function showHandPointGainForSeat(st, seat, gained) {
+  if (!gained || st.mode === 'board') return;
+  sfx('score');
+  const pc = $('pegCount').getBoundingClientRect();
+  const fromX = pc.left + pc.width / 2;
+  const fromY = pc.top + pc.height / 2;
+  floatRise(fromX, pc.top - 28, `+${gained} Hand`, 'fx-points-blue');
+  const target = seat === st.mySeat
+    ? $('myScore')
+    : document.querySelector(`.seat[data-seat="${seat}"] .plaque`);
+  if (!target) return;
+  const tr = target.getBoundingClientRect();
+  const toX = tr.left + tr.width / 2;
+  const toY = tr.top + tr.height / 2;
+  flingOrbs(fromX, fromY, toX, toY, 5, () => {
+    flashEl(target);
+    if (seat === st.mySeat) pulse($('myScore'));
+  }, 'blue');
+  floatRise(toX, tr.top - 8, `+${gained} Hand`, 'fx-points-blue');
 }
 
 function showBoardPointGain(st, seat, gained) {

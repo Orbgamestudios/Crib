@@ -76,6 +76,48 @@ function testDeckEffects() {
     console.error('FAIL: Gambit deck was not randomized into valid cards');
     process.exit(1);
   }
+  const charged = makeCard(5, 0);
+  gp.deck.push(charged);
+  gp.hand = [charged];
+  gp.kept = [charged];
+  gp.pegLeft = [charged];
+  gambit.players[1].kept = [];
+  gambit.players[1].pegLeft = [makeCard(10, 1)];
+  gambit.phase = 'pegging';
+  gambit.turnSeat = gp.seat;
+  gambit.pegCount = 10;
+  gambit.pegStack = [];
+  gambit.starter = makeCard(1, 2);
+  gambit.playCard(gp, charged.id);
+  if (gp.gambitHandBonus !== 2 || gp.dealPegMult < 2 || !charged.gambitCharged || gambit.lastPlayAnim.pointGain !== 2) {
+    console.error('FAIL: Gambit 15 did not grant Mult, Hand points, and charge the card');
+    process.exit(1);
+  }
+  const charged31 = makeCard(10, 3);
+  gp.deck.push(charged31);
+  gp.hand.push(charged31);
+  gp.kept.push(charged31);
+  gp.pegLeft = [charged31];
+  gambit.turnSeat = gp.seat;
+  gambit.pegCount = 21;
+  gambit.pegStack = [];
+  gambit.playCard(gp, charged31.id);
+  if (gp.gambitHandBonus !== 4 || !charged31.gambitCharged || gambit.lastPlayAnim.pointGain !== 2) {
+    console.error('FAIL: Gambit 31 did not add another Hand bonus and charge the card');
+    process.exit(1);
+  }
+  clearTimeout(gambit.closeTimer);
+  gambit.closeTimer = null;
+  gambit.pegClosing = false;
+  gambit.doScoring();
+  const gambitHand = gambit.scoringResults.find(r => r.kind === 'hand' && r.seat === gp.seat);
+  const chargedIds = [charged.id, charged31.id];
+  if (!gambitHand || gambitHand.points < 4 ||
+      chargedIds.some(id => !gambitHand.cards.some(c => c.id === id && c.gambitCharged)) ||
+      chargedIds.some(id => gp.deck.some(c => c.id === id))) {
+    console.error('FAIL: Gambit charged card did not score and leave the deck');
+    process.exit(1);
+  }
   gambit.destroy();
 }
 
