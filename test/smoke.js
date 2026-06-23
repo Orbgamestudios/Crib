@@ -37,6 +37,48 @@ async function testRestorePegClosing() {
   restored.destroy();
 }
 
+function testDeckEffects() {
+  const aurora = new Game([
+    { id: 'p1', name: 'Aurora', connected: true, deckArt: 'aurora' },
+    { id: 'p2', name: 'Classic', connected: true },
+  ], { onUpdate() {}, log() {} });
+  const ap = aurora.players[0];
+  const chosen = ap.hand.slice(0, aurora.discardNeed(ap));
+  const burned = chosen[chosen.length - 1];
+  aurora.discard(ap, chosen.map(c => c.id));
+  if (aurora.crib.length !== 2 || ap.deck.some(c => c.id === burned.id)) {
+    console.error('FAIL: Aurora did not send two cards and remove the final selection', {
+      crib: aurora.crib.length,
+      burnedStillInDeck: ap.deck.some(c => c.id === burned.id),
+    });
+    process.exit(1);
+  }
+  aurora.destroy();
+
+  const ruby = new Game([
+    { id: 'p1', name: 'Ruby', connected: true, deckArt: 'ruby' },
+    { id: 'p2', name: 'Classic', connected: true },
+  ], { onUpdate() {}, log() {} });
+  const rp = ruby.players[0];
+  const rubyDeckSuits = new Set(rp.deck.map(c => c.suit));
+  if (!rp.rubySuits || rp.rubySuits.length !== 2 || rubyDeckSuits.size !== 2 || [...rubyDeckSuits].some(s => !rp.rubySuits.includes(s))) {
+    console.error('FAIL: Ruby did not choose and apply two suits', rp.rubySuits, [...rubyDeckSuits]);
+    process.exit(1);
+  }
+  ruby.destroy();
+
+  const gambit = new Game([
+    { id: 'p1', name: 'Gambit', connected: true, deckArt: 'gambit' },
+    { id: 'p2', name: 'Classic', connected: true },
+  ], { onUpdate() {}, log() {} });
+  const gp = gambit.players[0];
+  if (!gp.gambitRandomized || gp.deck.length !== 52 || gp.deck.some(c => c.rank < 1 || c.rank > 13 || c.suit < 0 || c.suit > 3)) {
+    console.error('FAIL: Gambit deck was not randomized into valid cards');
+    process.exit(1);
+  }
+  gambit.destroy();
+}
+
 function bot(name, opts) {
   const ws = new WebSocket(`ws://localhost:${PORT}`);
   const b = { name, ws, state: null, done: false };
@@ -176,6 +218,7 @@ async function runSolo() {
 }
 
 const server = await start(PORT);
+testDeckEffects();
 await testRestorePegClosing();
 await runMatch(2);
 await runMatch(3);

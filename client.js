@@ -20,7 +20,7 @@ const SOLO_SAVE_KEY = 'crib_solo_house_save_v1';
 const PROFILE_KEY = 'crib_profiles_v1';
 const ACTIVE_PROFILE_KEY = 'crib_active_profile_pin';
 const DIAG_KEY = 'crib_last_diagnostic_v1';
-const APP_BUILD = 'client-v98';
+const APP_BUILD = 'client-v99';
 
 // GitHub Pages (or any static host) has no WebSocket server: use P2P rooms.
 const P2P_MODE = location.hostname.endsWith('github.io') ||
@@ -69,10 +69,11 @@ const DECK_ARTS = [
   { id: 'classic', name: 'Classic Violet', cost: 0, desc: 'Purple deck: one random shop pack becomes an Arcana tarot pack.' },
   { id: 'emerald', name: 'Emerald Felt', cost: 0, desc: 'Green deck: after each deal, gain +1 coin per 10 coins you hold, up to +3.' },
   { id: 'sapphire', name: 'Sapphire Run', cost: 0, desc: 'Blue deck: start each run with +1 joker slot.' },
-  { id: 'ruby', name: 'Ruby Cut', cost: 0, desc: 'Red deck: spades become hearts and clubs become diamonds permanently.' },
-  { id: 'aurora', name: 'Aurora Flow', cost: 0, animated: true, desc: 'Aurora deck: draw one extra card and discard one extra card to the crib.' },
+  { id: 'ruby', name: 'Ruby Cut', cost: 0, desc: 'At the start of a run, choose two random suits. Every card in your deck permanently becomes one of those two suits.' },
+  { id: 'aurora', name: 'Aurora Flow', cost: 0, animated: true, desc: 'Draw one extra card during discard. Select one extra card last; that final card is removed from the run instead of entering the crib.' },
   { id: 'neon', name: 'Neon Circuit', cost: 0, animated: true, desc: 'Neon deck: score the square of the average of Hand and Mult, but your blinds are 2.5x higher.' },
   { id: 'cosmic', name: 'Cosmic Drift', cost: 0, animated: true, desc: 'Cosmic deck: see hands, reveal the crib after discards, and each deal replaces 15s with a mystery target.' },
+  { id: 'gambit', name: 'Gambit', cost: 0, animated: true, desc: 'At the start of the run, all 52 cards become random ranks and suits. Duplicates are possible, so every run starts with a volatile new deck.' },
 ];
 const FREE_DECK_IDS = DECK_ARTS.filter(a => a.cost === 0).map(a => a.id);
 let boardView = null;
@@ -207,6 +208,46 @@ function cardSnap(delay = 0, gain = 0.22) {
   noise(delay + 0.012, 0.025, gain * 0.65, 1600);
 }
 
+function feltThump(delay = 0, gain = 0.24, pitch = 105) {
+  if (!soundUnlocked) return;
+  const ctx = ensureAudio();
+  if (!ctx) return;
+  const t = ctx.currentTime + delay;
+  const osc = ctx.createOscillator();
+  const amp = ctx.createGain();
+  osc.type = 'sine';
+  osc.frequency.setValueAtTime(pitch, t);
+  osc.frequency.exponentialRampToValueAtTime(Math.max(42, pitch * 0.48), t + 0.075);
+  amp.gain.setValueAtTime(Math.max(0.0002, gain * SFX_GAIN), t);
+  amp.gain.exponentialRampToValueAtTime(0.0001, t + 0.09);
+  osc.connect(amp).connect(ctx.destination);
+  osc.start(t);
+  osc.stop(t + 0.1);
+  noise(delay, 0.035, gain * 0.45, 520);
+}
+
+function woodTap(delay = 0, gain = 0.18) {
+  noise(delay, 0.018, gain, 2100);
+  noise(delay + 0.008, 0.035, gain * 0.42, 780);
+  feltThump(delay, gain * 0.34, 155);
+}
+
+function chipClack(delay = 0, gain = 0.2) {
+  noise(delay, 0.014, gain, 4200);
+  tone(1180 + Math.random() * 180, delay, 0.045, 'sine', gain * 0.42);
+  tone(760 + Math.random() * 90, delay + 0.008, 0.055, 'sine', gain * 0.28);
+}
+
+function cardSlide(delay = 0, gain = 0.18) {
+  noise(delay, 0.09, gain, 1050);
+  noise(delay + 0.055, 0.025, gain * 0.75, 2900);
+}
+
+function packTear(delay = 0, gain = 0.22) {
+  for (let i = 0; i < 5; i++) noise(delay + i * 0.018, 0.035, gain * (0.7 + i * 0.08), 2300 + i * 420);
+  cardSlide(delay + 0.11, gain * 0.9);
+}
+
 function shuffleSound() {
   for (let i = 0; i < 9; i++) {
     const d = i * 0.026;
@@ -219,30 +260,30 @@ function shuffleSound() {
 function sfx(name) {
   if (!soundUnlocked) return;
   switch (name) {
-    case 'click': tone(640, 0, 0.035, 'triangle', 0.2); break;
-    case 'error': sweep(180, 90, 0, 0.18, 'sawtooth', 0.42); break;
-    case 'toast': tone(420, 0, 0.06, 'triangle', 0.24); tone(560, 0.055, 0.06, 'triangle', 0.2); break;
-    case 'join': tone(440, 0, 0.07, 'triangle', 0.28); tone(660, 0.07, 0.08, 'triangle', 0.24); break;
-    case 'ready': tone(520, 0, 0.05, 'square', 0.22); tone(780, 0.055, 0.08, 'triangle', 0.24); break;
+    case 'click': woodTap(0, 0.11); break;
+    case 'error': feltThump(0, 0.34, 88); feltThump(0.11, 0.28, 72); break;
+    case 'toast': woodTap(0, 0.12); woodTap(0.065, 0.09); break;
+    case 'join': cardSlide(0, 0.14); woodTap(0.09, 0.16); break;
+    case 'ready': woodTap(0, 0.18); chipClack(0.055, 0.11); break;
     case 'deal': for (let i = 0; i < 6; i++) cardSnap(i * 0.045, 0.14); break;
     case 'shuffle': shuffleSound(); break;
     case 'card': cardSnap(0, 0.2); break;
-    case 'discard': cardSnap(0, 0.2); sweep(360, 170, 0.025, 0.08, 'triangle', 0.16); break;
-    case 'peg': cardSnap(0, 0.24); tone(260, 0.018, 0.035, 'triangle', 0.12); break;
-    case 'score': tone(420, 0, 0.055, 'triangle', 0.18); tone(610, 0.05, 0.06, 'triangle', 0.14); break;
-    case 'scoreTick': cardSnap(0, 0.09); tone(680, 0.006, 0.035, 'triangle', 0.12); break;
-    case 'scoreTotal': tone(560, 0, 0.055, 'triangle', 0.16); tone(840, 0.05, 0.08, 'triangle', 0.18); break;
-    case 'boardPeg': tone(760, 0, 0.04, 'triangle', 0.18); tone(1140, 0.04, 0.055, 'triangle', 0.16); noise(0.02, 0.05, 0.08, 2600); break;
-    case 'mult': sweep(260, 720, 0, 0.18, 'sine', 0.3); break;
-    case 'coin': tone(880, 0, 0.055, 'triangle', 0.24); tone(1320, 0.045, 0.08, 'triangle', 0.18); break;
-    case 'shop': tone(330, 0, 0.08, 'sine', 0.24); tone(495, 0.08, 0.08, 'sine', 0.22); tone(660, 0.16, 0.1, 'sine', 0.2); break;
-    case 'buy': tone(720, 0, 0.05, 'triangle', 0.26); tone(1040, 0.055, 0.1, 'triangle', 0.24); break;
-    case 'sell': sweep(700, 420, 0, 0.12, 'triangle', 0.22); tone(880, 0.09, 0.05, 'triangle', 0.18); break;
-    case 'reroll': sweep(360, 880, 0, 0.11, 'sine', 0.22); sweep(880, 360, 0.1, 0.12, 'sine', 0.2); break;
-    case 'pack': noise(0, 0.12, 0.22, 3100); tone(440, 0.06, 0.08, 'triangle', 0.24); tone(880, 0.13, 0.14, 'triangle', 0.22); break;
-    case 'tarot': sweep(300, 900, 0, 0.24, 'sine', 0.24); tone(1200, 0.1, 0.12, 'triangle', 0.15); break;
-    case 'blind': tone(140, 0, 0.12, 'sawtooth', 0.24); tone(210, 0.13, 0.16, 'sawtooth', 0.22); break;
-    case 'gameover': sweep(420, 120, 0, 0.5, 'sawtooth', 0.28); break;
+    case 'discard': cardSlide(0, 0.2); cardSnap(0.07, 0.18); break;
+    case 'peg': cardSnap(0, 0.24); woodTap(0.028, 0.12); break;
+    case 'score': chipClack(0, 0.14); chipClack(0.06, 0.12); break;
+    case 'scoreTick': woodTap(0, 0.1); chipClack(0.018, 0.08); break;
+    case 'scoreTotal': chipClack(0, 0.16); chipClack(0.05, 0.15); chipClack(0.105, 0.13); break;
+    case 'boardPeg': woodTap(0, 0.2); woodTap(0.055, 0.14); break;
+    case 'mult': feltThump(0, 0.24, 128); cardSnap(0.055, 0.14); break;
+    case 'coin': chipClack(0, 0.24); chipClack(0.045, 0.18); break;
+    case 'shop': feltThump(0, 0.16, 115); cardSlide(0.05, 0.14); cardSnap(0.13, 0.11); break;
+    case 'buy': chipClack(0, 0.24); chipClack(0.045, 0.2); feltThump(0.075, 0.12, 140); break;
+    case 'sell': cardSlide(0, 0.16); chipClack(0.08, 0.18); break;
+    case 'reroll': for (let i = 0; i < 4; i++) cardSnap(i * 0.045, 0.15); break;
+    case 'pack': packTear(0, 0.23); break;
+    case 'tarot': cardSlide(0, 0.17); noise(0.06, 0.14, 0.1, 3600); cardSnap(0.15, 0.12); break;
+    case 'blind': feltThump(0, 0.3, 92); feltThump(0.14, 0.3, 92); feltThump(0.28, 0.34, 76); break;
+    case 'gameover': cardSlide(0, 0.22); feltThump(0.18, 0.34, 68); break;
   }
 }
 
@@ -1098,7 +1139,11 @@ function animateDeckBackground(now = 0) {
   root.style.setProperty('--aurora-y', `${Math.cos(now / 2500) * 62}px`);
   root.style.setProperty('--aurora-x2', `${Math.cos(now / 2600) * 80}px`);
   root.style.setProperty('--aurora-y2', `${Math.sin(now / 2300) * 55}px`);
-  document.querySelectorAll('.card.back.deck-aurora, .card.back.deck-neon, .card.back.deck-cosmic').forEach((card) => {
+  root.style.setProperty('--gambit-x', `${now / 24}px`);
+  root.style.setProperty('--gambit-y', `${Math.sin(now / 1800) * 55}px`);
+  root.style.setProperty('--gambit-x2', `${-(now / 38)}px`);
+  root.style.setProperty('--gambit-y2', `${Math.cos(now / 2100) * 44}px`);
+  document.querySelectorAll('.card.back.deck-aurora, .card.back.deck-neon, .card.back.deck-cosmic, .card.back.deck-gambit').forEach((card) => {
     const rect = card.getBoundingClientRect();
     card.style.setProperty('--deck-card-left', `${rect.left}px`);
     card.style.setProperty('--deck-card-top', `${rect.top}px`);
@@ -1610,20 +1655,69 @@ function renderWaitingDeckControls(msg, isHost) {
   const el = $('waitDeckControls');
   if (!el) return;
   const current = normalizeDeckArtId((msg.players.find(p => p.id === msg.youId) || {}).deckArt || activeDeckArt());
-  el.innerHTML = `<div class="wait-deck-title">Your deck</div>`;
+  const signature = `${current}:${isHost}:${waitingDeckEffects}:${DECK_ARTS.length}`;
+  if (el.dataset.signature === signature) return;
+  el.dataset.signature = signature;
+  el.innerHTML = `<div class="wait-deck-title">Your deck</div><div class="wait-deck-hint">Scroll to choose</div>`;
+  const carousel = document.createElement('div');
+  carousel.className = 'wait-deck-carousel';
   const row = document.createElement('div');
   row.className = 'wait-deck-row';
   for (const art of DECK_ARTS) {
     const btn = document.createElement('button');
     btn.className = `wait-deck-choice${art.id === current ? ' selected' : ''}`;
-    btn.title = art.name;
+    btn.title = `${art.name}: ${art.desc}`;
     btn.dataset.deck = art.id;
-    btn.appendChild(backEl(true, art.id));
+    btn.appendChild(backEl(false, art.id));
     btn.insertAdjacentHTML('beforeend', `<span>${esc(art.name)}</span>`);
-    btn.onclick = () => selectDeckArt(art.id);
+    btn.onclick = () => btn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
     row.appendChild(btn);
   }
-  el.appendChild(row);
+  carousel.appendChild(row);
+  el.appendChild(carousel);
+  const description = document.createElement('div');
+  description.className = 'wait-deck-description';
+  el.appendChild(description);
+
+  let centeredId = current;
+  let settleTimer = null;
+  let frame = 0;
+  const updateCarousel = () => {
+    frame = 0;
+    const center = carousel.getBoundingClientRect().left + carousel.clientWidth / 2;
+    let closest = null;
+    let closestDistance = Infinity;
+    row.querySelectorAll('.wait-deck-choice').forEach(btn => {
+      const rect = btn.getBoundingClientRect();
+      const distance = Math.abs(rect.left + rect.width / 2 - center);
+      const ratio = Math.min(1, distance / Math.max(1, carousel.clientWidth * 0.48));
+      btn.style.opacity = String(1 - ratio * 0.55);
+      btn.style.transform = `scale(${1 - ratio * 0.28})`;
+      if (distance < closestDistance) { closest = btn; closestDistance = distance; }
+    });
+    if (!closest) return;
+    centeredId = closest.dataset.deck;
+    row.querySelectorAll('.wait-deck-choice').forEach(btn => btn.classList.toggle('centered', btn === closest));
+    const art = DECK_ARTS.find(d => d.id === centeredId);
+    description.innerHTML = art ? `<b>${esc(art.name)}</b><span>${esc(art.desc)}</span>` : '';
+  };
+  const scheduleUpdate = () => {
+    if (!frame) frame = requestAnimationFrame(updateCarousel);
+    clearTimeout(settleTimer);
+    settleTimer = setTimeout(commitCentered, 700);
+  };
+  const commitCentered = () => {
+    clearTimeout(settleTimer);
+    updateCarousel();
+    if (centeredId !== current) selectDeckArt(centeredId);
+  };
+  carousel.addEventListener('scroll', scheduleUpdate, { passive: true });
+  carousel.addEventListener('scrollend', commitCentered, { passive: true });
+  requestAnimationFrame(() => {
+    const selectedBtn = row.querySelector(`[data-deck="${current}"]`);
+    if (selectedBtn) selectedBtn.scrollIntoView({ block: 'nearest', inline: 'center' });
+    updateCarousel();
+  });
   const effects = document.createElement('label');
   effects.className = `wait-effects-toggle${isHost ? '' : ' disabled'}`;
   effects.innerHTML = `<input type="checkbox" ${waitingDeckEffects ? 'checked' : ''} ${isHost ? '' : 'disabled'}>` +
@@ -2275,7 +2369,12 @@ function renderHand(st) {
     if (you.canDiscard) {
       el.classList.add('clickable');
       addPointerCardDrag(el, c.id);
-      if (selected.includes(c.id)) el.classList.add('selected');
+      if (selected.includes(c.id)) {
+        el.classList.add('selected');
+        const order = selected.indexOf(c.id);
+        const auroraBurn = deckEffectsOn(st) && you.deckArt === 'aurora' && order === st.discardCount - 1;
+        el.insertAdjacentHTML('beforeend', `<span class="discard-order-tag${auroraBurn ? ' burn' : ''}">${auroraBurn ? 'BURN' : `CRIB ${order + 1}`}</span>`);
+      }
       el.onclick = () => {
         if (el.dataset.dragged === '1') {
           el.dataset.dragged = '';
@@ -2324,8 +2423,11 @@ function renderHand(st) {
   if (!you.active) {
     prompt.textContent = "You're out - spectating the table.";
   } else if (you.canDiscard) {
-    prompt.textContent = `Select ${st.discardCount} card(s) for ${dealerName(st)} crib`;
-    btn.textContent = `Send ${st.discardCount} to Crib`;
+    const aurora = deckEffectsOn(st) && you.deckArt === 'aurora';
+    prompt.textContent = aurora
+      ? `Select ${st.discardCount}: the first ${st.discardCount - 1} go to the crib; your final selection is removed from the run`
+      : `Select ${st.discardCount} card(s) for ${dealerName(st)} crib`;
+    btn.textContent = aurora ? `Send ${st.discardCount - 1} + Burn 1` : `Send ${st.discardCount} to Crib`;
     btn.disabled = selected.length !== st.discardCount;
     btn.classList.remove('hidden');
     btn.onclick = () => { sendMsg({ t: 'discard', cards: selected }); selected = []; };
@@ -3392,7 +3494,7 @@ function runAnimations(prev, st, refs = {}) {
       }
       if (!fromRect) continue;
       sfx('discard');
-      for (let i = 0; i < (p.discardCount || st.discardCount); i++) {
+      for (let i = 0; i < (p.cribDiscardCount || st.baseDiscardCount || st.discardCount); i++) {
         setTimeout(() => {
           const tgt = document.querySelector('#cribPile .card');
           if (tgt) flyClone(backEl(false, p.deckArt), fromRect, tgt.getBoundingClientRect(), 460, { rot: p.seat === st.mySeat ? -8 : 8 });
