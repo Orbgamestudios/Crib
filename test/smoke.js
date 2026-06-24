@@ -5,10 +5,10 @@ process.env.CRIB_FAST = '1';
 
 import WebSocket from 'ws';
 const { start } = await import('../server.js');
-const { Game } = await import('../lib/game.js?v=2');
-const { cardValue, makeCard } = await import('../lib/cards.js?v=2');
-const { scoreBreakdown } = await import('../lib/scoring.js?v=2');
-const { JOKERS_BY_ID, TAROTS, jokerCapacity } = await import('../lib/jokers.js?v=2');
+const { Game } = await import('../lib/game.js?v=3');
+const { cardValue, makeCard } = await import('../lib/cards.js?v=3');
+const { scoreBreakdown } = await import('../lib/scoring.js?v=3');
+const { JOKERS_BY_ID, TAROTS, jokerCapacity } = await import('../lib/jokers.js?v=3');
 
 const PORT = 3100;
 
@@ -34,6 +34,35 @@ async function testRestorePegClosing() {
       pegClosing: restored.pegClosing,
       turnSeat: restored.turnSeat,
     });
+    process.exit(1);
+  }
+  restored.destroy();
+}
+
+function testRestoreGoAnnouncements() {
+  const game = new Game([
+    { id: 'p1', name: 'Solo1', connected: true },
+    { id: 'p2', name: 'Skipped', connected: true },
+    { id: 'p3', name: 'Next', connected: true },
+  ], { onUpdate() {}, log() {} });
+  game.phase = 'pegging';
+  game.pegCount = 25;
+  game.turnSeat = 2;
+  game.players[1].pegLeft = [makeCard(13, 0)];
+  game.players[2].pegLeft = [makeCard(1, 0)];
+  game.goAnnounced = new Set([0]);
+  const snap = game.snapshot();
+  game.destroy();
+  if (!Array.isArray(snap.goAnnounced) || snap.goAnnounced[0] !== 0) {
+    console.error('FAIL: go announcements were not serialized as an array', snap.goAnnounced);
+    process.exit(1);
+  }
+
+  snap.goAnnounced = {};
+  const restored = Game.fromSnapshot(snap, { onUpdate() {}, log() {} });
+  restored.announceGos(0, 2);
+  if (!(restored.goAnnounced instanceof Set) || !restored.goAnnounced.has(1)) {
+    console.error('FAIL: legacy go announcements were not restored as a Set', restored.goAnnounced);
     process.exit(1);
   }
   restored.destroy();
@@ -428,6 +457,7 @@ async function runSolo() {
 const server = await start(PORT);
 testDeckEffects();
 await testRestorePegClosing();
+testRestoreGoAnnouncements();
 await runMatch(2);
 await runMatch(3);
 await runMatch(5);

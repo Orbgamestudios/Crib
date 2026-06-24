@@ -1,7 +1,7 @@
 import { JOKER_ICONS, TAROT_ICONS, PACK_ICONS } from './icons.js?v=16';
-import { CARD_ENHANCEMENTS, cardValue } from './lib/cards.js?v=2';
-import { pegEvents, scoreBreakdown } from './lib/scoring.js?v=2';
-import { JOKERS, TAROTS, aggregateMods, buildScore, effectiveJokerIds, jokerDef, normalizeJoker, stampText } from './lib/jokers.js?v=2';
+import { CARD_ENHANCEMENTS, cardValue } from './lib/cards.js?v=3';
+import { pegEvents, scoreBreakdown } from './lib/scoring.js?v=3';
+import { JOKERS, TAROTS, aggregateMods, buildScore, effectiveJokerIds, jokerDef, normalizeJoker, stampText } from './lib/jokers.js?v=3';
 
 window.__cribBooted = true;
 clearTimeout(window.__cribBootTimer);
@@ -23,7 +23,7 @@ const SOLO_SAVE_KEY = 'crib_solo_house_save_v1';
 const PROFILE_KEY = 'crib_profiles_v1';
 const ACTIVE_PROFILE_KEY = 'crib_active_profile_pin';
 const DIAG_KEY = 'crib_last_diagnostic_v1';
-const APP_BUILD = 'client-v107';
+const APP_BUILD = 'client-v108';
 
 // GitHub Pages (or any static host) has no WebSocket server: use P2P rooms.
 const P2P_MODE = location.hostname.endsWith('github.io') ||
@@ -385,7 +385,7 @@ function modeLabel(mode, goal) {
 }
 
 async function hostTable() {
-  const { HostSession, makeCode } = await import('./net/host.js?v=2');
+  const { HostSession, makeCode } = await import('./net/host.js?v=3');
   const code = makeCode();
   hostSession = new HostSession(code, myName(), msg => safeHandle(msg, 'host'), (status, detail) => {
     if (status === 'code-taken') { hostSession = null; toast('Code collision - try again.'); }
@@ -1437,7 +1437,7 @@ async function startSoloVsHouse(deckArt) {
   selectDeckArt(deckArt, false);
   $('infoOverlay').classList.add('hidden');
   if (P2P_MODE) {
-    const { HostSession, makeCode } = await import('./net/host.js?v=2');
+    const { HostSession, makeCode } = await import('./net/host.js?v=3');
     hostSession = new HostSession(makeCode(), myName(), msg => safeHandle(msg, 'solo host'), () => {}, { solo: true, saveKey: SOLO_SAVE_KEY, ...gameOptions() });
   } else {
     sendMsg({ t: 'createSolo', playerName: myName(), ...gameOptions() });
@@ -1467,7 +1467,7 @@ async function continueSoloRun() {
   localStorage.setItem('crib_name', hostName);
   $('nameInput').value = hostName;
   $('infoOverlay').classList.add('hidden');
-  const { HostSession, makeCode } = await import('./net/host.js?v=2');
+  const { HostSession, makeCode } = await import('./net/host.js?v=3');
   hostSession = new HostSession(makeCode(), hostName, msg => safeHandle(msg, 'solo restore'), () => {}, {
     solo: true,
     saveKey: SOLO_SAVE_KEY,

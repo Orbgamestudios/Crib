@@ -1,4 +1,4 @@
-import { Game } from '../lib/game.js?v=2';
+import { Game } from '../lib/game.js?v=3';
 
 // In-browser authoritative host for static hosting (GitHub Pages): the host's
 // tab runs the Game engine and talks to guests over PeerJS data channels using

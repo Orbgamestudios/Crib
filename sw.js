@@ -1,15 +1,15 @@
-const CACHE = 'crib-v124';
+const CACHE = 'crib-v125';
 const SHELL = [
   './',
   'index.html',
   'style.css?v=88',
-  'client.js?v=107',
+  'client.js?v=108',
   'icons.js?v=16',
-  'lib/cards.js?v=2',
-  'lib/scoring.js?v=2',
-  'lib/jokers.js?v=2',
-  'lib/game.js?v=2',
-  'net/host.js?v=2',
+  'lib/cards.js?v=3',
+  'lib/scoring.js?v=3',
+  'lib/jokers.js?v=3',
+  'lib/game.js?v=3',
+  'net/host.js?v=3',
   'manifest.webmanifest',
   'icons/icon-192.png',
   'icons/icon-512.png',

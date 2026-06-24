@@ -3,7 +3,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { WebSocketServer } from 'ws';
-import { Game } from './lib/game.js?v=2';
+import { Game } from './lib/game.js?v=3';
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 const MIME = {
