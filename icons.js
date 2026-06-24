@@ -363,6 +363,13 @@ export const JOKER_ICONS = {
     `<path d="M18 14q-5 9 0 18M30 14q5 9 0 18" fill="none" stroke="${R}" stroke-width="1.5" stroke-dasharray="2 2"/>` +
     txt(24, 40, 'X1.5', 6, D)
   ),
+  hologram: svg(
+    `<g opacity=".48" transform="translate(-5 -3)">${card(15, 11, -8, '#8fe7ff')}</g>` +
+    `<g opacity=".65" transform="translate(2 0)">${card(15, 11, 2, '#b48be0')}</g>` +
+    `<g opacity=".82" transform="translate(7 3)">${card(15, 11, 10, '#f4ead8')}</g>` +
+    `<path d="M9 38h28M31 32l6 6-6 6" fill="none" stroke="${G}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>` +
+    txt(18, 42, 'X+', 8, '#8fe7ff')
+  ),
 };
 
 const tarotFrame = (roman, inner) =>
@@ -370,6 +377,10 @@ const tarotFrame = (roman, inner) =>
   inner + txt(24, 42.5, roman, 6.5, P);
 
 export const TAROT_ICONS = {
+  magician: svg(tarotFrame('I',
+    `<path d="M10 33q14-23 28 0" fill="none" stroke="${G}" stroke-width="2.2"/>` +
+    `<path d="M14 12l2 5 5 2-5 2-2 5-2-5-5-2 5-2zM35 8l1.3 3.2 3.2 1.3-3.2 1.3-1.3 3.2-1.3-3.2-3.2-1.3 3.2-1.3z" fill="${G}"/>` +
+    `<circle cx="21" cy="28" r="5" fill="${C}"/><circle cx="31" cy="28" r="5" fill="${C}"/>`)),
   sun: svg(tarotFrame('XIX',
     `<circle cx="24" cy="22" r="8" fill="${G}"/>` +
     `<g stroke="${G}" stroke-width="2.2" stroke-linecap="round">` +
@@ -388,14 +399,16 @@ export const TAROT_ICONS = {
     `<path d="M24 25l-1.6 3.5h3.2z" fill="#241733"/>` +
     `<path d="M19 33v3m5-3v3m5-3v3" stroke="#241733" stroke-width="1.6"/>`)),
   lovers: svg(tarotFrame('VI',
-    `<path d="M19 13c-3.6 0-6 2.6-6 5.6 0 4.8 6.5 8.4 8.5 11 .6-.8 1.6-1.7 2.7-2.8-1.8-2.4-3.2-4.9-3.2-7.6 0-2.4 1-4.5 2.6-5.7-1.1-.4-2.7-.5-4.6-.5z" fill="${R}"/>` +
-    `<path d="M29 14c-3.3 0-5.5 2.4-5.5 5.2 0 4.4 6 7.8 7.8 10.2 1.9-2.4 7.7-5.8 7.7-10.2 0-2.8-2.2-5.2-5.5-5.2-1.8 0-3.4.8-4.5 2.1z" fill="${R}" transform="translate(-7 2)"/>`)),
+    `<defs><linearGradient id="wildHeart" x1="0" x2="1"><stop stop-color="#ef5555"/><stop offset=".34" stop-color="#e8c35a"/><stop offset=".67" stop-color="#59c89b"/><stop offset="1" stop-color="#8b72e8"/></linearGradient></defs>` +
+    `<path d="M24 37C13 29 9 23 9 17c0-5 3.5-8 8-8 3 0 5.5 1.6 7 4 1.5-2.4 4-4 7-4 4.5 0 8 3 8 8 0 6-4 12-15 20z" fill="url(#wildHeart)" stroke="${C}" stroke-width="1.2"/>`)),
+  chariot: svg(tarotFrame('VII',
+    `<path d="M12 29h24l-3 8H15z" fill="#aebcc8" stroke="${D}" stroke-width="1.4"/>` +
+    `<circle cx="17" cy="38" r="4" fill="${D}"/><circle cx="31" cy="38" r="4" fill="${D}"/>` +
+    `<path d="M16 28V13h16v15M18 15l12 10M30 15L18 25" stroke="#eaf5ff" stroke-width="2"/>`)),
   justice: svg(tarotFrame('VIII',
-    `<line x1="24" y1="9" x2="24" y2="34" stroke="${G}" stroke-width="2.2"/>` +
-    `<line x1="12" y1="14" x2="36" y2="14" stroke="${G}" stroke-width="2.2"/>` +
-    `<path d="M12 14l-4 9h8zM36 14l-4 9h8z" fill="none" stroke="${G}" stroke-width="1.6"/>` +
-    `<path d="M8 23a4 4 0 008 0M32 23a4 4 0 008 0" fill="none" stroke="${G}" stroke-width="1.6"/>` +
-    `<rect x="18" y="33" width="12" height="3" rx="1.5" fill="${G}"/>`)),
+    `<path d="M10 10h28v26H10z" fill="#dce9ef" stroke="#8ea1ad" stroke-width="1.5"/>` +
+    `<path d="M10 31l9-8 5 4 6-10 8 7M24 10l-3 13 6 4-3 9" fill="none" stroke="#fff" stroke-width="2"/>` +
+    `<path d="M13 13l7-3M31 36l7-8" stroke="#91a6b2" stroke-width="1.2"/>`)),
   star: svg(tarotFrame('XVII',
     `<path d="M24 8l3.2 8.2 8.8.6-6.8 5.6 2.2 8.6L24 26l-7.4 5 2.2-8.6-6.8-5.6 8.8-.6z" fill="${G}"/>` +
     `<path d="M13 32q5 4 11 1" stroke="${P}" stroke-width="1.6" fill="none" stroke-linecap="round"/>`)),
@@ -414,8 +427,13 @@ export const TAROT_ICONS = {
     `<path d="M15 34V22q0-8 7-8 6 0 6 6v4h4q4 0 4 5v5" fill="none" stroke="${G}" stroke-width="3" stroke-linecap="round"/>` +
     `<path d="M24 12V7m0 0l-3 3m3-3l3 3M33 16l3-4m-3 4l4 .5" stroke="${P}" stroke-width="1.8" fill="none" stroke-linecap="round"/>`)),
   empress: svg(tarotFrame('III',
-    `<path d="M24 36c-7-5.5-11-10-11-15 0-3.5 2.6-6 6-6 2.2 0 4 1.1 5 2.9 1-1.8 2.8-2.9 5-2.9 3.4 0 6 2.5 6 6 0 5-4 9.5-11 15z" fill="${R}"/>` +
+    `<path d="M8 30q8-15 16 0t16 0" fill="none" stroke="${R}" stroke-width="3"/>` +
+    `<path d="M8 22q8-15 16 0t16 0" fill="none" stroke="${R}" stroke-width="2" opacity=".75"/>` +
     `<path d="M16 11l3 2.5 5-4 5 4 3-2.5v4H16z" fill="${G}"/>`)),
+  hierophant: svg(tarotFrame('V',
+    `<path d="M12 12h24v25H12z" fill="#1c4d72" stroke="#6ec7ff" stroke-width="1.5"/>` +
+    `<path d="M16 17h16M16 23h16M16 29h16" stroke="#9ad8ff" stroke-width="2"/>` +
+    `<path d="M8 17l4 2-4 2M40 17l-4 2 4 2M8 27l4 2-4 2M40 27l-4 2 4 2" fill="none" stroke="${G}" stroke-width="1.5"/>`)),
   emperor: svg(tarotFrame('IV',
     `<path d="M24 13l9 12-9 12-9-12z" fill="${R}"/>` +
     `<path d="M16 9l3 2.5 5-4 5 4 3-2.5v4H16z" fill="${G}"/>`)),
@@ -443,35 +461,22 @@ export const TAROT_ICONS = {
     `<path d="M38 14l4-3M39 23h5M38 31l4 3" stroke="${P}" stroke-width="1.8" stroke-linecap="round"/>`)),
 };
 
+const packIcon = (id, label, c1, c2, mark) =>
+  `<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs>` +
+  `<linearGradient id="${id}Wrap" x1="0" x2="1" y1="0" y2="1"><stop stop-color="${c1}"/><stop offset=".5" stop-color="${c2}"/><stop offset="1" stop-color="${c1}"/></linearGradient>` +
+  `<linearGradient id="${id}Glint" x1="0" x2="1"><stop stop-color="#fff" stop-opacity=".1"/><stop offset=".48" stop-color="#fff" stop-opacity=".85"/><stop offset=".58" stop-color="#fff" stop-opacity=".05"/></linearGradient>` +
+  `<filter id="${id}Shadow"><feDropShadow dx="2" dy="3" stdDeviation="1.5" flood-opacity=".65"/></filter></defs>` +
+  `<g filter="url(#${id}Shadow)" transform="rotate(-2 24 24)"><path d="M8 6l3-2h27l2 3-2 35-3 2H11l-3-3z" fill="url(#${id}Wrap)" stroke="#f5f8ff" stroke-width="1.2"/>` +
+  `<path d="M8 7h32M9 10h30M9 39h29M8 42h30" stroke="#e8f7ff" stroke-width="1.4"/>` +
+  `<path d="M11 4v6m4-6v6m4-6v6m4-6v6m4-6v6m4-6v6m4-6v6M11 39v5m4-5v5m4-5v5m4-5v5m4-5v5m4-5v5m4-5v5" stroke="#70859a" stroke-width=".65" opacity=".8"/>` +
+  `<path d="M12 13h24v22H12z" fill="#11182728" stroke="#ffffff55"/><path d="M13 14h22v20H13z" fill="url(#${id}Glint)" opacity=".7"/>` +
+  `<path d="M14 18h20M14 23h20M14 28h20" stroke="#ffffff24" stroke-width="2"/>` +
+  `<text x="24" y="25" font-size="5.6" font-weight="900" font-family="Arial,sans-serif" text-anchor="middle" fill="#fff" stroke="#263544" stroke-width=".8" paint-order="stroke" transform="rotate(-5 24 25)">${label}</text>` +
+  `<text x="24" y="32" font-size="8" font-weight="900" text-anchor="middle" fill="#fff">${mark}</text></g></svg>`;
+
 export const PACK_ICONS = {
-  buffoon: svg(
-    `<rect x="10" y="6" width="28" height="38" rx="4" fill="#6b4f1d" stroke="${G}" stroke-width="2.2"/>` +
-    `<path d="M10 16q14 6 28 0" fill="none" stroke="${G}" stroke-width="1.6"/>` +
-    `<path d="M24 22l2 5 5-2-2 5 5 2-5 2 2 5-5-2-2 5-2-5-5 2 2-5-5-2 5-2-2-5 5 2z" fill="${G}"/>` +
-    txt(24, 43, 'JOKER', 6, G)
-  ),
-  ultra: svg(
-    `<defs><linearGradient id="ultraPack" x1="0" x2="1" y1="0" y2="1"><stop offset="0" stop-color="#fff2a8"/><stop offset=".28" stop-color="#7df5ff"/><stop offset=".62" stop-color="#b46cff"/><stop offset="1" stop-color="#ff5fd2"/></linearGradient></defs>` +
-    `<rect x="9" y="5" width="30" height="40" rx="5" fill="#10131d" stroke="url(#ultraPack)" stroke-width="2.4"/>` +
-    `<path d="M9 15q15 7 30 0" fill="none" stroke="#fff2a8" stroke-width="1.5" opacity=".85"/>` +
-    `<path d="M24 10l3.5 8 8.5 1-6.2 5.6 1.7 8.4L24 28.7 16.5 33l1.7-8.4L12 19l8.5-1z" fill="url(#ultraPack)" stroke="${C}" stroke-width=".8"/>` +
-    `<circle cx="15" cy="34" r="1.5" fill="#7df5ff"/><circle cx="33" cy="34" r="1.5" fill="#ff5fd2"/><circle cx="24" cy="36" r="1.7" fill="#fff2a8"/>` +
-    txt(24, 43, 'ULTRA', 6, '#fff2a8')
-  ),
-  arcana: svg(
-    `<rect x="10" y="6" width="28" height="38" rx="4" fill="#2c1b42" stroke="${P}" stroke-width="2.2"/>` +
-    `<path d="M10 16q14 6 28 0" fill="none" stroke="${P}" stroke-width="1.6"/>` +
-    `<path d="M24 20q8 4 0 14-8-10 0-14z" fill="${P}"/>` +
-    `<circle cx="24" cy="27" r="2.6" fill="#2c1b42"/><circle cx="24" cy="27" r="1.2" fill="${C}"/>` +
-    txt(24, 43, 'ARCANA', 6, P)
-  ),
-  standard: svg(
-    `<rect x="10" y="6" width="28" height="38" rx="4" fill="#1d3a5c" stroke="#7fb4d8" stroke-width="2.2"/>` +
-    `<path d="M10 16q14 6 28 0" fill="none" stroke="#7fb4d8" stroke-width="1.6"/>` +
-    `<g transform="rotate(-10 20 28)"><rect x="15" y="21" width="10" height="14" rx="1.5" fill="${C}"/></g>` +
-    `<g transform="rotate(10 29 28)"><rect x="24" y="21" width="10" height="14" rx="1.5" fill="${C}"/></g>` +
-    txt(20, 30, '♥', 7, R, 'transform="rotate(-10 20 28)"') +
-    txt(29, 30, '♠', 7, D, 'transform="rotate(10 29 28)"') +
-    txt(24, 43, 'CARDS', 6, '#7fb4d8')
-  ),
+  buffoon: packIcon('buffoonPack', 'BUFFOON', '#f08a43', '#7f2f77', 'J'),
+  ultra: packIcon('ultraPack', 'ULTRA', '#67e5ff', '#d451d7', '*'),
+  arcana: packIcon('arcanaPack', 'ARCANA', '#9062dd', '#351e67', 'X'),
+  standard: packIcon('standardPack', 'STANDARD', '#60d9f2', '#4168d8', 'S'),
 };

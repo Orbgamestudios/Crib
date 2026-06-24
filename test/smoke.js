@@ -6,7 +6,8 @@ process.env.CRIB_FAST = '1';
 import WebSocket from 'ws';
 const { start } = await import('../server.js');
 const { Game } = await import('../lib/game.js');
-const { makeCard } = await import('../lib/cards.js');
+const { cardValue, makeCard } = await import('../lib/cards.js');
+const { scoreBreakdown } = await import('../lib/scoring.js');
 const { JOKERS_BY_ID, TAROTS, jokerCapacity } = await import('../lib/jokers.js');
 
 const PORT = 3100;
@@ -230,6 +231,60 @@ function testDeckEffects() {
     process.exit(1);
   }
   editionGame.destroy();
+
+  const emeraldGame = new Game([
+    { id: 'p1', name: 'Emerald', connected: true, deckArt: 'emerald' },
+    { id: 'p2', name: 'Other', connected: true },
+  ], { onUpdate() {}, log() {} });
+  const emeraldPlayer = emeraldGame.players[0];
+  if (emeraldPlayer.coins !== 5 || emeraldPlayer.jokers.length !== 1 ||
+      JOKERS_BY_ID[emeraldPlayer.jokers[0].id].rarity !== 'common') {
+    console.error('FAIL: Emerald Felt did not grant its opening coins and Common Joker');
+    process.exit(1);
+  }
+  emeraldPlayer.jokers = [{ id: 'hologram', hologramMult: 1 }];
+  emeraldGame.addCardToDeck(emeraldPlayer, makeCard(9, 2, 'bonus'));
+  if (emeraldPlayer.jokers[0].hologramMult !== 1.25) {
+    console.error('FAIL: Hologram did not grow when a playing card entered the deck');
+    process.exit(1);
+  }
+  const enhanced = emeraldGame.scoreCardEnhancements(emeraldPlayer, 'hand', [
+    makeCard(4, 0, 'bonus'), makeCard(7, 1, 'mult'), makeCard(9, 2, 'gold'),
+  ], 1);
+  const steel = emeraldGame.scoreCardEnhancements(emeraldPlayer, 'crib', [makeCard(6, 3, 'steel')], 1);
+  if (enhanced.points !== 2 || enhanced.mult !== 2 || emeraldPlayer.coins !== 8 || steel.mult !== 1.5) {
+    console.error('FAIL: playing-card enhancements did not apply to scoring');
+    process.exit(1);
+  }
+  const wildFlush = scoreBreakdown([
+    makeCard(2, 0), makeCard(4, 0), makeCard(6, 0), makeCard(8, 3, 'wild'),
+  ], makeCard(10, 0), false);
+  const stonePair = scoreBreakdown([makeCard(5, 0), makeCard(5, 1, 'stone')], null, false);
+  if (wildFlush.flush !== 5 || stonePair.pairs !== 0 || cardValue(makeCard(13, 3, 'stone')) !== 0) {
+    console.error('FAIL: Wild or Stone core cribbage rules are incorrect');
+    process.exit(1);
+  }
+  const tarotCards = [makeCard(3, 0), makeCard(8, 1)];
+  emeraldPlayer.hand = tarotCards.slice();
+  emeraldPlayer.tarots = ['magician'];
+  emeraldPlayer.discarded = false;
+  emeraldGame.phase = 'discard';
+  emeraldGame.useTarot(emeraldPlayer, 0, tarotCards.map(c => c.id));
+  if (tarotCards.some(c => c.enhancement !== 'lucky')) {
+    console.error('FAIL: enhancement tarot did not permanently update its targets');
+    process.exit(1);
+  }
+  emeraldPlayer.tarots = ['wheel'];
+  const realRandom = Math.random;
+  const wheelRolls = [0, 0, 0];
+  Math.random = () => wheelRolls.shift() ?? 0;
+  emeraldGame.useTarot(emeraldPlayer, 0, []);
+  Math.random = realRandom;
+  if (emeraldPlayer.jokers[0].stamp !== 'foil') {
+    console.error('FAIL: Wheel of Fortune did not add a successful Edition');
+    process.exit(1);
+  }
+  emeraldGame.destroy();
 }
 
 function bot(name, opts) {
@@ -276,7 +331,7 @@ function act(b) {
         b.ws.send(JSON.stringify({ t: 'discard', cards }));
       }
     } else if (st.phase === 'pegging' && st.turnSeat === st.mySeat) {
-      const card = you.hand.find(c => st.pegCount + Math.min(c.rank, 10) <= 31);
+      const card = you.hand.find(c => st.pegCount + cardValue(c) <= 31);
       if (card) b.ws.send(JSON.stringify({ t: 'playCard', card: card.id }));
     } else if ((st.phase === 'scoring' || st.phase === 'shop' || st.phase === 'roundEnd') && !you.ready) {
       if (st.phase === 'shop' && you.pendingPack) {

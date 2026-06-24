@@ -1,5 +1,5 @@
-import { JOKER_ICONS, TAROT_ICONS, PACK_ICONS } from './icons.js?v=14';
-import { cardValue } from './lib/cards.js';
+import { JOKER_ICONS, TAROT_ICONS, PACK_ICONS } from './icons.js?v=15';
+import { CARD_ENHANCEMENTS, cardValue } from './lib/cards.js';
 import { pegEvents, scoreBreakdown } from './lib/scoring.js';
 import { JOKERS, TAROTS, aggregateMods, buildScore, effectiveJokerIds, jokerDef, normalizeJoker, stampText } from './lib/jokers.js';
 
@@ -20,7 +20,7 @@ const SOLO_SAVE_KEY = 'crib_solo_house_save_v1';
 const PROFILE_KEY = 'crib_profiles_v1';
 const ACTIVE_PROFILE_KEY = 'crib_active_profile_pin';
 const DIAG_KEY = 'crib_last_diagnostic_v1';
-const APP_BUILD = 'client-v104';
+const APP_BUILD = 'client-v106';
 
 // GitHub Pages (or any static host) has no WebSocket server: use P2P rooms.
 const P2P_MODE = location.hostname.endsWith('github.io') ||
@@ -67,7 +67,7 @@ let selectedGameMode = normalizeMode(localStorage.getItem('crib_game_mode'));
 let selectedDeckArt = localStorage.getItem('crib_deck_art') || 'classic';
 const DECK_ARTS = [
   { id: 'classic', name: 'Classic Violet', cost: 0, desc: 'Purple deck: one random shop pack becomes an Arcana tarot pack.' },
-  { id: 'emerald', name: 'Emerald Felt', cost: 0, desc: 'Green deck: after each deal, gain +1 coin per 10 coins you hold, up to +3.' },
+  { id: 'emerald', name: 'Emerald Felt', cost: 0, desc: 'Start every run with 5 coins and one free random Common Joker.' },
   { id: 'sapphire', name: 'Sapphire Run', cost: 0, desc: 'Blue deck: start each run with +1 joker slot.' },
   { id: 'ruby', name: 'Ruby Cut', cost: 0, desc: 'At the start of a run, choose two random suits. Every card in your deck permanently becomes one of those two suits.' },
   { id: 'aurora', name: 'Aurora Flow', cost: 0, animated: true, desc: 'Draw one extra card during discard. Select one extra card last; that final card is removed from the run instead of entering the crib.' },
@@ -827,7 +827,7 @@ window.addEventListener('unhandledrejection', e => {
 function showInfo(title, body) {
   $('infoTitle').textContent = title;
   $('infoBody').innerHTML = body;
-  $('infoPanel').classList.toggle('wide', $('infoBody').querySelector('.dictionary'));
+  $('infoPanel').classList.toggle('wide', !!$('infoBody').querySelector('.dictionary, .howto'));
   $('infoOverlay').classList.remove('hidden');
   sanitizeIcons($('infoOverlay'));
 }
@@ -917,10 +917,22 @@ function showHowToPlay() {
     or crib Mult. Hold up to 5; drag to reorder (<i>Blueprint</i> copies the joker to its
     right).</p>
 
+    <h4>Joker Editions</h4>
+    <p>A joker can randomly arrive with one Edition. <b>Foil</b> adds +5 Hand Points,
+    <b>Holographic</b> adds +3 Mult, <b>Polychrome</b> multiplies Mult by x1.5, and
+    <b>Negative</b> adds one Joker slot. Editions are shown by a glowing badge and finish.</p>
+    <div id="editionHowto" class="howto-visual-grid"></div>
+
+    <h4>Playing Card Enhancements</h4>
+    <p>Enhanced cards keep their rank unless the effect says otherwise. Their frame shows
+    the enhancement, and tapping a card in the deck viewer explains the effect.</p>
+    <div id="enhancementHowto" class="howto-visual-grid enhancement-guide"></div>
+
     <h4>Tarots</h4>
     <p>One-shot cards (hold up to 2), played <b>during the discard phase before
-    you discard</b>. They permanently edit your deck - change a card's rank or
-    suit, copy or destroy cards, add a copy, redraw your hand, or grab coins.</p>
+    you discard</b>. They permanently edit your deck - change a card's rank,
+    suit, or Enhancement, copy or destroy cards, add a copy, or grab coins.
+    Zero-target tarots such as Wheel of Fortune can also be used in the shop.</p>
 
     <h4>Booster packs &amp; the shop</h4>
     <p>After every deal you earn coins and the shop opens. Buy jokers, tarots, or
@@ -959,6 +971,28 @@ function showHowToPlay() {
     <p>Tap a card to lift it, tap again or <b>drag</b> it onto the crib/pile to
     play. Toggle <b>Tips</b> (top bar) for in-game hints.</p>
   </div>`);
+  const editionGrid = $('editionHowto');
+  const editionDefs = [
+    ['foil', 'Foil', '+5 Hand Points'],
+    ['holographic', 'Holographic', '+3 Mult'],
+    ['polychrome', 'Polychrome', 'x1.5 Mult'],
+    ['negative', 'Negative', '+1 Joker slot'],
+  ];
+  for (const [stamp, name, effect] of editionDefs) {
+    const cell = document.createElement('div');
+    cell.className = 'howto-visual';
+    cell.appendChild(jtile('joker', { ...JOKERS[0], stamp }));
+    cell.insertAdjacentHTML('beforeend', `<b>${name}</b><span>${effect}</span>`);
+    editionGrid.appendChild(cell);
+  }
+  const enhancementGrid = $('enhancementHowto');
+  Object.entries(CARD_ENHANCEMENTS).forEach(([id, meta], idx) => {
+    const cell = document.createElement('div');
+    cell.className = 'howto-visual';
+    cell.appendChild(cardEl({ id: `guide-${id}`, rank: (idx % 9) + 1, suit: idx % 4, enhancement: id }));
+    cell.insertAdjacentHTML('beforeend', `<b>${esc(meta.name)}</b><span>${esc(meta.desc)}</span>`);
+    enhancementGrid.appendChild(cell);
+  });
 }
 
 $('howToBtn').onclick = () => showHowToPlay();
@@ -986,22 +1020,6 @@ function addInfoButton(el, title, body) {
   };
   el.appendChild(btn);
   return btn;
-}
-
-function addStampBadge(el, stamp) {
-  if (!stamp) return null;
-  const badge = document.createElement('button');
-  badge.className = `stamp-badge ${stamp}`;
-  badge.type = 'button';
-  badge.textContent = ({ foil: 'F', holographic: 'H', polychrome: 'P', negative: 'N' })[stamp] || stamp[0].toUpperCase();
-  badge.title = stampText(stamp);
-  badge.onclick = e => {
-    e.stopPropagation();
-    e.preventDefault();
-    showInfo('Edition', `<p>${esc(stampText(stamp))}</p>`);
-  };
-  el.appendChild(badge);
-  return badge;
 }
 
 function showItemInfo(kind, def, action) {
@@ -1776,9 +1794,15 @@ $('leaveBtn').onclick = () => { if (P2P_MODE) leaveP2p(); else sendMsg({ t: 'lea
 
 function cardEl(card, opts = {}) {
   const div = document.createElement('div');
-  div.className = 'card' + (card.suit < 2 ? ' red' : '') + (opts.small ? ' small' : '');
+  div.className = 'card' + (card.suit < 2 ? ' red' : '') + (opts.small ? ' small' : '') +
+    (card.enhancement ? ` enhancement-${card.enhancement}` : '');
   if (card.gambitCharged) div.classList.add('gambit-charged');
-  div.innerHTML = `<span>${RANK_NAMES[card.rank]}</span><span class="suit">${SUIT_CHARS[card.suit]}</span>`;
+  if (card.enhancement === 'stone') {
+    div.innerHTML = '<span class="stone-mark">STONE</span>';
+  } else {
+    const badge = card.enhancement ? `<span class="enhancement-badge">${esc(CARD_ENHANCEMENTS[card.enhancement].name.replace(' Card', ''))}</span>` : '';
+    div.innerHTML = `<span>${RANK_NAMES[card.rank]}</span><span class="suit">${SUIT_CHARS[card.suit]}</span>${badge}`;
+  }
   return div;
 }
 
@@ -2116,10 +2140,9 @@ function jtile(kind, def, opts = {}) {
   d.className = 'jtile ' + kind + (rarity ? ' r-' + rarity : '') + (stamp ? ' stamp-' + stamp : '');
   const icon = (kind === 'joker' ? JOKER_ICONS : TAROT_ICONS)[def.id] || '';
   const rarityTag = rarity ? ` <i class="rar">(${rarity})</i>` : '';
-  d.innerHTML = `<span class="jt-foil"></span><span class="jt-icon">${icon}</span>` +
+  d.innerHTML = `<span class="jt-icon">${icon}<span class="jt-foil"></span></span>` +
     `<span class="jt-name">${esc(def.name)}</span>` +
     `<div class="tip">${esc(def.desc)}${rarityTag}${opts.tipExtra || ''}</div>`;
-  addStampBadge(d, stamp);
   return d;
 }
 
@@ -2433,7 +2456,7 @@ function renderHand(st) {
         renderGame(lastState);
       };
     } else if (myTurn) {
-      const legal = st.pegCount + Math.min(c.rank, 10) <= 31;
+      const legal = st.pegCount + cardValue(c) <= 31;
       if (legal) {
         el.classList.add('clickable');
         addPointerCardDrag(el, c.id);
@@ -2441,6 +2464,10 @@ function renderHand(st) {
         if (preview && preview.points > 0) {
           el.classList.add('scores');
           el.insertAdjacentHTML('beforeend', `<span class="scoretag">+${preview.points}</span>`);
+        }
+        const extraLabels = cardExtraLabels(c, preview, st);
+        if (extraLabels.length) {
+          el.insertAdjacentHTML('beforeend', `<span class="card-effect-tags">${extraLabels.map(label => `<i>${esc(label)}</i>`).join('')}</span>`);
         }
         el.onclick = () => {
           if (el.dataset.dragged === '1') {
@@ -2482,7 +2509,7 @@ function renderHand(st) {
     prompt.textContent = 'Waiting for the others to discard...';
   } else if (st.phase === 'pegging') {
     if (myTurn) {
-      const canAny = you.hand.some(c => st.pegCount + Math.min(c.rank, 10) <= 31);
+      const canAny = you.hand.some(c => st.pegCount + cardValue(c) <= 31);
       prompt.textContent = canAny ? 'Play a card' : 'No legal play - go!';
     } else {
       prompt.textContent = 'Waiting for your turn...';
@@ -2621,7 +2648,7 @@ function playHandCard(cardId) {
   const st = lastState;
   const card = st && st.you.hand.find(c => c.id === cardId);
   if (!st || !card || st.phase !== 'pegging' || st.turnSeat !== st.mySeat) return;
-  if (st.pegCount + cardValue(card.rank) > 31) return;
+  if (st.pegCount + cardValue(card) > 31) return;
   const el = [...document.querySelectorAll('#hand .card')].find(card => card.dataset.cardId === cardId);
   pendingFly = { cardId, rect: el ? el.getBoundingClientRect() : null };
   raisedCardId = null;
@@ -2629,7 +2656,7 @@ function playHandCard(cardId) {
 }
 
 function peggingPreview(card, st) {
-  const count = st.pegCount + cardValue(card.rank);
+  const count = st.pegCount + cardValue(card);
   if (count > 31) return { legal: false, points: 0, events: [] };
   const target = deckEffectsOn(st) && st.you && st.you.deckArt === 'cosmic' ? st.cosmicTarget || 15 : 15;
   const events = pegEvents(st.pegStack.concat([card]), count, { target });
@@ -2652,6 +2679,7 @@ function peggingHandBonusPreview(card, events, count, st) {
     const scoredBonus = def && def.mods && def.mods.pegHandBonus;
     const bonus = playBonus || scoredBonus;
     if (!bonus || (scoredBonus && !events.length)) continue;
+    if (card.enhancement === 'stone' && (bonus.ranks || bonus.suit != null)) continue;
     if (bonus.ranks && !bonus.ranks.includes(card.rank)) continue;
     if (bonus.suit != null && bonus.suit !== card.suit) continue;
     if (bonus.starterFace && (!st.starter || st.starter.rank < 11)) continue;
@@ -2663,6 +2691,29 @@ function peggingHandBonusPreview(card, events, count, st) {
     if (base > 0) total += base;
   }
   return total;
+}
+
+function cardExtraLabels(card, preview, st) {
+  const labels = [];
+  if (preview && preview.handPoints > 0) labels.push(`+${preview.handPoints} Hand`);
+  let extraMult = 0;
+  for (const def of effectiveJokerIds(st.you.jokers || []).map(jokerDef).filter(Boolean)) {
+    if (def.id === 'even_steven' && card.enhancement !== 'stone' && card.rank % 2 === 0 && card.rank <= 10) extraMult += 1;
+    if (preview && preview.events.length && def.id === 'onyx_agate' && (card.suit === 2 || card.enhancement === 'wild')) extraMult += 2;
+  }
+  if (extraMult) labels.push(`+${extraMult} Mult`);
+  const enhancementLabel = {
+    bonus: '+2 Hand at show',
+    mult: '+1 Mult at show',
+    wild: 'All suits',
+    glass: 'x2 Mult at show',
+    steel: 'x1.5 Mult in crib',
+    stone: '+4 Hand / 0 peg',
+    gold: '+3 coins at show',
+    lucky: 'Lucky rolls at show',
+  }[card.enhancement];
+  if (enhancementLabel) labels.push(enhancementLabel);
+  return labels;
 }
 
 function peggingEventText(ev) {
@@ -2686,7 +2737,7 @@ function scoringOpportunity(st) {
   if (!options.length) return null;
   const best = options[0];
   const why = best.preview.events.map(peggingEventText).join(' and ');
-  const count = st.pegCount + cardValue(best.card.rank);
+  const count = st.pegCount + cardValue(best.card);
   return {
     key: `score-${best.card.id}-${st.pegCount}-${best.preview.points}-${best.preview.handPoints}`,
     text: `Scoring chance: play ${cardLabel(best.card)} to make the count ${count} and gain +${best.preview.points} Mult for ${why}${best.preview.handPoints ? `, plus +${best.preview.handPoints} Hand Points from your deck and jokers` : ''}.`
@@ -2694,12 +2745,14 @@ function scoringOpportunity(st) {
 }
 
 function cardLabel(card) {
-  return `${RANK_NAMES[card.rank]}${SUIT_CHARS[card.suit]}`;
+  const base = card.enhancement === 'stone' ? 'Stone Card' : `${RANK_NAMES[card.rank]}${SUIT_CHARS[card.suit]}`;
+  return card.enhancement && card.enhancement !== 'stone' ? `${base} ${CARD_ENHANCEMENTS[card.enhancement].name}` : base;
 }
 
 function cardInfo(card, st, preview) {
-  const value = cardValue(card.rank);
+  const value = cardValue(card);
   const bits = [`<p>${cardLabel(card)} counts as ${value} while pegging.</p>`];
+  if (card.enhancement) bits.push(`<p><b>${esc(CARD_ENHANCEMENTS[card.enhancement].name)}:</b> ${esc(CARD_ENHANCEMENTS[card.enhancement].desc)}</p>`);
   if (st.phase === 'discard' && st.you.canDiscard) bits.push('<p>Discard phase: select it or drag it to the crib pile.</p>');
   if (st.phase === 'pegging') {
     if (preview && preview.legal) {
@@ -2770,7 +2823,7 @@ function shopCardFace(item) {
   const icon = item.kind === 'joker' ? JOKER_ICONS[item.id]
     : item.kind === 'tarot' ? TAROT_ICONS[item.id]
     : PACK_ICONS[item.id];
-  face.innerHTML = `<div class="shop-art">${icon || ''}</div>`;
+  face.innerHTML = `<div class="shop-art">${icon || ''}<span class="jt-foil"></span></div>`;
   return face;
 }
 
@@ -2784,9 +2837,8 @@ function focusDisplayCard(item) {
   const icon = item.kind === 'joker' ? JOKER_ICONS[item.id]
     : item.kind === 'tarot' ? TAROT_ICONS[item.id]
     : PACK_ICONS[item.id];
-  art.innerHTML = `<span class="focus-card-icon">${icon || ''}</span>` +
+  art.innerHTML = `<span class="focus-card-icon">${icon || ''}<span class="jt-foil"></span></span>` +
     `<span class="focus-card-title">${esc(item.name)}</span>`;
-  addStampBadge(art, item.stamp);
   return art;
 }
 
@@ -3145,7 +3197,6 @@ function renderShop(oc, st) {
       stampPill(item) +
       `<div class="shop-price">${packBlock || chip(item.cost)}</div>` +
       `<div class="shop-type ${item.kind}">${shopTypeLabel(item.kind)}</div>`);
-    addStampBadge(div.querySelector('.shop-art') || div, item.stamp);
     addInfoButton(div, item.name, shopItemHelp(item));
     div.onclick = () => {
       if (item.sold || you.ready) return;
@@ -3234,9 +3285,6 @@ function focusCardShell(item) {
     stampPill(item) +
     `<div class="focus-desc">${esc(item.desc)}</div>`);
 
-  if (item.stamp) {
-    card.insertAdjacentHTML('beforeend', '<span class="jt-foil"></span>');
-  }
   return card;
 }
 
@@ -3292,7 +3340,7 @@ function addOwnedActions(card, kind, def, idx, st) {
 }
 
 function tarotNeedsHand(def) {
-  return def.targets > 0 || def.id === 'wheel';
+  return def.targets > 0;
 }
 
 function canUseTarotNow(def, st) {
@@ -3387,16 +3435,15 @@ function renderPackOpen(oc, st) {
       (firstReveal ? ' pack-rise' : '');
     if (firstReveal) div.style.animationDelay = (900 + idx * 230) + 'ms';
     if (opt.kind === 'card') {
-      div.innerHTML = `<div class="si-bigcard"></div><div class="si-name">${RANK_NAMES[opt.rank]}${SUIT_CHARS[opt.suit]} - add to your deck</div>`;
+      div.innerHTML = `<div class="si-bigcard"></div><div class="si-name">${esc(cardLabel(opt))} - add to your deck</div>`;
       div.querySelector('.si-bigcard').appendChild(cardEl(opt));
       div.insertAdjacentHTML('beforeend', '<div class="shop-type card">Card</div>');
     } else {
       const icon = (opt.kind === 'joker' ? JOKER_ICONS : TAROT_ICONS)[opt.id] || '';
-      div.innerHTML = `<div class="si-icon">${icon}</div><div class="si-name">${esc(opt.name)}</div>` +
+      div.innerHTML = `<div class="si-icon">${icon}<span class="jt-foil"></span></div><div class="si-name">${esc(opt.name)}</div>` +
         rarityPill(opt) +
         stampPill(opt) +
         `<div class="si-desc">${esc(opt.desc)}</div>`;
-      addStampBadge(div.querySelector('.si-icon') || div, opt.stamp);
       div.insertAdjacentHTML('beforeend', `<div class="shop-type ${opt.kind}">${shopTypeLabel(opt.kind)}</div>`);
     }
     addInfoButton(div, opt.name || cardLabel(opt), shopItemHelp(opt));
