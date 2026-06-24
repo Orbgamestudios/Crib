@@ -46,10 +46,12 @@ function testDeckEffects() {
   const chosen = ap.hand.slice(0, aurora.discardNeed(ap));
   const burned = chosen[chosen.length - 1];
   aurora.discard(ap, chosen.map(c => c.id));
-  if (aurora.crib.length !== 2 || ap.deck.some(c => c.id === burned.id)) {
+  if (aurora.crib.length !== 2 || ap.deck.some(c => c.id === burned.id) ||
+      aurora.cribDeckArts.length !== 2 || aurora.cribDeckArts.some(art => art !== 'aurora')) {
     console.error('FAIL: Aurora did not send two cards and remove the final selection', {
       crib: aurora.crib.length,
       burnedStillInDeck: ap.deck.some(c => c.id === burned.id),
+      cribDeckArts: aurora.cribDeckArts,
     });
     process.exit(1);
   }

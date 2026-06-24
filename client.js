@@ -20,7 +20,7 @@ const SOLO_SAVE_KEY = 'crib_solo_house_save_v1';
 const PROFILE_KEY = 'crib_profiles_v1';
 const ACTIVE_PROFILE_KEY = 'crib_active_profile_pin';
 const DIAG_KEY = 'crib_last_diagnostic_v1';
-const APP_BUILD = 'client-v103';
+const APP_BUILD = 'client-v104';
 
 // GitHub Pages (or any static host) has no WebSocket server: use P2P rooms.
 const P2P_MODE = location.hostname.endsWith('github.io') ||
@@ -1713,6 +1713,43 @@ function renderWaitingDeckControls(msg, isHost) {
   };
   carousel.addEventListener('scroll', scheduleUpdate, { passive: true });
   carousel.addEventListener('scrollend', commitCentered, { passive: true });
+  carousel.addEventListener('wheel', e => {
+    if (Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return;
+    e.preventDefault();
+    carousel.scrollLeft += e.deltaY;
+  }, { passive: false });
+  let mouseDrag = null;
+  let suppressClickUntil = 0;
+  carousel.addEventListener('pointerdown', e => {
+    if (e.pointerType !== 'mouse' || e.button !== 0) return;
+    mouseDrag = { id: e.pointerId, x: e.clientX, scrollLeft: carousel.scrollLeft, moved: false };
+    carousel.setPointerCapture(e.pointerId);
+    carousel.classList.add('dragging');
+  });
+  carousel.addEventListener('pointermove', e => {
+    if (!mouseDrag || e.pointerId !== mouseDrag.id) return;
+    const dx = e.clientX - mouseDrag.x;
+    if (Math.abs(dx) > 5) mouseDrag.moved = true;
+    if (!mouseDrag.moved) return;
+    e.preventDefault();
+    carousel.scrollLeft = mouseDrag.scrollLeft - dx;
+  });
+  const finishMouseDrag = e => {
+    if (!mouseDrag || e.pointerId !== mouseDrag.id) return;
+    if (mouseDrag.moved) suppressClickUntil = Date.now() + 250;
+    try { carousel.releasePointerCapture(e.pointerId); } catch { /* already released */ }
+    mouseDrag = null;
+    carousel.classList.remove('dragging');
+    scheduleUpdate();
+  };
+  carousel.addEventListener('pointerup', finishMouseDrag);
+  carousel.addEventListener('pointercancel', finishMouseDrag);
+  carousel.addEventListener('click', e => {
+    if (Date.now() < suppressClickUntil) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+  }, true);
   requestAnimationFrame(() => {
     const selectedBtn = row.querySelector(`[data-deck="${current}"]`);
     if (selectedBtn) selectedBtn.scrollIntoView({ block: 'nearest', inline: 'center' });
@@ -1905,8 +1942,16 @@ function renderCenter(st) {
 
   const crib = $('cribPile');
   crib.innerHTML = '';
-  if (st.cribCards && st.cribCards.length) st.cribCards.forEach(c => crib.appendChild(cardEl(c, { small: true })));
-  else crib.appendChild(backEl());
+  const cribStack = document.createElement('div');
+  cribStack.className = 'crib-card-stack';
+  if (st.cribCards && st.cribCards.length) {
+    st.cribCards.forEach(c => cribStack.appendChild(cardEl(c, { small: true })));
+  } else if (st.cribDeckArts && st.cribDeckArts.length) {
+    st.cribDeckArts.forEach(art => cribStack.appendChild(backEl(false, art)));
+  } else {
+    cribStack.appendChild(backEl());
+  }
+  crib.appendChild(cribStack);
   const dealer = st.players.find(p => p.isDealer);
   crib.insertAdjacentHTML('beforeend',
     `<div class="lbl">Crib x${st.cribCount} (${esc(dealer ? dealer.name : '')})</div>`);
@@ -3520,7 +3565,7 @@ function runAnimations(prev, st, refs = {}) {
 
   // discards glide (face down) from each player's hand to the crib pile
   if (prev.dealNumber === st.dealNumber && prev.players) {
-    const cribCard = document.querySelector('#cribPile .card');
+    const cribCard = document.querySelector('#cribPile .card:last-child');
     for (const p of st.players) {
       const pp = prev.players.find(q => q.seat === p.seat);
       if (!pp || pp.discarded || !p.discarded || !p.active || !cribCard) continue;
@@ -3536,7 +3581,7 @@ function runAnimations(prev, st, refs = {}) {
       sfx('discard');
       for (let i = 0; i < (p.cribDiscardCount || st.baseDiscardCount || st.discardCount); i++) {
         setTimeout(() => {
-          const tgt = document.querySelector('#cribPile .card');
+          const tgt = document.querySelector('#cribPile .card:last-child');
           if (tgt) flyClone(backEl(false, p.deckArt), fromRect, tgt.getBoundingClientRect(), 460, { rot: p.seat === st.mySeat ? -8 : 8 });
         }, i * 110);
       }

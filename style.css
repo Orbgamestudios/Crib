@@ -431,8 +431,9 @@ body.phase-pegging #tutorialBar {
 .wait-deck-carousel {
   width: 100%; overflow-x: auto; overflow-y: hidden; scrollbar-width: none;
   scroll-snap-type: x mandatory; overscroll-behavior-x: contain; touch-action: pan-x;
-  -webkit-overflow-scrolling: touch;
+  -webkit-overflow-scrolling: touch; cursor: grab;
 }
+.wait-deck-carousel.dragging { cursor: grabbing; scroll-snap-type: none; user-select: none; }
 .wait-deck-carousel::-webkit-scrollbar { display: none; }
 .wait-deck-row {
   display: flex; flex-wrap: nowrap; gap: 12px; width: max-content;
@@ -624,14 +625,14 @@ body.mode-board .seat-blind-fill {
 .card.back.deck-gambit {
   background:
     radial-gradient(circle at 50% 50%, #ffffff30 0 14%, transparent 15%),
-    radial-gradient(ellipse at center, #ffb0ff88 0 7%, #ff3fcc88 12%, transparent 31%),
-    repeating-linear-gradient(118deg, transparent 0 18px, #ff77df55 20px 22px, transparent 24px 46px),
+    radial-gradient(ellipse at center, #ffb0ff77 0 8%, #ff3fcc66 16%, transparent 43%),
+    radial-gradient(circle at 18px 18px, #ffd4f6cc 0 1px, #ff77df88 2px, transparent 4px),
     linear-gradient(145deg, #160d25, #4d164f 48%, #120b24);
-  background-size: 100% 100%, 520px 330px, 260px 220px, 100% 100%;
-  background-repeat: no-repeat, no-repeat, repeat, no-repeat;
+  background-size: 100% 100%, 320px 240px, 72px 72px, 100% 100%;
+  background-repeat: no-repeat, repeat, repeat, no-repeat;
   background-position:
     0 0,
-    calc(50vw - 260px - var(--deck-card-left, 0px) + var(--gambit-x, 0px)) calc(50vh - 165px - var(--deck-card-top, 0px) + var(--gambit-y, 0px)),
+    calc(var(--gambit-x, 0px) - var(--deck-card-left, 0px)) calc(var(--gambit-y, 0px) - var(--deck-card-top, 0px)),
     calc(var(--gambit-x2, 0px) - var(--deck-card-left, 0px)) calc(var(--gambit-y2, 0px) - var(--deck-card-top, 0px)),
     0 0;
   border-color: #ffb7f2;
@@ -800,6 +801,8 @@ body.mode-board .seat-blind-fill {
   margin-top: 3px; opacity: 0.7;
   white-space: nowrap; font-size: 10px;
 }
+.crib-card-stack { display: flex; justify-content: center; padding-right: 18px; min-width: 48px; }
+.crib-card-stack .card { flex: 0 0 auto; margin-right: -18px; }
 #pegArea { display: flex; align-items: center; gap: 14px; min-height: 70px; }
 #pegStack { display: flex; }
 #pegStack .card { margin-right: -18px; }
