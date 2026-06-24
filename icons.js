@@ -316,15 +316,58 @@ export const JOKER_ICONS = {
     `<path d="M24 24l2 4 4 1-4 1-2 4-2-4-4-1 4-1z" fill="${C}"/>` +
     txt(24, 38, '5', 8, D)
   ),
+  riff_raff: svg(
+    `<path d="M8 10h32l-4 28H12z" fill="#304656" stroke="${G}" stroke-width="1.6"/>` +
+    `<path d="M10 17l5-3 4 4 5-6 5 6 4-4 5 3" fill="none" stroke="${C}" stroke-width="2"/>` +
+    `<circle cx="18" cy="27" r="5" fill="${P}"/><circle cx="30" cy="27" r="5" fill="${R}"/>` +
+    `<path d="M16 27h4M28 27h4" stroke="${C}" stroke-width="1.5"/>`
+  ),
+  card_sharp: svg(
+    card(14, 10, -7) + `<path d="M8 38L40 8" stroke="#b9f0ff" stroke-width="3" stroke-linecap="round"/>` +
+    `<path d="M11 40l-4 1 1-4L36 9l3 3z" fill="${G}" stroke="${D}" stroke-width="1"/>` + txt(23, 27, 'X2', 9, R)
+  ),
+  onyx_agate: svg(
+    `<path d="M24 5l13 10-5 24H16l-5-24z" fill="#111820" stroke="#8ea6b8" stroke-width="2"/>` +
+    `<path d="M24 5v34M11 15h26L16 39M37 15L32 39" fill="none" stroke="#ffffff38" stroke-width="1"/>` + txt(24, 29, '♣', 15, C)
+  ),
+  arrowhead: svg(
+    `<path d="M24 4l13 18-9-2v22h-8V20l-9 2z" fill="#a9bbc7" stroke="${D}" stroke-width="1.7"/>` +
+    txt(24, 29, '♠', 12, D)
+  ),
+  bloodstone: svg(
+    `<path d="M24 5l13 10-4 21-9 7-9-7-4-21z" fill="#8f1d2c" stroke="#ff9d9d" stroke-width="1.8"/>` +
+    `<path d="M24 5v38M11 15h26L15 36M37 15L33 36" fill="none" stroke="#ffffff44" stroke-width="1"/>` + txt(24, 29, '♥', 14, C)
+  ),
+  rough_gem: svg(
+    `<path d="M9 19l8-11h14l8 11-15 23z" fill="#5ec7e8" stroke="${D}" stroke-width="1.6"/>` +
+    `<path d="M9 19h30M17 8l7 34M31 8l-7 34" fill="none" stroke="#e8fbff99" stroke-width="1.3"/>` +
+    `<circle cx="37" cy="35" r="6" fill="${G}" stroke="${D}" stroke-width="1.2"/>` + txt(37, 38, '$', 8, D)
+  ),
+  stuntman: svg(
+    `<path d="M8 35q8-18 17-18t15 18" fill="none" stroke="${R}" stroke-width="3"/>` +
+    `<circle cx="24" cy="13" r="8" fill="${C}" stroke="${D}" stroke-width="1.5"/>` +
+    `<path d="M17 13h14M24 5v16" stroke="${R}" stroke-width="2"/>` +
+    `<path d="M36 30l5 5-6 1" fill="none" stroke="${G}" stroke-width="2"/>`
+  ),
+  the_trio: svg(
+    card(5, 14, -12) + card(16, 10, 0) + card(27, 14, 12) +
+    txt(13, 29, '3', 9, R, 'transform="rotate(-12 13 25)"') + txt(24, 25, '3', 9) + txt(35, 29, '3', 9, R, 'transform="rotate(12 35 25)"')
+  ),
+  the_family: svg(
+    card(3, 16, -14) + card(12, 10, -5) + card(21, 10, 5) + card(30, 16, 14) +
+    txt(24, 42, '4 KIND', 6, G)
+  ),
+  baseball_card: svg(
+    `<rect x="8" y="5" width="32" height="38" rx="4" fill="${C}" stroke="${R}" stroke-width="2"/>` +
+    `<circle cx="24" cy="23" r="11" fill="#f7f3e8" stroke="${D}" stroke-width="1.3"/>` +
+    `<path d="M18 14q-5 9 0 18M30 14q5 9 0 18" fill="none" stroke="${R}" stroke-width="1.5" stroke-dasharray="2 2"/>` +
+    txt(24, 40, 'X1.5', 6, D)
+  ),
 };
 
 const tarotFrame = (roman, inner) =>
   `<rect x="7" y="3" width="34" height="42" rx="3.5" fill="#241733" stroke="${P}" stroke-width="2"/>` +
   inner + txt(24, 42.5, roman, 6.5, P);
-const sealIcon = (label, color) => svg(tarotFrame('SEAL',
-  `<circle cx="24" cy="22" r="11" fill="${color}" stroke="${C}" stroke-width="2"/>` +
-  `<path d="M24 9l3 7 7 .6-5.4 4.7 1.7 7-6.3-3.7-6.3 3.7 1.7-7-5.4-4.7 7-.6z" fill="${G}" stroke="#241733" stroke-width="1"/>` +
-  txt(24, 26, label, 8, '#fff')));
 
 export const TAROT_ICONS = {
   sun: svg(tarotFrame('XIX',
@@ -398,10 +441,6 @@ export const TAROT_ICONS = {
     `<path d="M13 14l18 5v8l-18 5q-3-9 0-18z" fill="${G}"/>` +
     `<path d="M31 17h4v12h-4z" fill="${G}"/>` +
     `<path d="M38 14l4-3M39 23h5M38 31l4 3" stroke="${P}" stroke-width="1.8" stroke-linecap="round"/>`)),
-  violet_seal: sealIcon('P', '#7b43c4'),
-  scarlet_seal: sealIcon('R', '#be302c'),
-  azure_seal: sealIcon('B', '#2476c9'),
-  ivory_seal: sealIcon('B', '#2476c9'),
 };
 
 export const PACK_ICONS = {

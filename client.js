@@ -1,4 +1,4 @@
-import { JOKER_ICONS, TAROT_ICONS, PACK_ICONS } from './icons.js?v=13';
+import { JOKER_ICONS, TAROT_ICONS, PACK_ICONS } from './icons.js?v=14';
 import { cardValue } from './lib/cards.js';
 import { pegEvents, scoreBreakdown } from './lib/scoring.js';
 import { JOKERS, TAROTS, aggregateMods, buildScore, effectiveJokerIds, jokerDef, normalizeJoker, stampText } from './lib/jokers.js';
@@ -842,7 +842,7 @@ document.addEventListener('click', e => {
   if (stamp) {
     e.stopPropagation();
     e.preventDefault();
-    showInfo('Stamp', `<p>${esc(stampText(stamp.dataset.stamp))}</p>`);
+    showInfo('Edition', `<p>${esc(stampText(stamp.dataset.stamp))}</p>`);
     return;
   }
   if (actionEl) sfx('click');
@@ -993,12 +993,12 @@ function addStampBadge(el, stamp) {
   const badge = document.createElement('button');
   badge.className = `stamp-badge ${stamp}`;
   badge.type = 'button';
-  badge.textContent = stamp[0].toUpperCase();
+  badge.textContent = ({ foil: 'F', holographic: 'H', polychrome: 'P', negative: 'N' })[stamp] || stamp[0].toUpperCase();
   badge.title = stampText(stamp);
   badge.onclick = e => {
     e.stopPropagation();
     e.preventDefault();
-    showInfo('Stamp', `<p>${esc(stampText(stamp))}</p>`);
+    showInfo('Edition', `<p>${esc(stampText(stamp))}</p>`);
   };
   el.appendChild(badge);
   return badge;
@@ -2441,7 +2441,6 @@ function renderHand(st) {
         if (preview && preview.points > 0) {
           el.classList.add('scores');
           el.insertAdjacentHTML('beforeend', `<span class="scoretag">+${preview.points}</span>`);
-          if (preview.handPoints > 0) el.insertAdjacentHTML('beforeend', `<span class="handscoretag">+${preview.handPoints}H</span>`);
         }
         el.onclick = () => {
           if (el.dataset.dragged === '1') {
@@ -2643,22 +2642,25 @@ function peggingPreview(card, st) {
 }
 
 function peggingHandBonusPreview(card, events, count, st) {
-  if (!events.length || st.mode === 'board') return 0;
+  if (st.mode === 'board') return 0;
   let total = deckEffectsOn(st) && st.you.deckArt === 'gambit' &&
     events.some(ev => ev.type === 'fifteen' || ev.type === 'thirtyone') ? 2 : 0;
   for (const raw of effectiveJokerIds(st.you.jokers || [])) {
     const owned = normalizeJoker(raw);
     const def = owned && jokerDef(owned);
-    const bonus = def && def.mods && def.mods.pegHandBonus;
-    if (!bonus) continue;
+    const playBonus = def && def.mods && def.mods.playHandBonus;
+    const scoredBonus = def && def.mods && def.mods.pegHandBonus;
+    const bonus = playBonus || scoredBonus;
+    if (!bonus || (scoredBonus && !events.length)) continue;
     if (bonus.ranks && !bonus.ranks.includes(card.rank)) continue;
     if (bonus.suit != null && bonus.suit !== card.suit) continue;
+    if (bonus.starterFace && (!st.starter || st.starter.rank < 11)) continue;
     if (bonus.eventType && !events.some(ev => ev.type === bonus.eventType)) continue;
     if (bonus.count != null && count !== bonus.count) continue;
     if (bonus.minCount != null && count < bonus.minCount) continue;
     if (bonus.minEvents != null && events.length < bonus.minEvents) continue;
     const base = bonus.coinDivisor ? Math.floor(st.you.coins / bonus.coinDivisor) * bonus.pts : bonus.pts;
-    if (base > 0) total += base + (owned.stamp === 'blue' ? 2 : 0);
+    if (base > 0) total += base;
   }
   return total;
 }
@@ -2742,11 +2744,7 @@ function shopItemHelp(item) {
   const specific = item.kind === 'card'
     ? `<p><b>This card:</b> Adds this exact ${cardLabel(item)} to your permanent deck.</p>`
     : `<p><b>${esc(item.name)}:</b> ${esc(item.desc)}</p>`;
-  const stamp = item.kind === 'tarot' && item.jokerStamp
-    ? `<p><b>Stamp effect:</b> ${esc(stampText(item.jokerStamp))}</p>`
-    : item.stamp
-      ? `<p><b>Stamp:</b> ${esc(stampText(item.stamp))}</p>`
-      : '';
+  const stamp = item.stamp ? `<p><b>Edition:</b> ${esc(stampText(item.stamp))}</p>` : '';
   return shopKindHelp(item.kind) + specific + stamp;
 }
 
@@ -2758,7 +2756,7 @@ function rarityPill(item) {
 
 function stampPill(item) {
   if (!item || !item.stamp) return '';
-  const label = stampText(item.stamp).split(':')[0] || `${item.stamp} Stamp`;
+  const label = stampText(item.stamp).split(':')[0] || `${item.stamp} Edition`;
   return `<button type="button" class="stamp-pill ${item.stamp}" data-stamp="${esc(item.stamp)}">${esc(label)}</button>`;
 }
 
@@ -3139,13 +3137,12 @@ function renderShop(oc, st) {
     const packBlock = packBlockedReason(item, you);
     div.className = `shop-item shop-card ${item.kind}` + (item.sold ? ' sold' : '') +
       (packBlock ? ' unavailable' : '') +
-      (item.kind === 'pack' ? ' shiny' : '') + (item.rarity ? ' r-' + item.rarity : '');
+      (item.rarity ? ' r-' + item.rarity : '') + (item.stamp ? ' stamp-' + item.stamp : '');
     div.appendChild(shopCardFace(item));
     div.insertAdjacentHTML('beforeend',
       `<div class="si-name">${esc(item.name)}</div>` +
       rarityPill(item) +
       stampPill(item) +
-      (item.kind === 'tarot' && item.jokerStamp ? `<div class="si-desc">${esc(stampText(item.jokerStamp))}</div>` : '') +
       `<div class="shop-price">${packBlock || chip(item.cost)}</div>` +
       `<div class="shop-type ${item.kind}">${shopTypeLabel(item.kind)}</div>`);
     addStampBadge(div.querySelector('.shop-art') || div, item.stamp);
@@ -3235,9 +3232,9 @@ function focusCardShell(item) {
     `<div class="focus-name">${esc(item.name)}</div>` +
     rarityPill(item) +
     stampPill(item) +
-    `<div class="focus-desc">${esc(item.desc)}${item.kind === 'tarot' && item.jokerStamp ? '<br><br>' + esc(stampText(item.jokerStamp)) : ''}</div>`);
+    `<div class="focus-desc">${esc(item.desc)}</div>`);
 
-  if (item.rarity === 'rare' || item.rarity === 'ultra') {
+  if (item.stamp) {
     card.insertAdjacentHTML('beforeend', '<span class="jt-foil"></span>');
   }
   return card;
@@ -3273,7 +3270,7 @@ function addOwnedActions(card, kind, def, idx, st) {
     use.onclick = e => {
       e.stopPropagation();
       if (!canUse) return;
-      if (def.targets > 0 || def.jokerStamp) openOwnedFocus('tarot', def, idx, st, true);
+      if (def.targets > 0) openOwnedFocus('tarot', def, idx, st, true);
       else { sendMsg({ t: 'useTarot', idx, targets: [] }); closeFocus(); }
     };
     actions.appendChild(use);
@@ -3305,13 +3302,12 @@ function canUseTarotNow(def, st) {
 }
 
 function tarotUseLabel(def, st) {
-  if (canUseTarotNow(def, st)) return def.jokerStamp ? 'Use: choose joker' : def.targets > 0 ? 'Use: choose hand cards' : 'Use now';
+  if (canUseTarotNow(def, st)) return def.targets > 0 ? 'Use: choose hand cards' : 'Use now';
   if (tarotNeedsHand(def)) return 'Use during discard';
   return 'Use in shop or discard';
 }
 
 function addTarotTargetPicker(card, def, idx, st) {
-  if (def.jokerStamp) return addJokerStampPicker(card, def, idx, st);
   const targets = [];
   card.classList.add('targeting');
   card.insertAdjacentHTML('beforeend', `<div class="focus-note">Choose ${def.targets} card${def.targets === 1 ? '' : 's'} from your hand.</div>`);
@@ -3354,27 +3350,6 @@ function addTarotTargetPicker(card, def, idx, st) {
   card.appendChild(use);
 }
 
-function addJokerStampPicker(card, def, idx, st) {
-  card.classList.add('targeting');
-  card.insertAdjacentHTML('beforeend', `<div class="focus-note">Choose one unstamped joker.</div>`);
-  const row = document.createElement('div');
-  row.className = 'focus-jokers';
-  (st.you.jokers || []).forEach((j, jIdx) => {
-    const cell = document.createElement('button');
-    cell.className = 'joker-pick';
-    cell.disabled = !!j.stamp;
-    cell.appendChild(jtile('joker', j));
-    cell.onclick = e => {
-      e.stopPropagation();
-      if (cell.disabled) return;
-      sendMsg({ t: 'useTarot', idx, targets: [String(jIdx)] });
-      closeFocus();
-    };
-    row.appendChild(cell);
-  });
-  if (!row.children.length) row.innerHTML = '<div class="hint">You need a joker first.</div>';
-  card.appendChild(row);
-}
 
 function closeFocus() {
   const f = document.getElementById('shopFocus');
@@ -3407,8 +3382,7 @@ function renderPackOpen(oc, st) {
   pack.options.forEach((opt, idx) => {
     const div = document.createElement('div');
     const kindCls = opt.kind === 'card' ? 'standardcard' : opt.kind;
-    const foil = opt.kind !== 'joker' || opt.rarity !== 'common';
-    div.className = `shop-item pick ${kindCls}` + (foil ? ' shiny' : '') + (opt.rarity ? ' r-' + opt.rarity : '') +
+    div.className = `shop-item pick ${kindCls}` + (opt.rarity ? ' r-' + opt.rarity : '') +
       (opt.stamp ? ' stamp-' + opt.stamp : '') +
       (firstReveal ? ' pack-rise' : '');
     if (firstReveal) div.style.animationDelay = (900 + idx * 230) + 'ms';
@@ -3421,12 +3395,12 @@ function renderPackOpen(oc, st) {
       div.innerHTML = `<div class="si-icon">${icon}</div><div class="si-name">${esc(opt.name)}</div>` +
         rarityPill(opt) +
         stampPill(opt) +
-        `<div class="si-desc">${esc(opt.desc)}${opt.kind === 'tarot' && opt.jokerStamp ? '<br>' + esc(stampText(opt.jokerStamp)) : ''}</div>`;
+        `<div class="si-desc">${esc(opt.desc)}</div>`;
       addStampBadge(div.querySelector('.si-icon') || div, opt.stamp);
       div.insertAdjacentHTML('beforeend', `<div class="shop-type ${opt.kind}">${shopTypeLabel(opt.kind)}</div>`);
     }
     addInfoButton(div, opt.name || cardLabel(opt), shopItemHelp(opt));
-    const full = (opt.kind === 'joker' && st.you.jokers.length >= (st.you.jokerSlots || 5) && opt.stamp !== 'white') ||
+    const full = (opt.kind === 'joker' && st.you.jokers.length >= (st.you.jokerSlots || 5) && opt.stamp !== 'negative') ||
       (opt.kind === 'tarot' && st.you.tarots.length >= (st.you.tarotSlots == null ? 2 : st.you.tarotSlots));
     const btn = document.createElement('button');
     btn.className = 'btn small primary';
@@ -3999,8 +3973,8 @@ function shopStampTip(st) {
   const first = stamped[0];
   const itemName = first.name || (first.kind === 'card' ? cardLabel(first) : 'this item');
   const text = names.length === 1
-    ? `Stamp spotted - ${itemName} has ${names[0]}. Stamped jokers have an extra bonus on top of their normal effect; tap the stamp badge or the info button to see the details.`
-    : `Stamps spotted - this shop has ${names.join('; ')}. Stamped jokers have an extra bonus on top of their normal effect; tap a stamp badge or the info button to learn what each one does.`;
+    ? `Edition spotted - ${itemName} has ${names[0]}. Editions add a bonus on top of a joker's normal effect; tap the edition badge or info button for details.`
+    : `Editions spotted - this shop has ${names.join('; ')}. Tap an edition badge or info button to learn what each one does.`;
   const sig = stamped.map(item => `${item.id || item.name}:${item.stamp}`).join('|');
   return { key: `shopStamp-${st.dealNumber}-${sig}`, text };
 }

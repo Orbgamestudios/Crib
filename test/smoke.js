@@ -7,6 +7,7 @@ import WebSocket from 'ws';
 const { start } = await import('../server.js');
 const { Game } = await import('../lib/game.js');
 const { makeCard } = await import('../lib/cards.js');
+const { JOKERS_BY_ID, TAROTS, jokerCapacity } = await import('../lib/jokers.js');
 
 const PORT = 3100;
 
@@ -128,7 +129,7 @@ function testDeckEffects() {
   ], { onUpdate() {}, log() {} });
   const tp = triggerGame.players[0];
   const triggerCard = makeCard(3, 0);
-  tp.jokers = [{ id: 'odd_todd', stamp: 'blue' }, 'lusty_joker', 'low_rider'];
+  tp.jokers = [{ id: 'odd_todd', stamp: 'foil' }, 'lusty_joker', 'low_rider'];
   tp.hand = [triggerCard];
   tp.kept = [triggerCard];
   tp.pegLeft = [triggerCard];
@@ -140,13 +141,14 @@ function testDeckEffects() {
   triggerGame.pegStack = [];
   triggerGame.starter = makeCard(1, 2);
   triggerGame.playCard(tp, triggerCard.id);
-  if (tp.dealHandBonus !== 4 || triggerGame.lastPlayAnim.pointGain !== 4) {
-    console.error('FAIL: stacked pegging Hand jokers did not trigger with blue stamp', tp.dealHandBonus);
+  if (tp.dealHandBonus !== 6 || triggerGame.lastPlayAnim.pointGain !== 6) {
+    console.error('FAIL: play and score-gated Hand jokers did not stack', tp.dealHandBonus);
     process.exit(1);
   }
   triggerGame.doScoring();
   const triggerHand = triggerGame.scoringResults.find(r => r.kind === 'hand' && r.seat === tp.seat);
-  if (!triggerHand || triggerHand.points !== 8 || !triggerHand.lines.some(l => l.label.includes('Odd Todd')) ||
+  if (!triggerHand || triggerHand.points !== 11 || !triggerHand.lines.some(l => l.label.includes('Foil Edition')) ||
+      !triggerHand.lines.some(l => l.label.includes('Odd Todd')) ||
       !triggerHand.lines.some(l => l.label.includes('Lusty Joker'))) {
     console.error('FAIL: pegging Hand bonuses were not carried into hand scoring', triggerHand);
     process.exit(1);
@@ -167,8 +169,8 @@ function testDeckEffects() {
   missGame.pegCount = 0;
   missGame.pegStack = [];
   missGame.playCard(mp, missCard.id);
-  if (mp.dealHandBonus !== 0 || missGame.lastPlayAnim.pointGain !== 0) {
-    console.error('FAIL: pegging Hand jokers triggered without a scoring play');
+  if (mp.dealHandBonus !== 2 || missGame.lastPlayAnim.pointGain !== 2) {
+    console.error('FAIL: card-play Hand jokers did not trigger without a scoring play');
     process.exit(1);
   }
   missGame.destroy();
@@ -179,17 +181,55 @@ function testDeckEffects() {
   ], { onUpdate() {}, log() {} });
   const pp = passiveGame.players[0];
   pp.jokers = ['overseer', 'obelisk', 'bull_market', 'even_steven', 'jack_of_all', 'scary_face', 'his_majesty'];
-  pp.coins = 8;
-  pp.kept = [makeCard(2, 1), makeCard(11, 0)];
-  passiveGame.players[1].kept = [];
+  pp.coins = 10;
+  const passiveCard = makeCard(2, 1);
+  pp.pegLeft = [passiveCard];
+  passiveGame.players[1].pegLeft = [makeCard(10, 0)];
   passiveGame.starter = makeCard(12, 2);
-  passiveGame.doScoring();
-  const passiveHand = passiveGame.scoringResults.find(r => r.kind === 'hand' && r.seat === pp.seat);
-  if (!passiveHand || passiveHand.points !== 23 || pp.dealHandBonus !== 0) {
-    console.error('FAIL: restored passive Hand jokers did not score at passive rates', passiveHand);
+  passiveGame.phase = 'pegging';
+  passiveGame.turnSeat = pp.seat;
+  passiveGame.pegCount = 0;
+  passiveGame.pegStack = [];
+  passiveGame.playCard(pp, passiveCard.id);
+  if (pp.dealHandBonus !== 5 || passiveGame.lastPlayAnim.pointGain !== 5 || passiveGame.lastPlayAnim.multGain !== 1) {
+    console.error('FAIL: passive jokers did not trigger into the Hand and Mult boxes', passiveGame.lastPlayAnim);
     process.exit(1);
   }
   passiveGame.destroy();
+
+  if (jokerCapacity([{ id: 'odd_todd', stamp: 'negative' }]) !== 6 || TAROTS.some(t => t.jokerStamp)) {
+    console.error('FAIL: Negative edition capacity or stamp tarot removal is incorrect');
+    process.exit(1);
+  }
+
+  const editionGame = new Game([
+    { id: 'p1', name: 'Editions', connected: true },
+    { id: 'p2', name: 'Other', connected: true },
+  ], { onUpdate() {}, log() {} });
+  const ep = editionGame.players[0];
+  ep.jokers = [{ id: 'odd_todd', stamp: 'holographic' }, { id: 'lusty_joker', stamp: 'polychrome' }];
+  const editionMult = editionGame.scoreFinalMultOrdered(ep, 1, 'hand', [makeCard(2, 1)], makeCard(6, 2));
+  if (editionMult.mult !== 6) {
+    console.error('FAIL: Holographic and Polychrome did not resolve left to right', editionMult);
+    process.exit(1);
+  }
+  ep.jokers = ['card_sharp'];
+  ep.pegScoreSignatures = [];
+  ep.cardSharpUsed = false;
+  const pairEvent = [{ type: 'pair', size: 2, pts: 2 }];
+  const firstPair = editionGame.scorePegMult(ep, makeCard(7, 0), pairEvent);
+  const repeatPair = editionGame.scorePegMult(ep, makeCard(7, 1), pairEvent);
+  if (firstPair !== 2 || repeatPair !== 4 || !ep.cardSharpUsed) {
+    console.error('FAIL: Card Sharp did not double the repeated scoring play', { firstPair, repeatPair });
+    process.exit(1);
+  }
+  ep.jokers = ['riff_raff'];
+  editionGame.startRound();
+  if (ep.jokers.length !== 3 || ep.jokers.slice(1).some(j => JOKERS_BY_ID[j.id].rarity !== 'common')) {
+    console.error('FAIL: Riff-Raff did not create two Common Jokers', ep.jokers);
+    process.exit(1);
+  }
+  editionGame.destroy();
 }
 
 function bot(name, opts) {

@@ -700,11 +700,6 @@ body.mode-board .seat-blind-fill {
   background: #61e88f; color: #0b2514; border-radius: 999px; padding: 2px 6px;
   font-size: 11px; font-weight: 900; box-shadow: 0 2px 6px #00000066;
 }
-.card .handscoretag {
-  position: absolute; bottom: -13px; left: 50%; transform: translateX(-50%);
-  background: #69bdf5; color: #08233a; border-radius: 999px; padding: 2px 6px;
-  font-size: 10px; font-weight: 900; white-space: nowrap; box-shadow: 0 2px 7px #001b2f88, 0 0 8px #69bdf588;
-}
 .info-btn {
   position: absolute; top: 4px; right: 4px; width: 18px; height: 18px;
   border-radius: 50%; border: 1px solid #ffffffaa; background: #00000088; color: #fff;
@@ -1050,20 +1045,29 @@ body.deck-neon-active .mult-chip {
 }
 .jtile.joker { border-color: var(--gold); cursor: grab; touch-action: none; }
 .jtile.joker.dragging { opacity: 0.4; cursor: grabbing; }
-.jtile.stamp-purple, .focus-card.stamp-purple, .shop-item.stamp-purple { box-shadow: 0 0 12px #b48be088, 0 2px 5px #0007; }
-.jtile.stamp-blue, .focus-card.stamp-blue, .shop-item.stamp-blue { box-shadow: 0 0 12px #63b8ff88, 0 2px 5px #0007; }
-.jtile.stamp-red, .focus-card.stamp-red, .shop-item.stamp-red { box-shadow: 0 0 12px #ff626288, 0 2px 5px #0007; }
-.jtile.stamp-white, .focus-card.stamp-white, .shop-item.stamp-white { box-shadow: 0 0 12px #f5f7f0aa, 0 2px 5px #0007; }
+.jtile.stamp-foil, .focus-card.stamp-foil, .shop-item.stamp-foil { box-shadow: 0 0 13px #d9f4ff99, 0 2px 5px #0007; }
+.jtile.stamp-holographic, .focus-card.stamp-holographic, .shop-item.stamp-holographic { box-shadow: 0 0 14px #ff8bd999, 0 2px 5px #0007; }
+.jtile.stamp-polychrome, .focus-card.stamp-polychrome, .shop-item.stamp-polychrome { box-shadow: 0 0 16px #a679ffbb, 0 2px 5px #0007; }
+.jtile.stamp-negative, .focus-card.stamp-negative, .shop-item.stamp-negative { box-shadow: 0 0 14px #e6f6ffbb, 0 2px 5px #0007; }
+.shop-item.stamp-foil::after,
+.shop-item.stamp-holographic::after,
+.shop-item.stamp-polychrome::after {
+  content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; z-index: 2;
+  mix-blend-mode: screen; background-size: 250% 250%; animation: foilSheen 3s ease-in-out infinite alternate;
+}
+.shop-item.stamp-foil::after { background-image: linear-gradient(115deg, transparent 35%, #d9f4ff77 49%, #fff9 53%, transparent 67%); }
+.shop-item.stamp-holographic::after { background-image: linear-gradient(115deg, transparent 27%, #ff70bd66, #70dbff88, #ffe46c66, transparent 73%); }
+.shop-item.stamp-polychrome::after { background-image: linear-gradient(115deg, #ff5b8b44, #736cff66, #5ff0d666, #ffe15d44, #ff5b8b44); }
 .stamp-badge {
   position: absolute; top: -5px; left: -5px; width: 18px; height: 18px; border-radius: 50%;
   display: grid; place-items: center; font-size: 10px; font-weight: 900;
   color: #fff; border: 1px solid #ffffff99; box-shadow: 0 2px 5px #0009; z-index: 12;
   padding: 0; cursor: pointer; line-height: 1;
 }
-.stamp-badge.purple { background: #7b43c4; }
-.stamp-badge.blue { background: #2476c9; }
-.stamp-badge.red { background: #be302c; }
-.stamp-badge.white { background: #edf3f4; color: #24313a; border-color: #24313a55; }
+.stamp-badge.foil { background: linear-gradient(135deg, #f8ffff, #7fc7e8); color: #173246; }
+.stamp-badge.holographic { background: linear-gradient(135deg, #ff7fbf, #69d8ff); }
+.stamp-badge.polychrome { background: linear-gradient(135deg, #ff6c9f, #8d72ff 48%, #5ee7d1); }
+.stamp-badge.negative { background: #111820; color: #fff; border-color: #d9f4ff; }
 .shop-item .shop-art .stamp-badge,
 .shop-item .si-icon .stamp-badge {
   top: -2px; left: -2px;
@@ -1693,21 +1697,28 @@ body.deck-neon-active .mult-chip {
   .hud-chip b { font-size: 20px; }
 }
 
-/* ===== rarity foil + animation FX ===== */
+/* ===== joker editions + animation FX ===== */
 .jt-foil { position: absolute; inset: 0; border-radius: inherit; pointer-events: none; opacity: 0; }
-.jtile.r-rare .jt-foil, .jtile.r-ultra .jt-foil { opacity: 1; mix-blend-mode: screen; background-size: 250% 250%; }
-.jtile.r-rare .jt-foil {
-  background-image: linear-gradient(115deg, transparent 35%, #7fd0ff55 47%, #b9f0ff99 52%, transparent 66%);
+.jtile.stamp-foil .jt-foil, .jtile.stamp-holographic .jt-foil, .jtile.stamp-polychrome .jt-foil,
+.focus-card.stamp-foil .jt-foil, .focus-card.stamp-holographic .jt-foil, .focus-card.stamp-polychrome .jt-foil {
+  opacity: 1; mix-blend-mode: screen; background-size: 250% 250%;
+}
+.jtile.stamp-foil .jt-foil, .focus-card.stamp-foil .jt-foil {
+  background-image: linear-gradient(115deg, transparent 34%, #d9f4ff66 47%, #fff 52%, transparent 66%);
   animation: foilSheen 3.4s ease-in-out infinite alternate;
 }
-.jtile.r-ultra .jt-foil {
-  background-image: linear-gradient(115deg, transparent 28%, #ffd76e66 42%, #ff9bf099 50%, #8fe7ff88 58%, transparent 72%);
-  animation: foilSheen 2.6s ease-in-out infinite alternate;
+.jtile.stamp-holographic .jt-foil, .focus-card.stamp-holographic .jt-foil {
+  background-image: linear-gradient(115deg, transparent 28%, #ff70bd66 41%, #70dbff88 51%, #ffe46c66 60%, transparent 72%);
+  animation: foilSheen 2.8s ease-in-out infinite alternate;
+}
+.jtile.stamp-polychrome .jt-foil, .focus-card.stamp-polychrome .jt-foil {
+  background-image: linear-gradient(115deg, #ff5b8b44, #736cff66, #5ff0d666, #ffe15d44, #ff5b8b44);
+  animation: foilSheen 2.2s ease-in-out infinite alternate;
 }
 /* alternate sweeps back and forth smoothly — no hard reset jump at the loop */
 @keyframes foilSheen { from { background-position: 150% 0; } to { background-position: -150% 0; } }
 .jtile.r-rare { border-color: #7fd0ff; box-shadow: 0 0 9px #7fd0ff55, 0 2px 5px #0007; }
-.jtile.r-ultra { border-color: #ffd76e; animation: ultraGlow 2.2s ease-in-out infinite; }
+.jtile.r-ultra { border-color: #ffd76e; box-shadow: 0 0 9px #ffce5b77, 0 2px 6px #0008; }
 @keyframes ultraGlow {
   0%, 100% { box-shadow: 0 0 9px #ffce5b77, 0 2px 6px #0008; }
   50% { box-shadow: 0 0 19px #ffd76ee0, 0 2px 6px #0008; }
@@ -1730,10 +1741,10 @@ body.deck-neon-active .mult-chip {
   color: #fff; box-shadow: 0 0 10px #ffd76e55, inset 0 0 0 1px #ffffff66;
 }
 .stamp-pill:hover { filter: brightness(1.18); }
-.stamp-pill.purple { background: #5a318f; }
-.stamp-pill.blue { background: #1d5d9d; }
-.stamp-pill.red { background: #8e2724; }
-.stamp-pill.white { background: #edf3f4; color: #24313a; }
+.stamp-pill.foil { background: linear-gradient(135deg, #f8ffff, #7fc7e8); color: #173246; }
+.stamp-pill.holographic { background: linear-gradient(135deg, #c43a83, #2476a8); }
+.stamp-pill.polychrome { background: linear-gradient(135deg, #a72f62, #5b43b6 50%, #237d70); }
+.stamp-pill.negative { background: #111820; color: #fff; }
 .jtile .tip .rar { opacity: .8; font-style: italic; }
 
 /* rising +Mult label (reuses .fx-float / floatUp) */
@@ -1898,13 +1909,4 @@ body.deck-neon-active .mult-chip {
 .focus-hand .card.selected,
 .focus-hand .card.selected:hover {
   transform: translateY(-8px) scale(1.04);
-}
-.focus-card .jt-foil { opacity: 1; mix-blend-mode: screen; background-size: 250% 250%; }
-.focus-card.r-rare .jt-foil {
-  background-image: linear-gradient(115deg, transparent 35%, #7fd0ff55 47%, #b9f0ff99 52%, transparent 66%);
-  animation: foilSheen 3.4s ease-in-out infinite alternate;
-}
-.focus-card.r-ultra .jt-foil {
-  background-image: linear-gradient(115deg, transparent 28%, #ffd76e66 42%, #ff9bf099 50%, #8fe7ff88 58%, transparent 72%);
-  animation: foilSheen 2.6s ease-in-out infinite alternate;
 }
