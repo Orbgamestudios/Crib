@@ -20,7 +20,7 @@ const SOLO_SAVE_KEY = 'crib_solo_house_save_v1';
 const PROFILE_KEY = 'crib_profiles_v1';
 const ACTIVE_PROFILE_KEY = 'crib_active_profile_pin';
 const DIAG_KEY = 'crib_last_diagnostic_v1';
-const APP_BUILD = 'client-v102';
+const APP_BUILD = 'client-v103';
 
 // GitHub Pages (or any static host) has no WebSocket server: use P2P rooms.
 const P2P_MODE = location.hostname.endsWith('github.io') ||

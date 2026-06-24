@@ -138,13 +138,13 @@ function testDeckEffects() {
   triggerGame.pegStack = [];
   triggerGame.starter = makeCard(1, 2);
   triggerGame.playCard(tp, triggerCard.id);
-  if (tp.dealHandBonus !== 9 || triggerGame.lastPlayAnim.pointGain !== 9) {
+  if (tp.dealHandBonus !== 4 || triggerGame.lastPlayAnim.pointGain !== 4) {
     console.error('FAIL: stacked pegging Hand jokers did not trigger with blue stamp', tp.dealHandBonus);
     process.exit(1);
   }
   triggerGame.doScoring();
   const triggerHand = triggerGame.scoringResults.find(r => r.kind === 'hand' && r.seat === tp.seat);
-  if (!triggerHand || triggerHand.points !== 10 || !triggerHand.lines.some(l => l.label.includes('Odd Todd')) ||
+  if (!triggerHand || triggerHand.points !== 8 || !triggerHand.lines.some(l => l.label.includes('Odd Todd')) ||
       !triggerHand.lines.some(l => l.label.includes('Lusty Joker'))) {
     console.error('FAIL: pegging Hand bonuses were not carried into hand scoring', triggerHand);
     process.exit(1);
@@ -170,6 +170,24 @@ function testDeckEffects() {
     process.exit(1);
   }
   missGame.destroy();
+
+  const passiveGame = new Game([
+    { id: 'p1', name: 'Passives', connected: true },
+    { id: 'p2', name: 'Other', connected: true },
+  ], { onUpdate() {}, log() {} });
+  const pp = passiveGame.players[0];
+  pp.jokers = ['overseer', 'obelisk', 'bull_market', 'even_steven', 'jack_of_all', 'scary_face', 'his_majesty'];
+  pp.coins = 8;
+  pp.kept = [makeCard(2, 1), makeCard(11, 0)];
+  passiveGame.players[1].kept = [];
+  passiveGame.starter = makeCard(12, 2);
+  passiveGame.doScoring();
+  const passiveHand = passiveGame.scoringResults.find(r => r.kind === 'hand' && r.seat === pp.seat);
+  if (!passiveHand || passiveHand.points !== 23 || pp.dealHandBonus !== 0) {
+    console.error('FAIL: restored passive Hand jokers did not score at passive rates', passiveHand);
+    process.exit(1);
+  }
+  passiveGame.destroy();
 }
 
 function bot(name, opts) {
