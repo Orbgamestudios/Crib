@@ -12,7 +12,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Crib">
-<link rel="stylesheet" href="style.css?v=87">
+<link rel="stylesheet" href="style.css?v=88">
 <script src="https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js" defer></script>
 <script src="https://unpkg.com/mqtt/dist/mqtt.min.js" defer></script>
 </head>
@@ -187,6 +187,16 @@
 <div id="fx"></div>
 <div id="toast" class="hidden"></div>
 
-<script type="module" src="client.js?v=106"></script>
+<script>
+window.__cribBooted = false;
+window.__cribBootTimer = setTimeout(function () {
+  if (window.__cribBooted) return;
+  var banner = document.createElement('div');
+  banner.style.cssText = 'position:fixed;left:12px;right:12px;bottom:12px;z-index:9999;padding:12px;background:#7b2525;color:#fff;border:1px solid #ff9b8f;border-radius:8px;font:14px system-ui;text-align:center';
+  banner.textContent = 'Crib could not finish loading. Refresh once to update the saved app files.';
+  document.body.appendChild(banner);
+}, 4000);
+</script>
+<script type="module" src="client.js?v=107"></script>
 </body>
 </html>

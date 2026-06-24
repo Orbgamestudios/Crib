@@ -551,7 +551,13 @@ body.mode-board .seat-blind-fill {
 .card.enhancement-bonus { box-shadow: inset 0 0 0 3px #39a9ef, 0 2px 4px #00000055; }
 .card.enhancement-bonus::after { background: repeating-linear-gradient(90deg, #30aef044 0 3px, transparent 3px 10px); }
 .card.enhancement-mult::after { background: repeating-radial-gradient(ellipse at center, transparent 0 7px, #ef4c4238 8px 11px); }
-.card.enhancement-wild { border: 2px solid transparent; background: linear-gradient(var(--cream), var(--cream)) padding-box, conic-gradient(#e84b4b, #f0ca52, #50b87a, #4b8fe8, #c267d9, #e84b4b) border-box; }
+.card.enhancement-wild { border: 2px solid #43515a; background: radial-gradient(circle at 25% 8%, #fff, transparent 32%), linear-gradient(145deg, #fff8e8, var(--cream) 58%, #d6c49e); color: var(--ink); }
+.wild-suit { position: absolute !important; right: 4px; bottom: 7px; width: 22px; height: 23px; z-index: 4 !important; }
+.wild-suit i { position: absolute; font-size: 13px; line-height: 1; font-style: normal; text-shadow: 0 1px 1px #fff, 0 1px 2px #0005; }
+.wild-suit .heart { left: 1px; top: 0; color: var(--red); }
+.wild-suit .diamond { right: 0; top: 1px; color: var(--red); }
+.wild-suit .club { left: 1px; bottom: 0; color: var(--ink); }
+.wild-suit .spade { right: 0; bottom: 0; color: var(--ink); }
 .card.enhancement-glass { background: #dfe8ed; box-shadow: inset 0 0 0 2px #91a2ab, 0 2px 4px #00000055; }
 .card.enhancement-glass::after { background: repeating-linear-gradient(135deg, #ffffff80 0 5px, #81919b55 6px 12px, transparent 13px 18px); }
 .card.enhancement-steel { background: linear-gradient(145deg, #f5fbff, #b7c5d1 48%, #eef6fb); box-shadow: inset 0 0 0 2px #8295a5, 0 2px 5px #0006; }
@@ -674,6 +680,7 @@ body.mode-board .seat-blind-fill {
 }
 .card.small { width: 32px; height: 44px; font-size: 11px; padding: 2px 3px; }
 .card.small .suit { font-size: 12px; }
+.card.small .wild-suit { right: 0; bottom: 3px; transform: scale(.72); transform-origin: 100% 100%; }
 .card.clickable { cursor: pointer; touch-action: none; }
 .card.clickable:hover {
   transform: translateY(calc(var(--fan-y, 0px) - 10px)) rotate(var(--fan-rot, 0deg));

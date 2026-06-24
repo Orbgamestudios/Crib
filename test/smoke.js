@@ -5,10 +5,10 @@ process.env.CRIB_FAST = '1';
 
 import WebSocket from 'ws';
 const { start } = await import('../server.js');
-const { Game } = await import('../lib/game.js');
-const { cardValue, makeCard } = await import('../lib/cards.js');
-const { scoreBreakdown } = await import('../lib/scoring.js');
-const { JOKERS_BY_ID, TAROTS, jokerCapacity } = await import('../lib/jokers.js');
+const { Game } = await import('../lib/game.js?v=2');
+const { cardValue, makeCard } = await import('../lib/cards.js?v=2');
+const { scoreBreakdown } = await import('../lib/scoring.js?v=2');
+const { JOKERS_BY_ID, TAROTS, jokerCapacity } = await import('../lib/jokers.js?v=2');
 
 const PORT = 3100;
 

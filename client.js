@@ -1,7 +1,10 @@
-import { JOKER_ICONS, TAROT_ICONS, PACK_ICONS } from './icons.js?v=15';
-import { CARD_ENHANCEMENTS, cardValue } from './lib/cards.js';
-import { pegEvents, scoreBreakdown } from './lib/scoring.js';
-import { JOKERS, TAROTS, aggregateMods, buildScore, effectiveJokerIds, jokerDef, normalizeJoker, stampText } from './lib/jokers.js';
+import { JOKER_ICONS, TAROT_ICONS, PACK_ICONS } from './icons.js?v=16';
+import { CARD_ENHANCEMENTS, cardValue } from './lib/cards.js?v=2';
+import { pegEvents, scoreBreakdown } from './lib/scoring.js?v=2';
+import { JOKERS, TAROTS, aggregateMods, buildScore, effectiveJokerIds, jokerDef, normalizeJoker, stampText } from './lib/jokers.js?v=2';
+
+window.__cribBooted = true;
+clearTimeout(window.__cribBootTimer);
 
 const $ = id => document.getElementById(id);
 const SUIT_CHARS = ['♥', '♦', '♣', '♠']; // H D C S
@@ -20,7 +23,7 @@ const SOLO_SAVE_KEY = 'crib_solo_house_save_v1';
 const PROFILE_KEY = 'crib_profiles_v1';
 const ACTIVE_PROFILE_KEY = 'crib_active_profile_pin';
 const DIAG_KEY = 'crib_last_diagnostic_v1';
-const APP_BUILD = 'client-v106';
+const APP_BUILD = 'client-v107';
 
 // GitHub Pages (or any static host) has no WebSocket server: use P2P rooms.
 const P2P_MODE = location.hostname.endsWith('github.io') ||
@@ -382,7 +385,7 @@ function modeLabel(mode, goal) {
 }
 
 async function hostTable() {
-  const { HostSession, makeCode } = await import('./net/host.js');
+  const { HostSession, makeCode } = await import('./net/host.js?v=2');
   const code = makeCode();
   hostSession = new HostSession(code, myName(), msg => safeHandle(msg, 'host'), (status, detail) => {
     if (status === 'code-taken') { hostSession = null; toast('Code collision - try again.'); }
@@ -1434,7 +1437,7 @@ async function startSoloVsHouse(deckArt) {
   selectDeckArt(deckArt, false);
   $('infoOverlay').classList.add('hidden');
   if (P2P_MODE) {
-    const { HostSession, makeCode } = await import('./net/host.js');
+    const { HostSession, makeCode } = await import('./net/host.js?v=2');
     hostSession = new HostSession(makeCode(), myName(), msg => safeHandle(msg, 'solo host'), () => {}, { solo: true, saveKey: SOLO_SAVE_KEY, ...gameOptions() });
   } else {
     sendMsg({ t: 'createSolo', playerName: myName(), ...gameOptions() });
@@ -1464,7 +1467,7 @@ async function continueSoloRun() {
   localStorage.setItem('crib_name', hostName);
   $('nameInput').value = hostName;
   $('infoOverlay').classList.add('hidden');
-  const { HostSession, makeCode } = await import('./net/host.js');
+  const { HostSession, makeCode } = await import('./net/host.js?v=2');
   hostSession = new HostSession(makeCode(), hostName, msg => safeHandle(msg, 'solo restore'), () => {}, {
     solo: true,
     saveKey: SOLO_SAVE_KEY,
@@ -1794,11 +1797,13 @@ $('leaveBtn').onclick = () => { if (P2P_MODE) leaveP2p(); else sendMsg({ t: 'lea
 
 function cardEl(card, opts = {}) {
   const div = document.createElement('div');
-  div.className = 'card' + (card.suit < 2 ? ' red' : '') + (opts.small ? ' small' : '') +
+  div.className = 'card' + (card.suit < 2 && card.enhancement !== 'wild' ? ' red' : '') + (opts.small ? ' small' : '') +
     (card.enhancement ? ` enhancement-${card.enhancement}` : '');
   if (card.gambitCharged) div.classList.add('gambit-charged');
   if (card.enhancement === 'stone') {
     div.innerHTML = '<span class="stone-mark">STONE</span>';
+  } else if (card.enhancement === 'wild') {
+    div.innerHTML = `<span>${RANK_NAMES[card.rank]}</span><span class="wild-suit" aria-label="all suits"><i class="heart">&#9829;</i><i class="diamond">&#9830;</i><i class="club">&#9827;</i><i class="spade">&#9824;</i></span><span class="enhancement-badge">Wild</span>`;
   } else {
     const badge = card.enhancement ? `<span class="enhancement-badge">${esc(CARD_ENHANCEMENTS[card.enhancement].name.replace(' Card', ''))}</span>` : '';
     div.innerHTML = `<span>${RANK_NAMES[card.rank]}</span><span class="suit">${SUIT_CHARS[card.suit]}</span>${badge}`;
