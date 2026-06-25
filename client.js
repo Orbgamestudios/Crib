@@ -23,7 +23,9 @@ const SOLO_SAVE_KEY = 'crib_solo_house_save_v1';
 const PROFILE_KEY = 'crib_profiles_v1';
 const ACTIVE_PROFILE_KEY = 'crib_active_profile_pin';
 const DIAG_KEY = 'crib_last_diagnostic_v1';
-const APP_BUILD = 'client-v109';
+const APP_BUILD = 'client-v110';
+const MUSIC_VOLUME_KEY = 'crib_music_volume_v1';
+const SFX_VOLUME_KEY = 'crib_sfx_volume_v1';
 
 // GitHub Pages (or any static host) has no WebSocket server: use P2P rooms.
 const P2P_MODE = location.hostname.endsWith('github.io') ||
@@ -118,8 +120,9 @@ let lastTutKey = '';
 let audioCtx = null;
 let soundUnlocked = false;
 const SFX_GAIN = 0.28;
-const MUSIC_GAIN = 0.22;
+const MUSIC_GAIN = 0.14;
 const MUSIC_FADE_MS = 1800;
+const MUSIC_MEASURES = 64;
 const MUSIC_TRACKS = {
   main: 'music/1-main-theme.mp3?v=1',
   shop: 'music/2-shop-theme.mp3?v=1',
@@ -138,6 +141,25 @@ const sampleEls = new Map();
 let currentMusic = '';
 let desiredMusic = 'main';
 let musicFadeTimer = null;
+let musicVolume = readVolume(MUSIC_VOLUME_KEY, 0.55);
+let sfxVolume = readVolume(SFX_VOLUME_KEY, 0.85);
+
+function readVolume(key, fallback) {
+  const n = Number(localStorage.getItem(key));
+  return Number.isFinite(n) ? Math.max(0, Math.min(1, n)) : fallback;
+}
+
+function writeVolume(key, value) {
+  localStorage.setItem(key, String(Math.max(0, Math.min(1, value))));
+}
+
+function sfxGain() {
+  return SFX_GAIN * sfxVolume;
+}
+
+function musicGain() {
+  return MUSIC_GAIN * musicVolume;
+}
 
 function ensureAudio() {
   const AudioCtor = window.AudioContext || window.webkitAudioContext;
@@ -179,7 +201,7 @@ function tone(freq, delay = 0, dur = 0.08, type = 'sine', gain = 0.45) {
   osc.type = type;
   osc.frequency.setValueAtTime(freq, t);
   amp.gain.setValueAtTime(0.0001, t);
-  amp.gain.exponentialRampToValueAtTime(Math.max(0.0002, gain * SFX_GAIN), t + 0.01);
+  amp.gain.exponentialRampToValueAtTime(Math.max(0.0002, gain * sfxGain()), t + 0.01);
   amp.gain.exponentialRampToValueAtTime(0.0001, t + dur);
   osc.connect(amp).connect(ctx.destination);
   osc.start(t);
@@ -198,7 +220,7 @@ function sweep(freqA, freqB, delay = 0, dur = 0.14, type = 'sine', gain = 0.4) {
   osc.frequency.setValueAtTime(freqA, t);
   osc.frequency.exponentialRampToValueAtTime(freqB, t + dur);
   amp.gain.setValueAtTime(0.0001, t);
-  amp.gain.exponentialRampToValueAtTime(Math.max(0.0002, gain * SFX_GAIN), t + 0.012);
+  amp.gain.exponentialRampToValueAtTime(Math.max(0.0002, gain * sfxGain()), t + 0.012);
   amp.gain.exponentialRampToValueAtTime(0.0001, t + dur);
   osc.connect(amp).connect(ctx.destination);
   osc.start(t);
@@ -221,7 +243,7 @@ function noise(delay = 0, dur = 0.08, gain = 0.35, filterFreq = 1200) {
   filter.type = 'bandpass';
   filter.frequency.setValueAtTime(filterFreq, t);
   filter.Q.setValueAtTime(0.8, t);
-  amp.gain.setValueAtTime(gain * SFX_GAIN, t);
+  amp.gain.setValueAtTime(gain * sfxGain(), t);
   amp.gain.exponentialRampToValueAtTime(0.0001, t + dur);
   src.connect(filter).connect(amp).connect(ctx.destination);
   src.start(t);
@@ -242,7 +264,7 @@ function feltThump(delay = 0, gain = 0.24, pitch = 105) {
   osc.type = 'sine';
   osc.frequency.setValueAtTime(pitch, t);
   osc.frequency.exponentialRampToValueAtTime(Math.max(42, pitch * 0.48), t + 0.075);
-  amp.gain.setValueAtTime(Math.max(0.0002, gain * SFX_GAIN), t);
+  amp.gain.setValueAtTime(Math.max(0.0002, gain * sfxGain()), t);
   amp.gain.exponentialRampToValueAtTime(0.0001, t + 0.09);
   osc.connect(amp).connect(ctx.destination);
   osc.start(t);
@@ -321,31 +343,53 @@ function startDesiredMusic() {
 }
 
 function setMusicTrack(name) {
-  desiredMusic = name || 'main';
+  const target = name || 'main';
+  if (desiredMusic === target && (currentMusic === target || musicFadeTimer)) return;
+  desiredMusic = target;
   if (!soundUnlocked) return;
   if (currentMusic === desiredMusic) {
     const active = musicEl(currentMusic);
-    if (active && active.paused && !document.hidden) active.play().catch(() => {});
+    if (active) {
+      active.volume = musicGain();
+      if (active.paused && !document.hidden) active.play().catch(() => {});
+    }
     return;
   }
   const next = musicEl(desiredMusic);
   if (!next) return;
   const prev = currentMusic ? musicEl(currentMusic) : null;
   if (musicFadeTimer) clearTimeout(musicFadeTimer);
+  const begin = () => beginMusicTransition(prev, next, desiredMusic);
+  if (prev && prev !== next && !prev.paused && prev.duration && Number.isFinite(prev.duration)) {
+    const measure = prev.duration / MUSIC_MEASURES;
+    const pos = prev.currentTime % measure;
+    const waitMs = Math.max(0, (measure - pos) * 1000);
+    musicFadeTimer = setTimeout(begin, Math.min(waitMs, measure * 1000));
+  } else {
+    begin();
+  }
+}
+
+function beginMusicTransition(prev, next, name) {
+  musicFadeTimer = null;
   try {
     const syncSource = prev && !prev.paused ? prev : null;
     if (syncSource && syncSource.duration && Number.isFinite(syncSource.duration)) {
       const duration = next.duration && Number.isFinite(next.duration) ? next.duration : syncSource.duration;
-      next.currentTime = syncSource.currentTime % duration;
+      const sourceMeasure = syncSource.duration / MUSIC_MEASURES;
+      const destMeasure = duration / MUSIC_MEASURES;
+      const measureIndex = Math.floor(syncSource.currentTime / sourceMeasure) % MUSIC_MEASURES;
+      const measureProgress = (syncSource.currentTime % sourceMeasure) / sourceMeasure;
+      next.currentTime = (measureIndex * destMeasure + measureProgress * destMeasure) % duration;
     }
-    next.volume = prev ? 0 : MUSIC_GAIN;
+    next.volume = prev ? 0 : musicGain();
     next.play().catch(() => {});
   } catch { /* iOS may reject seeks until metadata is ready */ }
   if (prev && prev !== next) {
     fadeAudio(prev, prev.volume, 0, MUSIC_FADE_MS, () => { prev.pause(); });
-    fadeAudio(next, 0, MUSIC_GAIN, MUSIC_FADE_MS);
+    fadeAudio(next, 0, musicGain(), MUSIC_FADE_MS);
   }
-  currentMusic = desiredMusic;
+  currentMusic = name;
 }
 
 function musicForState(st) {
@@ -368,9 +412,21 @@ function sampleSfx(name, gain = 0.55) {
   if (!base) return false;
   const el = new Audio(base.currentSrc || SAMPLE_SFX[name]);
   el.playsInline = true;
-  el.volume = Math.max(0, Math.min(1, gain * SFX_GAIN));
+  el.volume = Math.max(0, Math.min(1, gain * sfxGain()));
   el.play().catch(() => {});
   return true;
+}
+
+function setMusicVolume(value) {
+  musicVolume = Math.max(0, Math.min(1, value));
+  writeVolume(MUSIC_VOLUME_KEY, musicVolume);
+  const active = currentMusic ? musicEl(currentMusic) : null;
+  if (active && !musicFadeTimer) active.volume = musicGain();
+}
+
+function setSfxVolume(value) {
+  sfxVolume = Math.max(0, Math.min(1, value));
+  writeVolume(SFX_VOLUME_KEY, sfxVolume);
 }
 
 function sfx(name) {
@@ -983,7 +1039,7 @@ $('howToBtn').innerHTML = icon('info', 'How to Play');
 $('profileBtn').textContent = 'Profile';
 $('soloBtn').innerHTML = icon('bot', 'Play Solo vs The House');
 $('syncBtn').innerHTML = icon('refresh');
-$('exitSoloBtn').textContent = 'Exit';
+$('optionsBtn').textContent = 'Options';
 $('dictBtn').textContent = 'Cards';
 $('deckBtn').innerHTML = icon('deck', 'Deck');
 sanitizeIcons(document.body);
@@ -1624,10 +1680,33 @@ function refreshSoloContinue() {
 
 $('syncBtn').onclick = () => { sendMsg({ t: 'sync' }); toast('Refreshed.'); };
 $('dictBtn').onclick = () => showDictionary();
-$('exitSoloBtn').onclick = () => {
-  sendMsg({ t: 'backToLobby' });
-  toast('Solo run saved.');
-};
+$('optionsBtn').onclick = () => showOptions();
+
+function showOptions() {
+  const canExit = lastState && lastState.solo && lastState.phase !== 'gameover';
+  showInfo('Options', `<div class="options-menu">
+    <label class="volume-row"><span>Music</span><input id="musicVolume" type="range" min="0" max="100" value="${Math.round(musicVolume * 100)}"><b id="musicVolumeLabel">${Math.round(musicVolume * 100)}%</b></label>
+    <label class="volume-row"><span>Sound</span><input id="sfxVolume" type="range" min="0" max="100" value="${Math.round(sfxVolume * 100)}"><b id="sfxVolumeLabel">${Math.round(sfxVolume * 100)}%</b></label>
+    <div class="hint">Music changes wait for the next measure, then crossfade with the tracks lined up.</div>
+    ${canExit ? '<button id="optionsExitBtn" class="btn primary wide" type="button">Save and Exit Solo Run</button>' : ''}
+  </div>`);
+  const music = $('musicVolume');
+  const sound = $('sfxVolume');
+  music.oninput = () => {
+    setMusicVolume(Number(music.value) / 100);
+    $('musicVolumeLabel').textContent = `${music.value}%`;
+  };
+  sound.oninput = () => {
+    setSfxVolume(Number(sound.value) / 100);
+    $('sfxVolumeLabel').textContent = `${sound.value}%`;
+  };
+  const exit = $('optionsExitBtn');
+  if (exit) exit.onclick = () => {
+    $('infoOverlay').classList.add('hidden');
+    sendMsg({ t: 'backToLobby' });
+    toast('Solo run saved.');
+  };
+}
 
 $('updateBtn').onclick = async () => {
   try {
@@ -1958,7 +2037,6 @@ function renderGame(st) {
   const effectsOn = deckEffectsOn(st);
   const cosmicTarget = effectsOn && st.you && st.you.deckArt === 'cosmic' && st.cosmicTarget ? st.cosmicTarget : null;
   if (cosmicTarget) $('turnInfo').textContent += `${$('turnInfo').textContent ? ' - ' : ''}Target ${cosmicTarget}`;
-  $('exitSoloBtn').classList.toggle('hidden', !st.solo || st.phase === 'gameover');
   document.body.classList.remove('phase-discard', 'phase-pegging', 'phase-scoring', 'phase-roundEnd', 'phase-shop', 'phase-gameover');
   document.body.classList.add(`phase-${st.phase}`);
   document.body.classList.toggle('mode-board', st.mode === 'board');

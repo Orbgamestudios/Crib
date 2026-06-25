@@ -1379,6 +1379,14 @@ body.deck-neon-active .mult-chip {
 .howto h4 { color: var(--gold); margin: 12px 0 5px; }
 .howto ol, .howto ul { padding-left: 20px; margin: 0 0 10px; }
 .howto li { margin-bottom: 5px; }
+.options-menu { display: grid; gap: 14px; min-width: min(420px, 78vw); }
+.volume-row {
+  display: grid; grid-template-columns: 72px 1fr 48px; gap: 12px; align-items: center;
+  padding: 10px 12px; border: 1px solid #ffffff22; border-radius: 8px; background: #0a1722aa;
+}
+.volume-row span { font-weight: 800; }
+.volume-row b { text-align: right; color: var(--gold); font-size: 13px; }
+.volume-row input { width: 100%; accent-color: var(--gold); }
 .howto-visual-grid {
   display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
   gap: 10px; margin: 10px 0 16px;
