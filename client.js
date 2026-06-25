@@ -1,4 +1,4 @@
-import { JOKER_ICONS, TAROT_ICONS, PACK_ICONS } from './icons.js?v=16';
+import { JOKER_ICONS, TAROT_ICONS, PACK_ICONS } from './icons.js?v=17';
 import { CARD_ENHANCEMENTS, cardValue } from './lib/cards.js?v=3';
 import { pegEvents, scoreBreakdown } from './lib/scoring.js?v=3';
 import { JOKERS, TAROTS, aggregateMods, buildScore, effectiveJokerIds, jokerDef, normalizeJoker, stampText } from './lib/jokers.js?v=3';
@@ -23,7 +23,7 @@ const SOLO_SAVE_KEY = 'crib_solo_house_save_v1';
 const PROFILE_KEY = 'crib_profiles_v1';
 const ACTIVE_PROFILE_KEY = 'crib_active_profile_pin';
 const DIAG_KEY = 'crib_last_diagnostic_v1';
-const APP_BUILD = 'client-v108';
+const APP_BUILD = 'client-v109';
 
 // GitHub Pages (or any static host) has no WebSocket server: use P2P rooms.
 const P2P_MODE = location.hostname.endsWith('github.io') ||
@@ -118,6 +118,26 @@ let lastTutKey = '';
 let audioCtx = null;
 let soundUnlocked = false;
 const SFX_GAIN = 0.28;
+const MUSIC_GAIN = 0.22;
+const MUSIC_FADE_MS = 1800;
+const MUSIC_TRACKS = {
+  main: 'music/1-main-theme.mp3?v=1',
+  shop: 'music/2-shop-theme.mp3?v=1',
+  tarot: 'music/3-tarot-pack-theme.mp3?v=1',
+  boss: 'music/5-boss-blind-theme.mp3?v=1',
+};
+const SAMPLE_SFX = {
+  explosion: 'sounds/28-explosion1.mp3?v=1',
+  foil: 'sounds/32-foil2.mp3?v=1',
+  glass: 'sounds/34-glass1.mp3?v=1',
+  negative: 'sounds/56-negative.mp3?v=1',
+  polychrome: 'sounds/59-polychrome1.mp3?v=1',
+};
+const musicEls = new Map();
+const sampleEls = new Map();
+let currentMusic = '';
+let desiredMusic = 'main';
+let musicFadeTimer = null;
 
 function ensureAudio() {
   const AudioCtor = window.AudioContext || window.webkitAudioContext;
@@ -139,6 +159,7 @@ function unlockAudio() {
   osc.connect(amp).connect(ctx.destination);
   osc.start(t);
   osc.stop(t + 0.02);
+  startDesiredMusic();
 }
 
 window.addEventListener('pointerdown', unlockAudio, { passive: true });
@@ -260,6 +281,98 @@ function shuffleSound() {
   cardSnap(0.31, 0.16);
 }
 
+function audioEl(src, loop = false) {
+  const el = new Audio(src);
+  el.preload = 'auto';
+  el.loop = loop;
+  el.playsInline = true;
+  el.volume = 0;
+  return el;
+}
+
+function musicEl(name) {
+  if (!MUSIC_TRACKS[name]) return null;
+  if (!musicEls.has(name)) musicEls.set(name, audioEl(MUSIC_TRACKS[name], true));
+  return musicEls.get(name);
+}
+
+function sampleEl(name) {
+  if (!SAMPLE_SFX[name]) return null;
+  if (!sampleEls.has(name)) sampleEls.set(name, audioEl(SAMPLE_SFX[name], false));
+  return sampleEls.get(name);
+}
+
+function fadeAudio(el, from, to, ms, done) {
+  if (!el) return;
+  const start = performance.now();
+  const tick = () => {
+    const t = Math.min(1, (performance.now() - start) / ms);
+    const eased = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+    el.volume = Math.max(0, Math.min(1, from + (to - from) * eased));
+    if (t < 1) requestAnimationFrame(tick);
+    else if (done) done();
+  };
+  tick();
+}
+
+function startDesiredMusic() {
+  if (!soundUnlocked || document.hidden) return;
+  setMusicTrack(desiredMusic || 'main');
+}
+
+function setMusicTrack(name) {
+  desiredMusic = name || 'main';
+  if (!soundUnlocked) return;
+  if (currentMusic === desiredMusic) {
+    const active = musicEl(currentMusic);
+    if (active && active.paused && !document.hidden) active.play().catch(() => {});
+    return;
+  }
+  const next = musicEl(desiredMusic);
+  if (!next) return;
+  const prev = currentMusic ? musicEl(currentMusic) : null;
+  if (musicFadeTimer) clearTimeout(musicFadeTimer);
+  try {
+    const syncSource = prev && !prev.paused ? prev : null;
+    if (syncSource && syncSource.duration && Number.isFinite(syncSource.duration)) {
+      const duration = next.duration && Number.isFinite(next.duration) ? next.duration : syncSource.duration;
+      next.currentTime = syncSource.currentTime % duration;
+    }
+    next.volume = prev ? 0 : MUSIC_GAIN;
+    next.play().catch(() => {});
+  } catch { /* iOS may reject seeks until metadata is ready */ }
+  if (prev && prev !== next) {
+    fadeAudio(prev, prev.volume, 0, MUSIC_FADE_MS, () => { prev.pause(); });
+    fadeAudio(next, 0, MUSIC_GAIN, MUSIC_FADE_MS);
+  }
+  currentMusic = desiredMusic;
+}
+
+function musicForState(st) {
+  if (!st) return view === 'lobby' || view === 'waiting' ? 'main' : desiredMusic;
+  if (st.phase === 'roundEnd' || st.phase === 'gameover') return 'boss';
+  if (st.phase === 'shop') {
+    const pack = st.you && st.you.pendingPack;
+    return pack && pack.type === 'arcana' ? 'tarot' : 'shop';
+  }
+  return 'main';
+}
+
+function updateMusicForState(st) {
+  setMusicTrack(musicForState(st));
+}
+
+function sampleSfx(name, gain = 0.55) {
+  if (!soundUnlocked) return false;
+  const base = sampleEl(name);
+  if (!base) return false;
+  const el = new Audio(base.currentSrc || SAMPLE_SFX[name]);
+  el.playsInline = true;
+  el.volume = Math.max(0, Math.min(1, gain * SFX_GAIN));
+  el.play().catch(() => {});
+  return true;
+}
+
 function sfx(name) {
   if (!soundUnlocked) return;
   switch (name) {
@@ -287,8 +400,22 @@ function sfx(name) {
     case 'tarot': cardSlide(0, 0.17); noise(0.06, 0.14, 0.1, 3600); cardSnap(0.15, 0.12); break;
     case 'blind': feltThump(0, 0.3, 92); feltThump(0.14, 0.3, 92); feltThump(0.28, 0.34, 76); break;
     case 'gameover': cardSlide(0, 0.22); feltThump(0.18, 0.34, 68); break;
+    case 'foil': if (!sampleSfx('foil', 0.75)) cardSlide(0, 0.16); break;
+    case 'holographic': if (!sampleSfx('foil', 0.55)) cardSlide(0, 0.16); setTimeout(() => sampleSfx('polychrome', 0.34), 90); break;
+    case 'polychrome': if (!sampleSfx('polychrome', 0.8)) cardSlide(0, 0.18); break;
+    case 'negative': if (!sampleSfx('negative', 0.76)) feltThump(0, 0.18, 70); break;
+    case 'glass': if (!sampleSfx('glass', 0.75)) noise(0, 0.05, 0.18, 4700); break;
+    case 'explosion': if (!sampleSfx('explosion', 0.5)) feltThump(0, 0.3, 72); break;
   }
 }
+
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) {
+    for (const el of musicEls.values()) el.pause();
+  } else {
+    startDesiredMusic();
+  }
+});
 
 // Remove any drag ghost left orphaned by a re-render that happened mid-gesture
 // (the heartbeat re-broadcasts state every 2.5s and rebuilds the hand, which
@@ -700,6 +827,7 @@ function showView(v) {
     refreshSoloContinue();
     renderDiagnosticBanner();
   }
+  if (v === 'lobby' || v === 'waiting') updateMusicForState(null);
 }
 
 function recordDiagnostic(title, detail = '', extra = {}) {
@@ -1821,6 +1949,7 @@ function backEl(small, deckArt = activeDeckArt()) {
 
 function renderGame(st) {
   sweepStrayFx();
+  updateMusicForState(st);
   $('dealInfo').textContent = `Round ${st.round} - Deal ${st.dealIndexInRound}/${st.dealsInRound}`;
   $('phaseInfo').textContent = phaseLabel(st);
   const turnP = st.players.find(p => p.seat === st.turnSeat);
@@ -3080,7 +3209,7 @@ function scoreBlock(r, st, fresh) {
     if (fresh) lineEl.style.animationDelay = (250 + i * 130) + 'ms';
     lineEl.innerHTML = `<span>${esc(lineLabel)}</span><span>${line.pts == null ? '' : '+' + line.pts}</span>`;
     div.appendChild(lineEl);
-    if (fresh) setTimeout(() => sfx(line.pts == null ? 'mult' : 'scoreTick'), 250 + i * 130);
+    if (fresh) setTimeout(() => sfx(scoreLineSfx(lineLabel, line)), 250 + i * 130);
   });
   if (!r.lines.length) {
     div.insertAdjacentHTML('beforeend', '<div class="sb-line"><span>Nothing scored</span><span>+0</span></div>');
@@ -3119,6 +3248,16 @@ function scoreBlock(r, st, fresh) {
     setTimeout(() => sfx('scoreTotal'), eqDelay + 120);
   }
   return div;
+}
+
+function scoreLineSfx(label, line) {
+  if (/Glass Card/i.test(label)) return 'glass';
+  if (/Foil Edition/i.test(label)) return 'foil';
+  if (/Holographic Edition/i.test(label)) return 'holographic';
+  if (/Polychrome Edition/i.test(label)) return 'polychrome';
+  if (/Negative Edition/i.test(label)) return 'negative';
+  if (/Lucky Card/i.test(label)) return 'polychrome';
+  return line.pts == null ? 'mult' : 'scoreTick';
 }
 
 function countUp(el, total, duration, prefix = '') {
@@ -3708,6 +3847,21 @@ function runAnimations(prev, st, refs = {}) {
     document.querySelectorAll('#hand .card').forEach(c => {
       c.classList.remove('tarot-flash'); void c.offsetWidth; c.classList.add('tarot-flash');
     });
+  }
+
+  if (prev.you && st.you && Array.isArray(prev.you.jokers) && Array.isArray(st.you.jokers)) {
+    const prevEditions = prev.you.jokers.map(j => j.stamp || '').join('|');
+    const nextEditions = st.you.jokers.map(j => j.stamp || '').join('|');
+    if (prevEditions !== nextEditions) {
+      const added = st.you.jokers.find((j, i) => j.stamp && (!prev.you.jokers[i] || prev.you.jokers[i].stamp !== j.stamp));
+      if (added && added.stamp) sfx(added.stamp);
+    }
+  }
+
+  if (prev.you && st.you && st.phase === 'scoring') {
+    const prevDeck = (prev.you.deck || []).map(c => `${c.id}:${c.enhancement || ''}`).join('|');
+    const nextDeck = (st.you.deck || []).map(c => `${c.id}:${c.enhancement || ''}`).join('|');
+    if (prevDeck !== nextDeck && nextDeck.includes(':glass')) sfx('glass');
   }
 
   // a finished 31/go count sweeps off the table

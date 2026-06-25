@@ -549,8 +549,8 @@ body.mode-board .seat-blind-fill {
   content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; z-index: 1;
 }
 .card.enhancement-bonus { box-shadow: inset 0 0 0 3px #39a9ef, 0 2px 4px #00000055; }
-.card.enhancement-bonus::after { background: repeating-linear-gradient(90deg, #30aef044 0 3px, transparent 3px 10px); }
-.card.enhancement-mult::after { background: repeating-radial-gradient(ellipse at center, transparent 0 7px, #ef4c4238 8px 11px); }
+.card.enhancement-bonus::after { background: linear-gradient(90deg, #30aef03a 0 16%, transparent 17% 83%, #30aef03a 84%); }
+.card.enhancement-mult::after { background: radial-gradient(ellipse at center, transparent 0 42%, #ef4c4238 43% 56%, transparent 57%); }
 .card.enhancement-wild { border: 2px solid #43515a; background: radial-gradient(circle at 25% 8%, #fff, transparent 32%), linear-gradient(145deg, #fff8e8, var(--cream) 58%, #d6c49e); color: var(--ink); }
 .wild-suit { position: absolute !important; right: 4px; bottom: 7px; width: 22px; height: 23px; z-index: 4 !important; }
 .wild-suit i { position: absolute; font-size: 13px; line-height: 1; font-style: normal; text-shadow: 0 1px 1px #fff, 0 1px 2px #0005; }
@@ -559,7 +559,7 @@ body.mode-board .seat-blind-fill {
 .wild-suit .club { left: 1px; bottom: 0; color: var(--ink); }
 .wild-suit .spade { right: 0; bottom: 0; color: var(--ink); }
 .card.enhancement-glass { background: #dfe8ed; box-shadow: inset 0 0 0 2px #91a2ab, 0 2px 4px #00000055; }
-.card.enhancement-glass::after { background: repeating-linear-gradient(135deg, #ffffff80 0 5px, #81919b55 6px 12px, transparent 13px 18px); }
+.card.enhancement-glass::after { background: linear-gradient(135deg, #ffffff80 0 18%, #81919b55 19% 32%, transparent 33% 55%, #ffffff66 56% 66%, transparent 67%); }
 .card.enhancement-steel { background: linear-gradient(145deg, #f5fbff, #b7c5d1 48%, #eef6fb); box-shadow: inset 0 0 0 2px #8295a5, 0 2px 5px #0006; }
 .card.enhancement-steel::after { background: linear-gradient(120deg, transparent 20%, #fff9 38%, transparent 54%); }
 .card.enhancement-stone { align-items: center; justify-content: center; background: #aeb7bd; color: #354049; box-shadow: inset 0 0 0 3px #7f8a92, 0 2px 5px #0007; }
@@ -567,7 +567,7 @@ body.mode-board .seat-blind-fill {
 .card.enhancement-gold { background: linear-gradient(145deg, #fff1b0, #e7a92f 55%, #ffe391); box-shadow: inset 0 0 0 2px #9d6c11, 0 2px 5px #0007; }
 .card.enhancement-gold::after { background: linear-gradient(115deg, transparent 25%, #fff8 42%, transparent 58%); }
 .card.enhancement-lucky { background: #fff9df; box-shadow: inset 0 0 0 2px #d6c88e, 0 2px 5px #0006; }
-.card.enhancement-lucky::after { background: repeating-radial-gradient(circle at 20% 30%, #e9dba94d 0 3px, transparent 4px 12px); }
+.card.enhancement-lucky::after { background: radial-gradient(circle at 20% 30%, #e9dba94d 0 8%, transparent 9%), radial-gradient(circle at 76% 68%, #e9dba938 0 7%, transparent 8%); }
 .enhancement-badge {
   position: absolute !important; left: 50%; bottom: 3px; transform: translateX(-50%);
   max-width: calc(100% - 6px); padding: 1px 3px; border-radius: 3px;
