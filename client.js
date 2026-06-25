@@ -23,7 +23,7 @@ const SOLO_SAVE_KEY = 'crib_solo_house_save_v1';
 const PROFILE_KEY = 'crib_profiles_v1';
 const ACTIVE_PROFILE_KEY = 'crib_active_profile_pin';
 const DIAG_KEY = 'crib_last_diagnostic_v1';
-const APP_BUILD = 'client-v112';
+const APP_BUILD = 'client-v113';
 const MUSIC_VOLUME_KEY = 'crib_music_volume_v1';
 const SFX_VOLUME_KEY = 'crib_sfx_volume_v1';
 
@@ -1681,10 +1681,23 @@ function refreshSoloContinue() {
 $('syncBtn').onclick = () => { sendMsg({ t: 'sync' }); toast('Refreshed.'); };
 $('dictBtn').onclick = () => showDictionary();
 $('optionsBtn').onclick = () => showOptions();
-$('sideRefreshBtn').onclick = () => { sendMsg({ t: 'sync' }); toast('Refreshed.'); };
-$('sideCardsBtn').onclick = () => showDictionary();
+$('sideCardsBtn').onclick = () => {
+  if (lastState && lastState.phase === 'shop') {
+    const you = lastState.you || {};
+    const cost = you.rerollCost == null ? 2 : you.rerollCost;
+    if (!you.ready && you.coins >= cost) sendMsg({ t: 'reroll' });
+    return;
+  }
+  showDictionary();
+};
 $('sideOptionsBtn').onclick = () => showOptions();
-$('sideRunInfoBtn').onclick = () => showRunInfo();
+$('sideRunInfoBtn').onclick = () => {
+  if (lastState && lastState.phase === 'shop') {
+    if (!lastState.you.ready) sendMsg({ t: 'ready' });
+    return;
+  }
+  showRunInfo();
+};
 
 function showOptions() {
   const canExit = lastState && lastState.solo && lastState.phase !== 'gameover';
@@ -1692,6 +1705,7 @@ function showOptions() {
     <label class="volume-row"><span>Music</span><input id="musicVolume" type="range" min="0" max="100" value="${Math.round(musicVolume * 100)}"><b id="musicVolumeLabel">${Math.round(musicVolume * 100)}%</b></label>
     <label class="volume-row"><span>Sound</span><input id="sfxVolume" type="range" min="0" max="100" value="${Math.round(sfxVolume * 100)}"><b id="sfxVolumeLabel">${Math.round(sfxVolume * 100)}%</b></label>
     <div class="hint">Music changes wait for the next measure, then crossfade with the tracks lined up.</div>
+    <button id="optionsRefreshBtn" class="btn wide" type="button">Refresh Game State</button>
     ${canExit ? '<button id="optionsExitBtn" class="btn primary wide" type="button">Save and Exit Solo Run</button>' : ''}
   </div>`);
   const music = $('musicVolume');
@@ -1699,6 +1713,10 @@ function showOptions() {
   music.oninput = () => {
     setMusicVolume(Number(music.value) / 100);
     $('musicVolumeLabel').textContent = `${music.value}%`;
+  };
+  $('optionsRefreshBtn').onclick = () => {
+    sendMsg({ t: 'sync' });
+    toast('Refreshed.');
   };
   sound.oninput = () => {
     setSfxVolume(Number(sound.value) / 100);
@@ -2228,8 +2246,9 @@ function renderRunSidebar(st) {
   const you = st.you;
   const turnP = st.players.find(p => p.seat === st.turnSeat);
   const phase = phaseLabel(st);
-  $('sideModeTitle').textContent = st.mode === 'board' ? 'Board' : st.mode === 'endless' ? 'Endless' : 'Blind';
-  $('sideModeSub').textContent = st.phase === 'pegging' && turnP
+  const inShop = st.phase === 'shop';
+  $('sideModeTitle').textContent = inShop ? 'Shop' : st.mode === 'board' ? 'Board' : st.mode === 'endless' ? 'Endless' : 'Blind';
+  $('sideModeSub').textContent = inShop ? 'Improve your run' : st.phase === 'pegging' && turnP
     ? (turnP.seat === st.mySeat ? 'Your turn' : `${turnP.name}'s turn`)
     : phase || 'Run info';
   $('sideRoundScore').textContent = st.mode === 'board' ? you.score : you.roundScore;
@@ -2242,6 +2261,14 @@ function renderRunSidebar(st) {
   $('sideHands').textContent = `${Math.max(0, st.dealsInRound - st.dealIndexInRound + 1)}/${st.dealsInRound}`;
   $('sideDeal').textContent = `${st.dealIndexInRound}/${st.dealsInRound}`;
   $('runSidebar').classList.toggle('board-mode', st.mode === 'board');
+  $('runSidebar').classList.toggle('shop-mode', inShop);
+  const rerollCost = you.rerollCost == null ? 2 : you.rerollCost;
+  $('sideRunInfoBtn').textContent = inShop
+    ? you.ready ? 'Waiting...' : st.dealIndexInRound >= st.dealsInRound ? `Round ${st.round + 1}` : 'Next Deal'
+    : 'Run Info';
+  $('sideRunInfoBtn').disabled = !!(inShop && you.ready);
+  $('sideCardsBtn').innerHTML = inShop ? `Reroll ${chip(rerollCost)}` : 'Cards';
+  $('sideCardsBtn').disabled = !!(inShop && (you.ready || you.coins < rerollCost));
 }
 
 const BOARD_COLORS = ['#ffd76e', '#63b8ff', '#ff6262', '#7ee08b', '#dfc8ff', '#ff9f43'];
@@ -3454,22 +3481,16 @@ function renderShop(oc, st) {
   const offers = you.shopOffer || [];
   const market = offers.map((item, idx) => ({ item, idx })).filter(x => x.item.kind !== 'pack');
   const packs = offers.map((item, idx) => ({ item, idx })).filter(x => x.item.kind === 'pack');
-  const rerollCost = you.rerollCost == null ? 2 : you.rerollCost;
   oc.innerHTML = `<div class="balatro-shop">
-    <aside class="shop-console">
-      <div class="shop-marquee"><b>Shop</b><span>Improve your run</span></div>
-      <div class="shop-console-stat"><span>Round score</span><b>${you.roundScore || 0}</b></div>
-      <div class="shop-hud-mini"><span class="hand-mini">${you.handScore || 0}</span><b>x</b><span class="mult-mini">${you.dealMult || 1}</span></div>
-      <div class="shop-console-stat coins"><span>Coins</span><b>${chip(you.coins)}</b></div>
-      <div class="shop-console-stat small"><span>Blind</span><b>${you.blind || st.blind || 0}</b></div>
-      <button id="shopNextBtn" class="btn primary shop-next" type="button">${st.dealIndexInRound >= st.dealsInRound ? `Round ${st.round + 1}` : 'Next Deal'}</button>
-      <button id="shopRerollBtn" class="btn shop-reroll" type="button">Reroll ${chip(rerollCost)}</button>
-    </aside>
     <section class="shop-stage">
       <div class="shop-slotline"><span>Jokers ${you.jokers.length}/${you.jokerSlots || 5}</span><span>Tarots ${you.tarots.length}/${you.tarotSlots == null ? 2 : you.tarotSlots}</span></div>
       <div class="shop-shelf market-shelf"></div>
       <div class="shop-shelf pack-shelf"><div class="voucher-placeholder">Deck ${you.deck.length}</div></div>
       <div id="shopCollectionMount"></div>
+      <div class="shop-mobile-actions">
+        <button id="shopMobileNext" class="btn primary" type="button">${you.ready ? 'Waiting...' : st.dealIndexInRound >= st.dealsInRound ? `Round ${st.round + 1}` : 'Next Deal'}</button>
+        <button id="shopMobileReroll" class="btn" type="button">Reroll ${chip(you.rerollCost == null ? 2 : you.rerollCost)}</button>
+      </div>
     </section>
   </div>`;
   const marketShelf = oc.querySelector('.market-shelf');
@@ -3518,16 +3539,19 @@ function renderShop(oc, st) {
     oc.querySelector('#shopCollectionMount').appendChild(sell);
   }
 
-  const reroll = oc.querySelector('#shopRerollBtn');
-  reroll.disabled = you.coins < rerollCost || you.ready;
-  reroll.onclick = () => sendMsg({ t: 'reroll' });
-  const next = oc.querySelector('#shopNextBtn');
-  next.disabled = !!you.ready;
-  next.onclick = () => sendMsg({ t: 'ready' });
   if (you.ready) {
-    next.textContent = 'Waiting...';
-    oc.querySelector('.shop-console').appendChild(readyDots(st));
+    const waiting = document.createElement('div');
+    waiting.className = 'shop-waiting';
+    waiting.appendChild(readyDots(st));
+    oc.querySelector('.shop-stage').appendChild(waiting);
   }
+  const mobileNext = oc.querySelector('#shopMobileNext');
+  const mobileReroll = oc.querySelector('#shopMobileReroll');
+  const mobileRerollCost = you.rerollCost == null ? 2 : you.rerollCost;
+  mobileNext.disabled = !!you.ready;
+  mobileNext.onclick = () => sendMsg({ t: 'ready' });
+  mobileReroll.disabled = you.ready || you.coins < mobileRerollCost;
+  mobileReroll.onclick = () => sendMsg({ t: 'reroll' });
 }
 
 // Tapping a shop card enlarges it to the centre of the screen for a clear look,
