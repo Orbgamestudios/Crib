@@ -23,7 +23,7 @@ const SOLO_SAVE_KEY = 'crib_solo_house_save_v1';
 const PROFILE_KEY = 'crib_profiles_v1';
 const ACTIVE_PROFILE_KEY = 'crib_active_profile_pin';
 const DIAG_KEY = 'crib_last_diagnostic_v1';
-const APP_BUILD = 'client-v110';
+const APP_BUILD = 'client-v111';
 const MUSIC_VOLUME_KEY = 'crib_music_volume_v1';
 const SFX_VOLUME_KEY = 'crib_sfx_volume_v1';
 
@@ -3013,6 +3013,15 @@ function shopItemHelp(item) {
   return shopKindHelp(item.kind) + specific + stamp;
 }
 
+function shopTooltipHtml(item, extra = '') {
+  const title = item.name || (item.kind === 'card' ? cardLabel(item) : shopTypeLabel(item.kind));
+  const desc = item.kind === 'card'
+    ? `Adds ${cardLabel(item)} to your permanent deck${item.enhancement ? ` as a ${CARD_ENHANCEMENTS[item.enhancement].name}` : ''}.`
+    : item.desc || '';
+  const edition = item.stamp ? `<div class="shop-tip-edition">${esc(stampText(item.stamp))}</div>` : '';
+  return `<div class="shop-tooltip"><b>${esc(title)}</b><span>${esc(desc)}</span>${edition}<em>${esc(shopTypeLabel(item.kind))}${extra ? ` - ${esc(extra)}` : ''}</em></div>`;
+}
+
 function rarityPill(item) {
   if (!item || item.kind !== 'joker') return '';
   const rarity = item.rarity || 'common';
@@ -3402,14 +3411,33 @@ function renderShop(oc, st) {
   }
   if (you.pendingPack) return renderPackOpen(oc, st);
 
-  oc.innerHTML = `<h2>Shop</h2><div class="row spread"><span class="shop-coins">${chip(you.coins)}</span>` +
-    `<span style="opacity:.7;font-size:13px">Jokers ${you.jokers.length}/${you.jokerSlots || 5} - Tarots ${you.tarots.length}/${you.tarotSlots == null ? 2 : you.tarotSlots} - Deck ${you.deck.length}</span></div>`;
-  const grid = document.createElement('div');
-  grid.className = 'shop-grid shop-grid-market';
-  (you.shopOffer || []).forEach((item, idx) => {
+  const offers = you.shopOffer || [];
+  const market = offers.map((item, idx) => ({ item, idx })).filter(x => x.item.kind !== 'pack');
+  const packs = offers.map((item, idx) => ({ item, idx })).filter(x => x.item.kind === 'pack');
+  const rerollCost = you.rerollCost == null ? 2 : you.rerollCost;
+  oc.innerHTML = `<div class="balatro-shop">
+    <aside class="shop-console">
+      <div class="shop-marquee"><b>Shop</b><span>Improve your run</span></div>
+      <div class="shop-console-stat"><span>Round score</span><b>${you.roundScore || 0}</b></div>
+      <div class="shop-hud-mini"><span class="hand-mini">${you.handScore || 0}</span><b>x</b><span class="mult-mini">${you.dealMult || 1}</span></div>
+      <div class="shop-console-stat coins"><span>Coins</span><b>${chip(you.coins)}</b></div>
+      <div class="shop-console-stat small"><span>Blind</span><b>${you.blind || st.blind || 0}</b></div>
+      <button id="shopNextBtn" class="btn primary shop-next" type="button">${st.dealIndexInRound >= st.dealsInRound ? `Round ${st.round + 1}` : 'Next Deal'}</button>
+      <button id="shopRerollBtn" class="btn shop-reroll" type="button">Reroll ${chip(rerollCost)}</button>
+    </aside>
+    <section class="shop-stage">
+      <div class="shop-slotline"><span>Jokers ${you.jokers.length}/${you.jokerSlots || 5}</span><span>Tarots ${you.tarots.length}/${you.tarotSlots == null ? 2 : you.tarotSlots}</span></div>
+      <div class="shop-shelf market-shelf"></div>
+      <div class="shop-shelf pack-shelf"><div class="voucher-placeholder">Deck ${you.deck.length}</div></div>
+      <div id="shopCollectionMount"></div>
+    </section>
+  </div>`;
+  const marketShelf = oc.querySelector('.market-shelf');
+  const packShelf = oc.querySelector('.pack-shelf');
+  const addShopItem = ({ item, idx }, shelf) => {
     const div = document.createElement('div');
     const packBlock = packBlockedReason(item, you);
-    div.className = `shop-item shop-card ${item.kind}` + (item.sold ? ' sold' : '') +
+    div.className = `shop-item shop-card ${item.kind} balatro-card` + (item.sold ? ' sold' : '') +
       (packBlock ? ' unavailable' : '') +
       (item.rarity ? ' r-' + item.rarity : '') + (item.stamp ? ' stamp-' + item.stamp : '');
     div.appendChild(shopCardFace(item));
@@ -3418,15 +3446,17 @@ function renderShop(oc, st) {
       rarityPill(item) +
       stampPill(item) +
       `<div class="shop-price">${packBlock || chip(item.cost)}</div>` +
-      `<div class="shop-type ${item.kind}">${shopTypeLabel(item.kind)}</div>`);
+      `<div class="shop-type ${item.kind}">${shopTypeLabel(item.kind)}</div>` +
+      shopTooltipHtml(item, packBlock || `${item.cost} coins`));
     addInfoButton(div, item.name, shopItemHelp(item));
     div.onclick = () => {
       if (item.sold || you.ready) return;
       openShopFocus(item, idx, you); // tap a card - it enlarges to centre
     };
-    grid.appendChild(div);
-  });
-  oc.appendChild(grid);
+    shelf.appendChild(div);
+  };
+  market.forEach(x => addShopItem(x, marketShelf));
+  packs.forEach(x => addShopItem(x, packShelf));
 
   // your collection - tap an owned card to inspect, sell, or use it
   if ((you.jokers && you.jokers.length) || (you.tarots && you.tarots.length)) {
@@ -3445,21 +3475,19 @@ function renderShop(oc, st) {
     (you.jokers || []).forEach((j, idx) => addCell('joker', j, idx));
     (you.tarots || []).forEach((t, idx) => addCell('tarot', t, idx));
     sell.appendChild(sellRow);
-    oc.appendChild(sell);
+    oc.querySelector('#shopCollectionMount').appendChild(sell);
   }
 
-  const row = document.createElement('div');
-  row.className = 'row';
-  const reroll = document.createElement('button');
-  reroll.className = 'btn';
-  const rerollCost = you.rerollCost == null ? 2 : you.rerollCost;
-  reroll.innerHTML = `Reroll ${chip(rerollCost)}`;
+  const reroll = oc.querySelector('#shopRerollBtn');
   reroll.disabled = you.coins < rerollCost || you.ready;
   reroll.onclick = () => sendMsg({ t: 'reroll' });
-  row.appendChild(reroll);
-  oc.appendChild(row);
-  const nextRound = st.dealIndexInRound >= st.dealsInRound;
-  appendReadyBtn(oc, st, nextRound ? `Round ${st.round + 1}` : 'Next Deal');
+  const next = oc.querySelector('#shopNextBtn');
+  next.disabled = !!you.ready;
+  next.onclick = () => sendMsg({ t: 'ready' });
+  if (you.ready) {
+    next.textContent = 'Waiting...';
+    oc.querySelector('.shop-console').appendChild(readyDots(st));
+  }
 }
 
 // Tapping a shop card enlarges it to the centre of the screen for a clear look,
@@ -3646,20 +3674,24 @@ function renderPackOpen(oc, st) {
   const pack = st.you.pendingPack;
   // first time we see this pack? sync the pick entrance with the burst FX
   const firstReveal = !(prevState && prevState.you && prevState.you.pendingPack);
-  oc.innerHTML = `<h2>${icon('spark')} ${esc(pack.name)}</h2><div class="hint">Pick one:</div>`;
+  oc.innerHTML = `<div class="pack-open-stage">
+    <div class="pack-open-top"><span>Jokers ${st.you.jokers.length}/${st.you.jokerSlots || 5}</span><span>Tarots ${st.you.tarots.length}/${st.you.tarotSlots == null ? 2 : st.you.tarotSlots}</span></div>
+    <div class="pack-picks"></div>
+    <div class="pack-open-footer"><div class="pack-title-card"><b>${icon('spark')} ${esc(pack.name)}</b><span>Choose 1</span></div><button id="packSkipBtn" class="btn" type="button">Skip</button></div>
+  </div>`;
   const grid = document.createElement('div');
-  grid.className = 'shop-grid pack-grid';
+  grid.className = 'pack-choice-row';
   pack.options.forEach((opt, idx) => {
     const div = document.createElement('div');
     const kindCls = opt.kind === 'card' ? 'standardcard' : opt.kind;
-    div.className = `shop-item pick ${kindCls}` + (opt.rarity ? ' r-' + opt.rarity : '') +
+    div.className = `shop-item pick ${kindCls} balatro-card` + (opt.rarity ? ' r-' + opt.rarity : '') +
       (opt.stamp ? ' stamp-' + opt.stamp : '') +
       (firstReveal ? ' pack-rise' : '');
     if (firstReveal) div.style.animationDelay = (900 + idx * 230) + 'ms';
     if (opt.kind === 'card') {
-      div.innerHTML = `<div class="si-bigcard"></div><div class="si-name">${esc(cardLabel(opt))} - add to your deck</div>`;
+      div.innerHTML = `<div class="si-bigcard"></div><div class="si-name">${esc(cardLabel(opt))}</div>`;
       div.querySelector('.si-bigcard').appendChild(cardEl(opt));
-      div.insertAdjacentHTML('beforeend', '<div class="shop-type card">Card</div>');
+      div.insertAdjacentHTML('beforeend', '<div class="shop-type card">Card</div>' + shopTooltipHtml(opt, 'take'));
     } else {
       const icon = (opt.kind === 'joker' ? JOKER_ICONS : TAROT_ICONS)[opt.id] || '';
       div.innerHTML = `<div class="si-icon">${icon}<span class="jt-foil"></span></div><div class="si-name">${esc(opt.name)}</div>` +
@@ -3667,6 +3699,7 @@ function renderPackOpen(oc, st) {
         stampPill(opt) +
         `<div class="si-desc">${esc(opt.desc)}</div>`;
       div.insertAdjacentHTML('beforeend', `<div class="shop-type ${opt.kind}">${shopTypeLabel(opt.kind)}</div>`);
+      div.insertAdjacentHTML('beforeend', shopTooltipHtml(opt, 'take'));
     }
     addInfoButton(div, opt.name || cardLabel(opt), shopItemHelp(opt));
     const full = (opt.kind === 'joker' && st.you.jokers.length >= (st.you.jokerSlots || 5) && opt.stamp !== 'negative') ||
@@ -3686,12 +3719,8 @@ function renderPackOpen(oc, st) {
     div.appendChild(btn);
     grid.appendChild(div);
   });
-  oc.appendChild(grid);
-  const skip = document.createElement('button');
-  skip.className = 'btn';
-  skip.textContent = 'Skip pack';
-  skip.onclick = () => sendMsg({ t: 'pickPack', idx: -1 });
-  oc.appendChild(skip);
+  oc.querySelector('.pack-picks').appendChild(grid);
+  oc.querySelector('#packSkipBtn').onclick = () => sendMsg({ t: 'pickPack', idx: -1 });
 }
 
 function appendReadyBtn(oc, st, label) {
