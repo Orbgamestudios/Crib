@@ -1756,6 +1756,7 @@ body.phase-shop #overlayContent {
   height: 100%; min-height: 0; overflow: hidden;
 }
 .shop-slotline { display: flex; justify-content: space-between; color: #d7e4e1; font-size: 13px; font-weight: 900; opacity: .9; }
+.shop-mobile-coins { display: none; color: #ffd76e; font-size: 16px; }
 .shop-mobile-actions { display: none; }
 .shop-shelf {
   position: relative; display: flex; justify-content: center; align-items: center; gap: clamp(14px, 2.4vw, 36px);
@@ -1863,7 +1864,7 @@ body.phase-shop #overlayContent {
 /* ---- small screens / phones ---- */
 @media (max-width: 700px) {
   #lobby h1 { font-size: 38px; }
-  #center { top: 52%; gap: 7px; } /* sit below the top opponent's hand, above the HUD */
+  #center { top: 45%; gap: 7px; } /* sit below opponents, above the hand controls */
   .seat { width: 120px; }
   .seat .plaque { font-size: 11px; padding: 3px 8px; }
   .seat .backs { height: 34px; }
@@ -1928,14 +1929,16 @@ body.phase-shop #overlayContent {
   .shop-hud-mini { margin-top: 0; }
   .shop-next, .shop-reroll { min-height: 46px; font-size: 14px; }
   .shop-stage {
-    grid-template-rows: auto minmax(0, auto) minmax(0, auto) minmax(68px, auto) auto;
-    align-content: start;
+    display: flex; flex-direction: column;
     padding: 10px; gap: 10px; overflow-y: auto; -webkit-overflow-scrolling: touch;
   }
+  .shop-slotline { position: sticky; top: 0; z-index: 3; padding: 4px 2px 8px; background: linear-gradient(180deg, #314348, #314348dd); }
+  .shop-mobile-coins { display: inline-block; }
   .shop-mobile-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
   .shop-shelf {
     display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 10px; min-height: 0; padding: 14px 8px; align-items: stretch;
+    gap: 10px; min-height: 0; padding: 10px 8px; align-items: stretch;
+    overflow: visible; border-radius: 8px; box-shadow: none;
   }
   .market-shelf .shop-item, .pack-shelf .shop-item {
     width: 100%; height: 168px; padding: 32px 8px 8px; gap: 4px;
@@ -1957,15 +1960,15 @@ body.phase-shop #overlayContent {
   .pack-picks { display: block; min-height: 0; overflow: visible; }
   .pack-choice-row { flex-direction: column; flex-wrap: nowrap; gap: 10px; align-items: center; }
   .pack-choice-row .shop-item {
-    width: min(78vw, 300px); height: 214px; padding: 28px 12px 10px; gap: 6px;
+    width: min(78vw, 300px); height: 186px; padding: 28px 12px 10px; gap: 5px;
   }
   .pack-choice-row .shop-type { top: 8px; right: 10px; bottom: auto; }
   .pack-choice-row .si-icon { width: 54px; height: 66px; }
   .pack-choice-row .si-bigcard .card { width: 46px; height: 64px; font-size: 14px; }
   .pack-choice-row .shop-item .si-name { height: 30px; font-size: 16px; }
-  .pack-choice-row .shop-item .si-desc { height: 70px; font-size: 13px; line-height: 1.16; }
+  .pack-choice-row .shop-item .si-desc { height: 48px; font-size: 11px; line-height: 1.13; }
   .pack-open-footer { gap: 12px; flex-wrap: wrap; }
-  .pack-title-card { min-width: 0; width: min(58vw, 260px); }
+  .pack-title-card { min-width: 0; width: min(58vw, 260px); padding: 8px 12px; }
   .pack-title-card b { font-size: 18px; }
   .sell-row { flex-wrap: nowrap; overflow-x: auto; }
   .deck-suit { width: 26px; font-size: 15px; }
@@ -2029,18 +2032,26 @@ body.phase-shop #overlayContent {
     width: 100%; height: 100dvh; max-height: none; padding: 10px;
     overflow: hidden;
   }
-  .shop-stage { padding: 10px; gap: 9px; overflow: hidden; }
+  .shop-stage {
+    display: flex; flex-direction: column; padding: 8px; gap: 8px;
+    overflow-x: hidden; overflow-y: auto; -webkit-overflow-scrolling: touch;
+  }
   .shop-mobile-actions { display: none; }
-  .shop-shelf { padding: 12px; gap: 12px; flex-wrap: nowrap; }
+  .shop-slotline { font-size: 12px; }
+  .shop-mobile-coins { display: inline-block; }
+  .shop-shelf {
+    display: flex; justify-content: flex-start; padding: 10px; gap: 10px;
+    flex-wrap: nowrap; overflow-x: auto; overflow-y: hidden; min-height: 0;
+  }
   .market-shelf .shop-item, .pack-shelf .shop-item {
-    width: clamp(104px, 15vw, 136px); height: 168px; padding: 8px; gap: 4px;
+    flex: 0 0 clamp(104px, 15vw, 136px); width: clamp(104px, 15vw, 136px); height: 156px; padding: 26px 8px 8px; gap: 4px;
   }
   .shop-card-face { height: 62px; min-height: 62px; }
   .shop-art { width: 46px; height: 46px; }
   .shop-card-face.pack .shop-art { width: 58px; height: 74px; }
   .shop-item .si-name { height: 26px; font-size: 11px; }
   .shop-item .si-desc { height: 46px; font-size: 9.5px; line-height: 1.12; }
-  .balatro-card .shop-price { top: -12px; min-width: 42px; font-size: 12px; }
+  .balatro-card .shop-price { top: 5px; min-width: 42px; font-size: 12px; }
   .pack-open-stage { width: 100%; height: 100%; gap: 8px; overflow: hidden; }
   .pack-choice-row { gap: 12px; flex-wrap: nowrap; }
   .pack-choice-row .shop-item { width: clamp(116px, 18vw, 150px); height: 158px; padding: 26px 8px 8px; }
@@ -2050,7 +2061,7 @@ body.phase-shop #overlayContent {
 
 @media (max-height: 720px) and (max-width: 700px) {
   #topbar { padding-top: 4px; padding-bottom: 4px; }
-  #center { top: 32%; transform: translate(-50%, -50%) scale(0.92); }
+  #center { top: 39%; transform: translate(-50%, -50%) scale(0.86); }
   #bottombar { height: calc(292px + env(safe-area-inset-bottom)); }
   #myCards { min-height: 126px; }
   #hand { height: 80px; }

@@ -23,7 +23,7 @@ const SOLO_SAVE_KEY = 'crib_solo_house_save_v1';
 const PROFILE_KEY = 'crib_profiles_v1';
 const ACTIVE_PROFILE_KEY = 'crib_active_profile_pin';
 const DIAG_KEY = 'crib_last_diagnostic_v1';
-const APP_BUILD = 'client-v115';
+const APP_BUILD = 'client-v116';
 const MUSIC_VOLUME_KEY = 'crib_music_volume_v1';
 const SFX_VOLUME_KEY = 'crib_sfx_volume_v1';
 
@@ -330,7 +330,8 @@ function fadeAudio(el, from, to, ms, done) {
   const tick = () => {
     const t = Math.min(1, (performance.now() - start) / ms);
     const eased = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
-    el.volume = Math.max(0, Math.min(1, from + (to - from) * eased));
+    const target = typeof to === 'function' ? to() : to;
+    el.volume = Math.max(0, Math.min(1, from + (target - from) * eased));
     if (t < 1) requestAnimationFrame(tick);
     else if (done) done();
   };
@@ -391,7 +392,7 @@ function beginMusicTransition(prev, next, name, immediate = false) {
     next.volume = musicGain();
   } else if (prev && prev !== next) {
     fadeAudio(prev, prev.volume, 0, MUSIC_FADE_MS, () => { prev.pause(); });
-    fadeAudio(next, 0, musicGain(), MUSIC_FADE_MS);
+    fadeAudio(next, 0, () => musicGain(), MUSIC_FADE_MS);
   }
   currentMusic = name;
 }
@@ -430,6 +431,10 @@ function setMusicVolume(value) {
   writeVolume(MUSIC_VOLUME_KEY, musicVolume);
   const active = currentMusic ? musicEl(currentMusic) : null;
   if (active && !musicFadeTimer) active.volume = musicGain();
+  for (const [name, el] of musicEls) {
+    if (name === currentMusic && !musicFadeTimer) el.volume = musicGain();
+    else if (!el.paused) el.volume = Math.min(el.volume, musicGain());
+  }
 }
 
 function setSfxVolume(value) {
@@ -3482,7 +3487,7 @@ function renderShop(oc, st) {
   const packs = offers.map((item, idx) => ({ item, idx })).filter(x => x.item.kind === 'pack');
   oc.innerHTML = `<div class="balatro-shop">
     <section class="shop-stage">
-      <div class="shop-slotline"><span>Jokers ${you.jokers.length}/${you.jokerSlots || 5}</span><span>Tarots ${you.tarots.length}/${you.tarotSlots == null ? 2 : you.tarotSlots}</span></div>
+      <div class="shop-slotline"><span>Jokers ${you.jokers.length}/${you.jokerSlots || 5}</span><b class="shop-mobile-coins">${chip(you.coins)}</b><span>Tarots ${you.tarots.length}/${you.tarotSlots == null ? 2 : you.tarotSlots}</span></div>
       <div class="shop-shelf market-shelf"></div>
       <div class="shop-shelf pack-shelf"><div class="voucher-placeholder">Deck ${you.deck.length}</div></div>
       <div id="shopCollectionMount"></div>
@@ -3746,7 +3751,7 @@ function renderPackOpen(oc, st) {
   oc.innerHTML = `<div class="pack-open-stage">
     <div class="pack-open-top"><span>Jokers ${st.you.jokers.length}/${st.you.jokerSlots || 5}</span><span>Tarots ${st.you.tarots.length}/${st.you.tarotSlots == null ? 2 : st.you.tarotSlots}</span></div>
     <div class="pack-picks"></div>
-    <div class="pack-open-footer"><div class="pack-title-card"><b>${icon('spark')} ${esc(pack.name)}</b><span>Choose 1</span></div><button id="packSkipBtn" class="btn" type="button">Skip</button></div>
+    <div class="pack-open-footer"><div class="pack-title-card"><b>${icon('spark')} ${esc(pack.name)}</b></div><button id="packSkipBtn" class="btn" type="button">Skip</button></div>
   </div>`;
   const grid = document.createElement('div');
   grid.className = 'pack-choice-row';
