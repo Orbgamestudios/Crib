@@ -23,7 +23,7 @@ const SOLO_SAVE_KEY = 'crib_solo_house_save_v1';
 const PROFILE_KEY = 'crib_profiles_v1';
 const ACTIVE_PROFILE_KEY = 'crib_active_profile_pin';
 const DIAG_KEY = 'crib_last_diagnostic_v1';
-const APP_BUILD = 'client-v113';
+const APP_BUILD = 'client-v114';
 const MUSIC_VOLUME_KEY = 'crib_music_volume_v1';
 const SFX_VOLUME_KEY = 'crib_sfx_volume_v1';
 
@@ -359,8 +359,9 @@ function setMusicTrack(name) {
   if (!next) return;
   const prev = currentMusic ? musicEl(currentMusic) : null;
   if (musicFadeTimer) clearTimeout(musicFadeTimer);
-  const begin = () => beginMusicTransition(prev, next, desiredMusic);
-  if (prev && prev !== next && !prev.paused && prev.duration && Number.isFinite(prev.duration)) {
+  const immediate = mobileMusicMode();
+  const begin = () => beginMusicTransition(prev, next, desiredMusic, immediate);
+  if (!immediate && prev && prev !== next && !prev.paused && prev.duration && Number.isFinite(prev.duration)) {
     const measure = prev.duration / MUSIC_MEASURES;
     const pos = prev.currentTime % measure;
     const waitMs = Math.max(0, (measure - pos) * 1000);
@@ -370,10 +371,10 @@ function setMusicTrack(name) {
   }
 }
 
-function beginMusicTransition(prev, next, name) {
+function beginMusicTransition(prev, next, name, immediate = false) {
   musicFadeTimer = null;
   try {
-    const syncSource = prev && !prev.paused ? prev : null;
+    const syncSource = !immediate && prev && !prev.paused ? prev : null;
     if (syncSource && syncSource.duration && Number.isFinite(syncSource.duration)) {
       const duration = next.duration && Number.isFinite(next.duration) ? next.duration : syncSource.duration;
       const sourceMeasure = syncSource.duration / MUSIC_MEASURES;
@@ -382,14 +383,21 @@ function beginMusicTransition(prev, next, name) {
       const measureProgress = (syncSource.currentTime % sourceMeasure) / sourceMeasure;
       next.currentTime = (measureIndex * destMeasure + measureProgress * destMeasure) % duration;
     }
-    next.volume = prev ? 0 : musicGain();
+    next.volume = immediate || !prev ? musicGain() : 0;
     next.play().catch(() => {});
   } catch { /* iOS may reject seeks until metadata is ready */ }
-  if (prev && prev !== next) {
+  if (immediate) {
+    if (prev && prev !== next) prev.pause();
+    next.volume = musicGain();
+  } else if (prev && prev !== next) {
     fadeAudio(prev, prev.volume, 0, MUSIC_FADE_MS, () => { prev.pause(); });
     fadeAudio(next, 0, musicGain(), MUSIC_FADE_MS);
   }
   currentMusic = name;
+}
+
+function mobileMusicMode() {
+  return TOUCH || (window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
 }
 
 function musicForState(st) {
@@ -3080,15 +3088,6 @@ function shopItemHelp(item) {
   return shopKindHelp(item.kind) + specific + stamp;
 }
 
-function shopTooltipHtml(item, extra = '') {
-  const title = item.name || (item.kind === 'card' ? cardLabel(item) : shopTypeLabel(item.kind));
-  const desc = item.kind === 'card'
-    ? `Adds ${cardLabel(item)} to your permanent deck${item.enhancement ? ` as a ${CARD_ENHANCEMENTS[item.enhancement].name}` : ''}.`
-    : item.desc || '';
-  const edition = item.stamp ? `<div class="shop-tip-edition">${esc(stampText(item.stamp))}</div>` : '';
-  return `<div class="shop-tooltip"><b>${esc(title)}</b><span>${esc(desc)}</span>${edition}<em>${esc(shopTypeLabel(item.kind))}${extra ? ` - ${esc(extra)}` : ''}</em></div>`;
-}
-
 function rarityPill(item) {
   if (!item || item.kind !== 'joker') return '';
   const rarity = item.rarity || 'common';
@@ -3507,8 +3506,7 @@ function renderShop(oc, st) {
       rarityPill(item) +
       stampPill(item) +
       `<div class="shop-price">${packBlock || chip(item.cost)}</div>` +
-      `<div class="shop-type ${item.kind}">${shopTypeLabel(item.kind)}</div>` +
-      shopTooltipHtml(item, packBlock || `${item.cost} coins`));
+      `<div class="shop-type ${item.kind}">${shopTypeLabel(item.kind)}</div>`);
     addInfoButton(div, item.name, shopItemHelp(item));
     div.onclick = () => {
       if (item.sold || you.ready) return;
@@ -3552,6 +3550,7 @@ function renderShop(oc, st) {
   mobileNext.onclick = () => sendMsg({ t: 'ready' });
   mobileReroll.disabled = you.ready || you.coins < mobileRerollCost;
   mobileReroll.onclick = () => sendMsg({ t: 'reroll' });
+  requestAnimationFrame(() => fitShopCards(oc));
 }
 
 // Tapping a shop card enlarges it to the centre of the screen for a clear look,
@@ -3734,6 +3733,12 @@ function fitText(el, maxPx = 17, minPx = 10) {
   }
 }
 
+function fitShopCards(root) {
+  if (!root) return;
+  root.querySelectorAll('.shop-item .si-name').forEach(el => fitText(el, 15, 9));
+  root.querySelectorAll('.shop-item .si-desc').forEach(el => fitText(el, 13, 8));
+}
+
 function renderPackOpen(oc, st) {
   const pack = st.you.pendingPack;
   // first time we see this pack? sync the pick entrance with the burst FX
@@ -3755,7 +3760,7 @@ function renderPackOpen(oc, st) {
     if (opt.kind === 'card') {
       div.innerHTML = `<div class="si-bigcard"></div><div class="si-name">${esc(cardLabel(opt))}</div>`;
       div.querySelector('.si-bigcard').appendChild(cardEl(opt));
-      div.insertAdjacentHTML('beforeend', '<div class="shop-type card">Card</div>' + shopTooltipHtml(opt, 'take'));
+      div.insertAdjacentHTML('beforeend', '<div class="shop-type card">Card</div>');
     } else {
       const icon = (opt.kind === 'joker' ? JOKER_ICONS : TAROT_ICONS)[opt.id] || '';
       div.innerHTML = `<div class="si-icon">${icon}<span class="jt-foil"></span></div><div class="si-name">${esc(opt.name)}</div>` +
@@ -3763,7 +3768,6 @@ function renderPackOpen(oc, st) {
         stampPill(opt) +
         `<div class="si-desc">${esc(opt.desc)}</div>`;
       div.insertAdjacentHTML('beforeend', `<div class="shop-type ${opt.kind}">${shopTypeLabel(opt.kind)}</div>`);
-      div.insertAdjacentHTML('beforeend', shopTooltipHtml(opt, 'take'));
     }
     addInfoButton(div, opt.name || cardLabel(opt), shopItemHelp(opt));
     const full = (opt.kind === 'joker' && st.you.jokers.length >= (st.you.jokerSlots || 5) && opt.stamp !== 'negative') ||
@@ -3785,6 +3789,7 @@ function renderPackOpen(oc, st) {
   });
   oc.querySelector('.pack-picks').appendChild(grid);
   oc.querySelector('#packSkipBtn').onclick = () => sendMsg({ t: 'pickPack', idx: -1 });
+  requestAnimationFrame(() => fitShopCards(oc));
 }
 
 function appendReadyBtn(oc, st, label) {
