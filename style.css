@@ -2030,32 +2030,33 @@ body.phase-shop #overlayContent {
   }
   body.phase-shop #overlayContent {
     width: 100%; height: 100dvh; max-height: none; padding: 10px;
-    overflow: hidden;
+    overflow-y: auto; overflow-x: hidden; -webkit-overflow-scrolling: touch;
   }
   .shop-stage {
     display: flex; flex-direction: column; padding: 8px; gap: 8px;
-    overflow-x: hidden; overflow-y: auto; -webkit-overflow-scrolling: touch;
+    min-height: auto; height: auto; overflow: visible;
   }
   .shop-mobile-actions { display: none; }
   .shop-slotline { font-size: 12px; }
   .shop-mobile-coins { display: inline-block; }
   .shop-shelf {
     display: flex; justify-content: flex-start; padding: 10px; gap: 10px;
-    flex-wrap: nowrap; overflow-x: auto; overflow-y: hidden; min-height: 0;
+    flex-wrap: nowrap; overflow-x: auto; overflow-y: visible; min-height: 192px;
   }
   .market-shelf .shop-item, .pack-shelf .shop-item {
-    flex: 0 0 clamp(104px, 15vw, 136px); width: clamp(104px, 15vw, 136px); height: 156px; padding: 26px 8px 8px; gap: 4px;
+    flex: 0 0 clamp(128px, 17vw, 172px); width: clamp(128px, 17vw, 172px); height: 188px; padding: 28px 8px 8px; gap: 5px;
   }
   .shop-card-face { height: 62px; min-height: 62px; }
   .shop-art { width: 46px; height: 46px; }
   .shop-card-face.pack .shop-art { width: 58px; height: 74px; }
-  .shop-item .si-name { height: 26px; font-size: 11px; }
-  .shop-item .si-desc { height: 46px; font-size: 9.5px; line-height: 1.12; }
+  .shop-item .si-name { height: 30px; font-size: 13px; }
+  .shop-item .si-desc { height: 58px; font-size: 11px; line-height: 1.15; }
   .balatro-card .shop-price { top: 5px; min-width: 42px; font-size: 12px; }
-  .pack-open-stage { width: 100%; height: 100%; gap: 8px; overflow: hidden; }
-  .pack-choice-row { gap: 12px; flex-wrap: nowrap; }
-  .pack-choice-row .shop-item { width: clamp(116px, 18vw, 150px); height: 158px; padding: 26px 8px 8px; }
-  .pack-choice-row .shop-item .si-desc { height: 40px; font-size: 9px; }
+  .pack-open-stage { width: 100%; height: 100%; gap: 8px; overflow-y: auto; overflow-x: hidden; }
+  .pack-choice-row { gap: 12px; flex-wrap: nowrap; align-items: stretch; }
+  .pack-choice-row .shop-item { width: clamp(160px, 22vw, 210px); height: 202px; padding: 26px 10px 8px; }
+  .pack-choice-row .shop-item .si-name { height: 32px; font-size: 15px; }
+  .pack-choice-row .shop-item .si-desc { height: 64px; font-size: 11px; line-height: 1.16; opacity: .96; }
   .pack-open-footer { gap: 12px; }
 }
 
@@ -2075,12 +2076,28 @@ body.phase-shop #overlayContent {
 }
 
 @media (orientation: landscape) and (max-height: 560px) and (pointer: coarse) {
-  #center { top: 51%; transform: translate(-50%, -50%) scale(.82); }
+  #center { top: 42%; transform: translate(-50%, -50%) scale(.9); }
+  #centerCards { gap: 20px; }
+  #centerCards .card, #pegStack .card {
+    width: 56px;
+    height: 78px;
+    font-size: 18px;
+    padding: 3px 4px;
+  }
+  #centerCards .card .suit, #pegStack .card .suit { font-size: 20px; }
   body:not(.mode-board) #blindProgress { display: none; }
-  #bottombar { height: calc(122px + env(safe-area-inset-bottom)); }
-  #myCards { min-height: 78px; }
-  #hand { height: 56px; }
-  #hand .card { width: 40px; height: 56px; font-size: 13px; margin: 0 -4px; }
+  #bottombar { height: calc(152px + env(safe-area-inset-bottom)); }
+  #myCards { min-height: 110px; }
+  #hand { height: 86px; }
+  #hand .card {
+    width: 56px;
+    height: 78px;
+    font-size: 18px;
+    margin: 0 -4px;
+    padding: 3px 4px;
+  }
+  #hand .card .suit { font-size: 20px; }
+  #prompt { font-size: 15px; }
 }
 
 /* ===== joker editions + animation FX ===== */

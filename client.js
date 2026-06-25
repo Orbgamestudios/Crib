@@ -23,7 +23,7 @@ const SOLO_SAVE_KEY = 'crib_solo_house_save_v1';
 const PROFILE_KEY = 'crib_profiles_v1';
 const ACTIVE_PROFILE_KEY = 'crib_active_profile_pin';
 const DIAG_KEY = 'crib_last_diagnostic_v1';
-const APP_BUILD = 'client-v116';
+const APP_BUILD = 'client-v117';
 const MUSIC_VOLUME_KEY = 'crib_music_volume_v1';
 const SFX_VOLUME_KEY = 'crib_sfx_volume_v1';
 
@@ -143,6 +143,7 @@ let desiredMusic = 'main';
 let musicFadeTimer = null;
 let musicVolume = readVolume(MUSIC_VOLUME_KEY, 0.55);
 let sfxVolume = readVolume(SFX_VOLUME_KEY, 0.85);
+let audioDeviceFailed = false;
 
 function readVolume(key, fallback) {
   const n = Number(localStorage.getItem(key));
@@ -162,25 +163,38 @@ function musicGain() {
 }
 
 function ensureAudio() {
+  if (audioDeviceFailed) return null;
   const AudioCtor = window.AudioContext || window.webkitAudioContext;
   if (!AudioCtor) return null;
-  if (!audioCtx) audioCtx = new AudioCtor();
+  try {
+    if (!audioCtx) audioCtx = new AudioCtor();
+  } catch (err) {
+    audioDeviceFailed = true;
+    console.warn('WebAudio unavailable; continuing with HTML audio only.', err);
+    return null;
+  }
   return audioCtx;
 }
 
 function unlockAudio() {
   const ctx = ensureAudio();
-  if (!ctx) return;
   soundUnlocked = true;
-  if (ctx.state === 'suspended') ctx.resume();
-  const osc = ctx.createOscillator();
-  const amp = ctx.createGain();
-  const t = ctx.currentTime;
-  osc.frequency.setValueAtTime(1, t);
-  amp.gain.setValueAtTime(0.0001, t);
-  osc.connect(amp).connect(ctx.destination);
-  osc.start(t);
-  osc.stop(t + 0.02);
+  if (ctx) {
+    try {
+      if (ctx.state === 'suspended') ctx.resume().catch(() => {});
+      const osc = ctx.createOscillator();
+      const amp = ctx.createGain();
+      const t = ctx.currentTime;
+      osc.frequency.setValueAtTime(1, t);
+      amp.gain.setValueAtTime(0.0001, t);
+      osc.connect(amp).connect(ctx.destination);
+      osc.start(t);
+      osc.stop(t + 0.02);
+    } catch (err) {
+      audioDeviceFailed = true;
+      console.warn('Audio unlock failed; continuing with HTML audio only.', err);
+    }
+  }
   startDesiredMusic();
 }
 
@@ -3751,7 +3765,7 @@ function renderPackOpen(oc, st) {
   oc.innerHTML = `<div class="pack-open-stage">
     <div class="pack-open-top"><span>Jokers ${st.you.jokers.length}/${st.you.jokerSlots || 5}</span><span>Tarots ${st.you.tarots.length}/${st.you.tarotSlots == null ? 2 : st.you.tarotSlots}</span></div>
     <div class="pack-picks"></div>
-    <div class="pack-open-footer"><div class="pack-title-card"><b>${icon('spark')} ${esc(pack.name)}</b></div><button id="packSkipBtn" class="btn" type="button">Skip</button></div>
+    <div class="pack-open-footer"><button id="packSkipBtn" class="btn" type="button">Skip</button></div>
   </div>`;
   const grid = document.createElement('div');
   grid.className = 'pack-choice-row';
