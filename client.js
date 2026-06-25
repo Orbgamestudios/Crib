@@ -23,7 +23,7 @@ const SOLO_SAVE_KEY = 'crib_solo_house_save_v1';
 const PROFILE_KEY = 'crib_profiles_v1';
 const ACTIVE_PROFILE_KEY = 'crib_active_profile_pin';
 const DIAG_KEY = 'crib_last_diagnostic_v1';
-const APP_BUILD = 'client-v114';
+const APP_BUILD = 'client-v115';
 const MUSIC_VOLUME_KEY = 'crib_music_volume_v1';
 const SFX_VOLUME_KEY = 'crib_sfx_volume_v1';
 
@@ -3772,19 +3772,13 @@ function renderPackOpen(oc, st) {
     addInfoButton(div, opt.name || cardLabel(opt), shopItemHelp(opt));
     const full = (opt.kind === 'joker' && st.you.jokers.length >= (st.you.jokerSlots || 5) && opt.stamp !== 'negative') ||
       (opt.kind === 'tarot' && st.you.tarots.length >= (st.you.tarotSlots == null ? 2 : st.you.tarotSlots));
-    const btn = document.createElement('button');
-    btn.className = 'btn small primary';
-    btn.textContent = full ? (opt.kind === 'joker' ? 'Jokers full' : 'Tarots full') : 'Take';
-    btn.disabled = full;
     const take = e => {
       if (e) e.stopPropagation();
       if (full) return;
       sendMsg({ t: 'pickPack', idx });
     };
-    btn.onclick = take;
     div.onclick = take;
     if (full) div.classList.add('sold');
-    div.appendChild(btn);
     grid.appendChild(div);
   });
   oc.querySelector('.pack-picks').appendChild(grid);

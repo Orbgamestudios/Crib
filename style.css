@@ -1205,7 +1205,7 @@ body.deck-neon-active .mult-chip {
     padding: 0 420px 0 250px;
   }
   #center {
-    top: 45%;
+    top: 49%;
     gap: 16px;
   }
   #centerCards { gap: 24px; }
@@ -1284,6 +1284,7 @@ body.deck-neon-active .mult-chip {
     z-index: 42;
     pointer-events: none;
   }
+  body:not(.mode-board) #blindProgress { display: none; }
   body.mode-board #blindProgress { bottom: 206px; }
   body.mode-board #myCards { transform: none; }
   #blindBarOuter {
@@ -1818,9 +1819,9 @@ body.phase-shop #overlayContent {
 .shop-item.pack { border-color: #8fe7ff; }
 .shop-item.pick .si-bigcard { align-self: center; margin: 6px 0; }
 .shop-item.pick .shop-type {
-  position: static;
-  align-self: flex-end;
-  margin: -2px 0 2px auto;
+  top: 8px;
+  bottom: auto;
+  right: 8px;
 }
 .pack-grid { grid-template-columns: 1fr 1fr 1fr; }
 
@@ -1932,18 +1933,21 @@ body.phase-shop #overlayContent {
     padding: 10px; gap: 10px; overflow-y: auto; -webkit-overflow-scrolling: touch;
   }
   .shop-mobile-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-  .shop-shelf { gap: 10px; min-height: 0; padding: 14px 8px; flex-wrap: wrap; align-items: stretch; }
-  .market-shelf .shop-item, .pack-shelf .shop-item {
-    width: min(42vw, 152px); height: 214px; padding: 9px; gap: 5px;
+  .shop-shelf {
+    display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px; min-height: 0; padding: 14px 8px; align-items: stretch;
   }
-  .shop-card-face { height: 78px; min-height: 78px; }
-  .shop-art { width: 56px; height: 56px; }
-  .shop-card-face.pack .shop-art { width: 70px; height: 92px; }
-  .shop-card-face.card .card { width: 48px; height: 68px; font-size: 15px; }
-  .shop-item .si-name { height: 32px; font-size: 13px; }
-  .shop-item .si-desc { height: 68px; font-size: 11px; line-height: 1.13; }
+  .market-shelf .shop-item, .pack-shelf .shop-item {
+    width: 100%; height: 168px; padding: 32px 8px 8px; gap: 4px;
+  }
+  .shop-card-face { height: 58px; min-height: 58px; }
+  .shop-art { width: 46px; height: 46px; }
+  .shop-card-face.pack .shop-art { width: 58px; height: 74px; }
+  .shop-card-face.card .card { width: 40px; height: 56px; font-size: 13px; }
+  .shop-item .si-name { height: 28px; font-size: 12px; }
+  .shop-item .si-desc { height: 38px; font-size: 9.5px; line-height: 1.12; }
   .shop-price { font-size: 12px; }
-  .balatro-card .shop-price { top: -14px; min-width: 46px; font-size: 13px; }
+  .balatro-card .shop-price { top: 6px; min-width: 46px; font-size: 13px; }
   .voucher-placeholder { display: none; }
   .pack-open-stage {
     width: 100%; height: 100%; min-height: 0; gap: 10px;
@@ -1951,14 +1955,15 @@ body.phase-shop #overlayContent {
   }
   .pack-open-top { padding: 0 8px; font-size: 12px; }
   .pack-picks { display: block; min-height: 0; overflow: visible; }
-  .pack-choice-row { flex-direction: column; flex-wrap: nowrap; gap: 12px; align-items: center; }
+  .pack-choice-row { flex-direction: column; flex-wrap: nowrap; gap: 10px; align-items: center; }
   .pack-choice-row .shop-item {
-    width: min(78vw, 300px); height: 360px; padding: 14px; gap: 8px;
+    width: min(78vw, 300px); height: 214px; padding: 28px 12px 10px; gap: 6px;
   }
-  .pack-choice-row .si-icon { width: 62px; height: 78px; }
-  .pack-choice-row .si-bigcard .card { width: 58px; height: 82px; font-size: 18px; }
-  .pack-choice-row .shop-item .si-name { height: 40px; font-size: 18px; }
-  .pack-choice-row .shop-item .si-desc { height: 118px; font-size: 16px; line-height: 1.22; }
+  .pack-choice-row .shop-type { top: 8px; right: 10px; bottom: auto; }
+  .pack-choice-row .si-icon { width: 54px; height: 66px; }
+  .pack-choice-row .si-bigcard .card { width: 46px; height: 64px; font-size: 14px; }
+  .pack-choice-row .shop-item .si-name { height: 30px; font-size: 16px; }
+  .pack-choice-row .shop-item .si-desc { height: 70px; font-size: 13px; line-height: 1.16; }
   .pack-open-footer { gap: 12px; flex-wrap: wrap; }
   .pack-title-card { min-width: 0; width: min(58vw, 260px); }
   .pack-title-card b { font-size: 18px; }
@@ -2005,15 +2010,16 @@ body.phase-shop #overlayContent {
   .side-split { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
   .side-split div { min-height: 32px; display: grid; place-items: center; border-radius: 6px; background: #050b0ecc; }
   .side-split b { color: #ffd76e; font-size: 15px; }
-  #center { top: 44%; transform: translate(-50%, -50%) scale(.86); }
+  #center { top: 51%; transform: translate(-50%, -50%) scale(.82); }
+  body:not(.mode-board) #blindProgress { display: none; }
   #blindProgress { margin-bottom: 3px; }
   #blindBarOuter { height: 15px; }
   #blindBarLabel { font-size: 11px; }
-  #myCards { min-height: 86px; }
-  #actionRow { min-height: 24px; margin-bottom: 0; }
+  #myCards { min-height: 78px; }
+  #actionRow { min-height: 26px; margin-bottom: 2px; }
   #prompt { font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  #hand { height: 65px; }
-  #hand .card { width: 45px; height: 63px; font-size: 14px; margin: 0 -4px; }
+  #hand { height: 56px; }
+  #hand .card { width: 40px; height: 56px; font-size: 13px; margin: 0 -4px; }
   #hudRow, #myStuff, #log { display: none; }
   body.phase-shop #overlay {
     left: 150px; width: calc(100vw - 150px); padding: 0; align-items: stretch; justify-content: stretch;
@@ -2037,8 +2043,8 @@ body.phase-shop #overlayContent {
   .balatro-card .shop-price { top: -12px; min-width: 42px; font-size: 12px; }
   .pack-open-stage { width: 100%; height: 100%; gap: 8px; overflow: hidden; }
   .pack-choice-row { gap: 12px; flex-wrap: nowrap; }
-  .pack-choice-row .shop-item { width: clamp(116px, 18vw, 150px); height: 190px; padding: 9px; }
-  .pack-choice-row .shop-item .si-desc { height: 52px; font-size: 10px; }
+  .pack-choice-row .shop-item { width: clamp(116px, 18vw, 150px); height: 158px; padding: 26px 8px 8px; }
+  .pack-choice-row .shop-item .si-desc { height: 40px; font-size: 9px; }
   .pack-open-footer { gap: 12px; }
 }
 
@@ -2055,6 +2061,15 @@ body.phase-shop #overlayContent {
   .jtile { width: 37px; height: 51px; }
   .jtile .jt-icon { width: 22px; height: 22px; }
   .hud-chip b { font-size: 20px; }
+}
+
+@media (orientation: landscape) and (max-height: 560px) and (pointer: coarse) {
+  #center { top: 51%; transform: translate(-50%, -50%) scale(.82); }
+  body:not(.mode-board) #blindProgress { display: none; }
+  #bottombar { height: calc(122px + env(safe-area-inset-bottom)); }
+  #myCards { min-height: 78px; }
+  #hand { height: 56px; }
+  #hand .card { width: 40px; height: 56px; font-size: 13px; margin: 0 -4px; }
 }
 
 /* ===== joker editions + animation FX ===== */
