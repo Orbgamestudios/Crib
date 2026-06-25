@@ -23,7 +23,7 @@ const SOLO_SAVE_KEY = 'crib_solo_house_save_v1';
 const PROFILE_KEY = 'crib_profiles_v1';
 const ACTIVE_PROFILE_KEY = 'crib_active_profile_pin';
 const DIAG_KEY = 'crib_last_diagnostic_v1';
-const APP_BUILD = 'client-v111';
+const APP_BUILD = 'client-v112';
 const MUSIC_VOLUME_KEY = 'crib_music_volume_v1';
 const SFX_VOLUME_KEY = 'crib_sfx_volume_v1';
 
@@ -1681,6 +1681,10 @@ function refreshSoloContinue() {
 $('syncBtn').onclick = () => { sendMsg({ t: 'sync' }); toast('Refreshed.'); };
 $('dictBtn').onclick = () => showDictionary();
 $('optionsBtn').onclick = () => showOptions();
+$('sideRefreshBtn').onclick = () => { sendMsg({ t: 'sync' }); toast('Refreshed.'); };
+$('sideCardsBtn').onclick = () => showDictionary();
+$('sideOptionsBtn').onclick = () => showOptions();
+$('sideRunInfoBtn').onclick = () => showRunInfo();
 
 function showOptions() {
   const canExit = lastState && lastState.solo && lastState.phase !== 'gameover';
@@ -1706,6 +1710,20 @@ function showOptions() {
     sendMsg({ t: 'backToLobby' });
     toast('Solo run saved.');
   };
+}
+
+function showRunInfo() {
+  if (!lastState || !lastState.you) return;
+  const st = lastState;
+  const you = st.you;
+  showInfo('Run Info', `<div class="run-info-panel">
+    <div><span>Round</span><b>${st.round}</b></div>
+    <div><span>Deal</span><b>${st.dealIndexInRound}/${st.dealsInRound}</b></div>
+    <div><span>Phase</span><b>${esc(phaseLabel(st))}</b></div>
+    <div><span>Score</span><b>${st.mode === 'board' ? you.score : you.roundScore}</b></div>
+    <div><span>${st.mode === 'board' ? 'Goal' : 'Blind'}</span><b>${st.mode === 'board' ? st.goalScore || 121 : you.blind || st.blind}</b></div>
+    <div><span>Coins</span><b>${chip(you.coins)}</b></div>
+  </div>`);
 }
 
 $('updateBtn').onclick = async () => {
@@ -2048,6 +2066,7 @@ function renderGame(st) {
   document.body.classList.toggle('my-turn', myMove);
 
   renderBlindBar(st);
+  renderRunSidebar(st);
   renderSeats(st);
   renderCenter(st);
   renderMyArea(st);
@@ -2202,6 +2221,27 @@ function renderCenter(st) {
   const cosmicTarget = deckEffectsOn(st) && st.you && st.you.deckArt === 'cosmic' && st.cosmicTarget ? st.cosmicTarget : null;
   if (cosmicTarget) $('pegCount').dataset.target = `Target ${cosmicTarget}`;
   else delete $('pegCount').dataset.target;
+}
+
+function renderRunSidebar(st) {
+  if (!st || !st.you) return;
+  const you = st.you;
+  const turnP = st.players.find(p => p.seat === st.turnSeat);
+  const phase = phaseLabel(st);
+  $('sideModeTitle').textContent = st.mode === 'board' ? 'Board' : st.mode === 'endless' ? 'Endless' : 'Blind';
+  $('sideModeSub').textContent = st.phase === 'pegging' && turnP
+    ? (turnP.seat === st.mySeat ? 'Your turn' : `${turnP.name}'s turn`)
+    : phase || 'Run info';
+  $('sideRoundScore').textContent = st.mode === 'board' ? you.score : you.roundScore;
+  const hand = st.mode === 'board' ? (you.handScore || 0) : (you.handScore || 0);
+  const mult = st.mode === 'board' ? 1 : (you.dealMult || 1);
+  $('sideHandScore').textContent = hand;
+  $('sideMultScore').textContent = st.mode === 'board' ? '-' : mult;
+  $('sideCoins').innerHTML = st.mode === 'board' ? '-' : chip(you.coins);
+  $('sideBlind').textContent = st.mode === 'board' ? (st.goalScore || 121) : (you.blind || st.blind || 0);
+  $('sideHands').textContent = `${Math.max(0, st.dealsInRound - st.dealIndexInRound + 1)}/${st.dealsInRound}`;
+  $('sideDeal').textContent = `${st.dealIndexInRound}/${st.dealsInRound}`;
+  $('runSidebar').classList.toggle('board-mode', st.mode === 'board');
 }
 
 const BOARD_COLORS = ['#ffd76e', '#63b8ff', '#ff6262', '#7ee08b', '#dfc8ff', '#ff9f43'];

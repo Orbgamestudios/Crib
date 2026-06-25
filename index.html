@@ -12,7 +12,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Crib">
-<link rel="stylesheet" href="style.css?v=91">
+<link rel="stylesheet" href="style.css?v=92">
 <script src="https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js" defer></script>
 <script src="https://unpkg.com/mqtt/dist/mqtt.min.js" defer></script>
 </head>
@@ -77,6 +77,28 @@
 </div>
 
 <div id="game" class="view hidden">
+  <aside id="runSidebar">
+    <div class="side-blind-card">
+      <b id="sideModeTitle">Crib</b>
+      <span id="sideModeSub">Run info</span>
+    </div>
+    <div class="side-stat"><span>Round score</span><b id="sideRoundScore">0</b></div>
+    <div id="sideScoreFormula">
+      <span class="side-hand" id="sideHandScore">0</span>
+      <b>x</b>
+      <span class="side-mult" id="sideMultScore">1</span>
+    </div>
+    <button id="sideRunInfoBtn" class="side-btn danger" type="button">Run Info</button>
+    <button id="sideOptionsBtn" class="side-btn warn" type="button">Options</button>
+    <div class="side-stat coins"><span>Coins</span><b id="sideCoins">0</b></div>
+    <div class="side-stat"><span>Blind</span><b id="sideBlind">0</b></div>
+    <div class="side-split">
+      <div><span>Hands</span><b id="sideHands">0/0</b></div>
+      <div><span>Deal</span><b id="sideDeal">0</b></div>
+    </div>
+    <button id="sideCardsBtn" class="side-btn" type="button">Cards</button>
+    <button id="sideRefreshBtn" class="side-btn" type="button">Refresh</button>
+  </aside>
   <div id="topbar">
     <span id="dealInfo"></span>
     <span id="phaseInfo"></span>
@@ -197,6 +219,6 @@ window.__cribBootTimer = setTimeout(function () {
   document.body.appendChild(banner);
 }, 4000);
 </script>
-<script type="module" src="client.js?v=111"></script>
+<script type="module" src="client.js?v=112"></script>
 </body>
 </html>
