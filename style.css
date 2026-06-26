@@ -1976,7 +1976,7 @@ body.phase-shop #overlayContent {
   #deckBtn { font-size: 12px; padding: 4px 8px; }
 }
 
-@media (orientation: landscape) and (max-height: 560px) and (pointer: coarse) {
+@media (orientation: landscape) and (max-height: 560px) {
   body { overflow: hidden; }
   #game {
     display: grid;
@@ -1991,7 +1991,7 @@ body.phase-shop #overlayContent {
     background: linear-gradient(180deg, #26353a, #0d171b);
     border-right: 2px solid #1b2c32;
     box-shadow: 8px 0 20px #0007;
-    z-index: 50;
+    z-index: 260;
   }
   #topbar { display: none; }
   #table { grid-column: 2; grid-row: 1; min-height: 0; }
@@ -2013,7 +2013,7 @@ body.phase-shop #overlayContent {
   .side-split { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
   .side-split div { min-height: 32px; display: grid; place-items: center; border-radius: 6px; background: #050b0ecc; }
   .side-split b { color: #ffd76e; font-size: 15px; }
-  #center { top: 51%; transform: translate(-50%, -50%) scale(.82); }
+  #center { top: 66%; transform: translate(-50%, -50%) scale(.86); }
   body:not(.mode-board) #blindProgress { display: none; }
   #blindProgress { margin-bottom: 3px; }
   #blindBarOuter { height: 15px; }
@@ -2025,7 +2025,7 @@ body.phase-shop #overlayContent {
   #hand .card { width: 40px; height: 56px; font-size: 13px; margin: 0 -4px; }
   #hudRow, #myStuff, #log { display: none; }
   body.phase-shop #overlay {
-    left: 150px; width: calc(100vw - 150px); padding: 0; align-items: stretch; justify-content: stretch;
+    left: calc(150px + env(safe-area-inset-left)); width: calc(100vw - 150px - env(safe-area-inset-left)); padding: 0; align-items: stretch; justify-content: stretch;
     background: transparent; backdrop-filter: none; -webkit-backdrop-filter: none;
   }
   body.phase-shop #overlayContent {
@@ -2075,8 +2075,8 @@ body.phase-shop #overlayContent {
   .hud-chip b { font-size: 20px; }
 }
 
-@media (orientation: landscape) and (max-height: 560px) and (pointer: coarse) {
-  #center { top: 42%; transform: translate(-50%, -50%) scale(.9); }
+@media (orientation: landscape) and (max-height: 560px) {
+  #center { top: 66%; transform: translate(-50%, -50%) scale(.86); }
   #centerCards { gap: 20px; }
   #centerCards .card, #pegStack .card {
     width: 56px;

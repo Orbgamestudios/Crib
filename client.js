@@ -23,7 +23,7 @@ const SOLO_SAVE_KEY = 'crib_solo_house_save_v1';
 const PROFILE_KEY = 'crib_profiles_v1';
 const ACTIVE_PROFILE_KEY = 'crib_active_profile_pin';
 const DIAG_KEY = 'crib_last_diagnostic_v1';
-const APP_BUILD = 'client-v117';
+const APP_BUILD = 'client-v118';
 const MUSIC_VOLUME_KEY = 'crib_music_volume_v1';
 const SFX_VOLUME_KEY = 'crib_sfx_volume_v1';
 
@@ -137,6 +137,7 @@ const SAMPLE_SFX = {
   polychrome: 'sounds/59-polychrome1.mp3?v=1',
 };
 const musicEls = new Map();
+const musicNodes = new Map();
 const sampleEls = new Map();
 let currentMusic = '';
 let desiredMusic = 'main';
@@ -160,6 +161,43 @@ function sfxGain() {
 
 function musicGain() {
   return MUSIC_GAIN * musicVolume;
+}
+
+function musicOutput(el) {
+  if (!el || musicNodes.has(el)) return musicNodes.get(el) || null;
+  const ctx = ensureAudio();
+  if (!ctx) return null;
+  try {
+    const source = ctx.createMediaElementSource(el);
+    const gain = ctx.createGain();
+    gain.gain.value = el.volume || 0;
+    source.connect(gain).connect(ctx.destination);
+    el.volume = 1;
+    const node = { source, gain };
+    musicNodes.set(el, node);
+    return node;
+  } catch (err) {
+    console.warn('Music gain routing unavailable; using element volume.', err);
+    musicNodes.set(el, null);
+    return null;
+  }
+}
+
+function setMusicLevel(el, value) {
+  if (!el) return;
+  const level = Math.max(0, Math.min(1, value));
+  const node = musicOutput(el);
+  if (node) {
+    node.gain.gain.value = level;
+    el.volume = 1;
+  } else {
+    el.volume = level;
+  }
+}
+
+function getMusicLevel(el) {
+  const node = el && musicNodes.get(el);
+  return node ? node.gain.gain.value : el ? el.volume : 0;
 }
 
 function ensureAudio() {
@@ -345,7 +383,7 @@ function fadeAudio(el, from, to, ms, done) {
     const t = Math.min(1, (performance.now() - start) / ms);
     const eased = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
     const target = typeof to === 'function' ? to() : to;
-    el.volume = Math.max(0, Math.min(1, from + (target - from) * eased));
+    setMusicLevel(el, from + (target - from) * eased);
     if (t < 1) requestAnimationFrame(tick);
     else if (done) done();
   };
@@ -365,7 +403,7 @@ function setMusicTrack(name) {
   if (currentMusic === desiredMusic) {
     const active = musicEl(currentMusic);
     if (active) {
-      active.volume = musicGain();
+      setMusicLevel(active, musicGain());
       if (active.paused && !document.hidden) active.play().catch(() => {});
     }
     return;
@@ -398,21 +436,21 @@ function beginMusicTransition(prev, next, name, immediate = false) {
       const measureProgress = (syncSource.currentTime % sourceMeasure) / sourceMeasure;
       next.currentTime = (measureIndex * destMeasure + measureProgress * destMeasure) % duration;
     }
-    next.volume = immediate || !prev ? musicGain() : 0;
+    setMusicLevel(next, immediate || !prev ? musicGain() : 0);
     next.play().catch(() => {});
   } catch { /* iOS may reject seeks until metadata is ready */ }
   if (immediate) {
     if (prev && prev !== next) prev.pause();
-    next.volume = musicGain();
+    setMusicLevel(next, musicGain());
   } else if (prev && prev !== next) {
-    fadeAudio(prev, prev.volume, 0, MUSIC_FADE_MS, () => { prev.pause(); });
+    fadeAudio(prev, getMusicLevel(prev), 0, MUSIC_FADE_MS, () => { prev.pause(); });
     fadeAudio(next, 0, () => musicGain(), MUSIC_FADE_MS);
   }
   currentMusic = name;
 }
 
 function mobileMusicMode() {
-  return TOUCH || (window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
+  return false;
 }
 
 function musicForState(st) {
@@ -444,10 +482,10 @@ function setMusicVolume(value) {
   musicVolume = Math.max(0, Math.min(1, value));
   writeVolume(MUSIC_VOLUME_KEY, musicVolume);
   const active = currentMusic ? musicEl(currentMusic) : null;
-  if (active && !musicFadeTimer) active.volume = musicGain();
+  if (active && !musicFadeTimer) setMusicLevel(active, musicGain());
   for (const [name, el] of musicEls) {
-    if (name === currentMusic && !musicFadeTimer) el.volume = musicGain();
-    else if (!el.paused) el.volume = Math.min(el.volume, musicGain());
+    if (name === currentMusic && !musicFadeTimer) setMusicLevel(el, musicGain());
+    else if (!el.paused) setMusicLevel(el, Math.min(getMusicLevel(el), musicGain()));
   }
 }
 
@@ -999,9 +1037,8 @@ function reportCrash(title, err, extra = {}) {
     stack: err && err.stack || '',
     ...extra,
   });
-  showView('lobby');
-  renderDiagnosticBanner();
-  toast('Crash report saved on the home screen.');
+  if (view === 'lobby') renderDiagnosticBanner();
+  toast(view === 'game' ? 'Error saved. Game stayed open.' : 'Crash report saved on the home screen.');
   return diag;
 }
 
