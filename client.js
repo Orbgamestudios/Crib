@@ -23,7 +23,7 @@ const SOLO_SAVE_KEY = 'crib_solo_house_save_v1';
 const PROFILE_KEY = 'crib_profiles_v1';
 const ACTIVE_PROFILE_KEY = 'crib_active_profile_pin';
 const DIAG_KEY = 'crib_last_diagnostic_v1';
-const APP_BUILD = 'client-v118';
+const APP_BUILD = 'client-v119';
 const MUSIC_VOLUME_KEY = 'crib_music_volume_v1';
 const SFX_VOLUME_KEY = 'crib_sfx_volume_v1';
 
@@ -3538,7 +3538,17 @@ function renderShop(oc, st) {
   const packs = offers.map((item, idx) => ({ item, idx })).filter(x => x.item.kind === 'pack');
   oc.innerHTML = `<div class="balatro-shop">
     <section class="shop-stage">
-      <div class="shop-slotline"><span>Jokers ${you.jokers.length}/${you.jokerSlots || 5}</span><b class="shop-mobile-coins">${chip(you.coins)}</b><span>Tarots ${you.tarots.length}/${you.tarotSlots == null ? 2 : you.tarotSlots}</span></div>
+      <div class="shop-slotline">
+        <span>Jokers ${you.jokers.length}/${you.jokerSlots || 5}</span>
+        <b class="shop-mobile-coins">${chip(you.coins)}</b>
+        <span>Tarots ${you.tarots.length}/${you.tarotSlots == null ? 2 : you.tarotSlots}</span>
+      </div>
+      <div class="shop-runline">
+        <span>Score <b>${st.mode === 'board' ? you.score : you.roundScore}</b></span>
+        <span>${st.mode === 'board' ? 'Goal' : 'Blind'} <b>${st.mode === 'board' ? st.goalScore || 121 : you.blind || st.blind}</b></span>
+        <span>Hands <b>${Math.max(0, st.dealsInRound - st.dealIndexInRound + 1)}/${st.dealsInRound}</b></span>
+        <span>Deal <b>${st.dealIndexInRound}/${st.dealsInRound}</b></span>
+      </div>
       <div class="shop-shelf market-shelf"></div>
       <div class="shop-shelf pack-shelf"><div class="voucher-placeholder">Deck ${you.deck.length}</div></div>
       <div id="shopCollectionMount"></div>
@@ -3584,7 +3594,8 @@ function renderShop(oc, st) {
       const cell = document.createElement('div');
       cell.className = 'sell-cell';
       cell.appendChild(jtile(kind, def));
-      cell.onclick = () => openOwnedFocus(kind, def, idx, st);
+      if (kind === 'joker') attachShopJokerPointer(cell, idx, st);
+      else cell.onclick = () => openOwnedFocus(kind, def, idx, st);
       sellRow.appendChild(cell);
     };
     (you.jokers || []).forEach((j, idx) => addCell('joker', j, idx));
@@ -3607,6 +3618,83 @@ function renderShop(oc, st) {
   mobileReroll.disabled = you.ready || you.coins < mobileRerollCost;
   mobileReroll.onclick = () => sendMsg({ t: 'reroll' });
   requestAnimationFrame(() => fitShopCards(oc));
+}
+
+function attachShopJokerPointer(cell, idx, st) {
+  const tile = cell.querySelector('.jtile');
+  if (!tile) return;
+  cell.style.touchAction = 'none';
+  cell.onpointerdown = e => {
+    if (e.button && e.button !== 0) return;
+    jokerDrag = {
+      idx, tile: cell, startX: e.clientX, startY: e.clientY,
+      x: e.clientX, y: e.clientY, dragging: false, ghost: null, shop: true,
+    };
+    try { cell.setPointerCapture(e.pointerId); } catch { /* ignore */ }
+  };
+  cell.onpointermove = e => {
+    if (!jokerDrag || jokerDrag.tile !== cell) return;
+    jokerDrag.x = e.clientX; jokerDrag.y = e.clientY;
+    const dx = e.clientX - jokerDrag.startX;
+    const dy = e.clientY - jokerDrag.startY;
+    if (!jokerDrag.dragging && Math.hypot(dx, dy) > 7) {
+      jokerDrag.dragging = true;
+      const g = tile.cloneNode(true);
+      g.classList.add('drag-ghost');
+      g.style.width = `${tile.offsetWidth}px`;
+      g.style.height = `${tile.offsetHeight}px`;
+      document.body.appendChild(g);
+      jokerDrag.ghost = g;
+      cell.classList.add('dragging');
+    }
+    if (jokerDrag.dragging) {
+      e.preventDefault();
+      jokerDrag.ghost.style.left = `${jokerDrag.x}px`;
+      jokerDrag.ghost.style.top = `${jokerDrag.y}px`;
+      highlightShopJokerCell(e.clientX, e.clientY);
+    }
+  };
+  const finish = e => {
+    if (!jokerDrag || jokerDrag.tile !== cell) return;
+    const drag = jokerDrag;
+    jokerDrag = null;
+    try { cell.releasePointerCapture(e.pointerId); } catch { /* ignore */ }
+    cell.classList.remove('dragging');
+    if (drag.ghost) drag.ghost.remove();
+    document.querySelectorAll('.sell-cell.drag-over').forEach(s => s.classList.remove('drag-over'));
+    if (!drag.dragging) {
+      openOwnedFocus('joker', st.you.jokers[idx], idx, st);
+      flushDeferredRender();
+      return;
+    }
+    const toIdx = shopJokerCellAt(e.clientX, e.clientY);
+    if (toIdx == null || toIdx === drag.idx) { flushDeferredRender(); return; }
+    const jokers = st.you.jokers.slice();
+    const [moved] = jokers.splice(drag.idx, 1);
+    jokers.splice(Math.min(toIdx, jokers.length), 0, moved);
+    st.you.jokers = jokers;
+    sendMsg({ t: 'reorderJokers', order: jokers.map(j => ({ id: j.id, stamp: j.stamp || '' })) });
+    deferredRender = false;
+  };
+  cell.onpointerup = finish;
+  cell.onpointercancel = finish;
+}
+
+function highlightShopJokerCell(x, y) {
+  document.querySelectorAll('.sell-cell.drag-over').forEach(s => s.classList.remove('drag-over'));
+  const idx = shopJokerCellAt(x, y);
+  const cells = [...document.querySelectorAll('.sell-cell')].filter(c => c.querySelector('.jtile.joker'));
+  if (idx != null && cells[idx]) cells[idx].classList.add('drag-over');
+}
+
+function shopJokerCellAt(x, y) {
+  const cells = [...document.querySelectorAll('.sell-cell')].filter(c => c.querySelector('.jtile.joker'));
+  const M = 12;
+  for (let i = 0; i < cells.length; i++) {
+    const r = cells[i].getBoundingClientRect();
+    if (x >= r.left - M && x <= r.right + M && y >= r.top - M && y <= r.bottom + M) return i;
+  }
+  return null;
 }
 
 // Tapping a shop card enlarges it to the centre of the screen for a clear look,

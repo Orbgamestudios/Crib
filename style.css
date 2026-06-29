@@ -1674,6 +1674,7 @@ body.phase-shop #overlayContent {
 .shop-back-name { font-weight: 800; color: var(--gold); margin-bottom: 6px; }
 .shop-back-desc { font-size: 12.5px; line-height: 1.4; opacity: 0.95; }
 .shop-card-face {
+  width: 100%;
   height: 88px; min-height: 88px; border-radius: 7px; border: 1px solid #ffffff24;
   display: flex; align-items: center; justify-content: center;
   background: linear-gradient(160deg, #f4ead8, #d9c79f);
@@ -1772,6 +1773,24 @@ body.phase-shop #overlayContent {
   height: 100%; min-height: 0; overflow: hidden;
 }
 .shop-slotline { display: flex; justify-content: space-between; color: #d7e4e1; font-size: 13px; font-weight: 900; opacity: .9; }
+.shop-runline {
+  display: none;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+}
+.shop-runline span {
+  display: grid;
+  place-items: center;
+  min-height: 34px;
+  border-radius: 7px;
+  background: #071015cc;
+  border: 1px solid #ffffff18;
+  color: #dce8e5;
+  font-size: 10px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+.shop-runline b { color: #ffd76e; font-size: 15px; }
 .shop-mobile-coins { display: none; color: #ffd76e; font-size: 16px; }
 .shop-mobile-actions { display: none; }
 .shop-shelf {
@@ -1880,7 +1899,21 @@ body.phase-shop #overlayContent {
 /* ---- small screens / phones ---- */
 @media (max-width: 700px) {
   #lobby h1 { font-size: 38px; }
-  #center { top: 45%; gap: 7px; } /* sit below opponents, above the hand controls */
+  #center { top: 41%; gap: 7px; } /* sit below opponents, above the hand controls */
+  body.phase-pegging #center {
+    top: 31%;
+    transform: translate(-50%, -50%) scale(.82);
+  }
+  body.phase-pegging #deckPile,
+  body.phase-pegging #cribPile {
+    opacity: 0;
+    transform: translateY(-26px) scale(.72);
+    pointer-events: none;
+  }
+  body.phase-pegging #starterPile {
+    transform: translateY(-16px) scale(.78);
+  }
+  body.phase-pegging #centerCards { gap: 6px; }
   .seat { width: 120px; }
   .seat .plaque { font-size: 11px; padding: 3px 8px; }
   .seat .backs { height: 34px; }
@@ -1906,6 +1939,29 @@ body.phase-shop #overlayContent {
   #myCards { min-height: 142px; }
   #actionRow { min-height: 45px; margin-bottom: 6px; justify-content: space-between; padding: 0 4px; }
   #prompt { flex: 1; min-width: 0; text-align: left; }
+  body.phase-discard #prompt,
+  body.phase-pegging #prompt { display: none; }
+  body.phase-discard #myCards,
+  body.phase-pegging #myCards { position: relative; }
+  body.phase-discard #actionRow,
+  body.phase-pegging #actionRow {
+    position: absolute;
+    right: 2px;
+    bottom: 48px;
+    z-index: 8;
+    min-height: 0;
+    margin: 0;
+    padding: 0;
+    justify-content: flex-end;
+  }
+  body.phase-discard #actionBtn,
+  body.phase-pegging #actionBtn {
+    min-width: 106px;
+    max-width: 122px;
+    padding: 9px 10px;
+    font-size: 13px;
+    line-height: 1.05;
+  }
   #pegCount { font-size: 24px; min-width: 40px; }
 
   #hudRow { gap: 7px; min-height: 62px; margin-top: 8px; }
@@ -1953,6 +2009,7 @@ body.phase-shop #overlayContent {
     -webkit-overflow-scrolling: touch; overscroll-behavior: contain;
   }
   .shop-slotline { position: sticky; top: 0; z-index: 3; padding: 4px 2px 8px; background: linear-gradient(180deg, #314348, #314348dd); }
+  .shop-runline { display: grid; }
   .shop-mobile-coins { display: inline-block; }
   .shop-mobile-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
   .shop-shelf {
@@ -1961,7 +2018,8 @@ body.phase-shop #overlayContent {
     overflow: hidden; border-radius: 8px; box-shadow: none;
   }
   .market-shelf .shop-item, .pack-shelf .shop-item {
-    width: 100%; height: 156px; padding: 30px 8px 8px; gap: 3px;
+    width: 100%; min-width: 0; height: 156px; padding: 30px 8px 8px; gap: 3px;
+    justify-content: space-between;
   }
   .shop-card-face { height: 52px; min-height: 52px; }
   .shop-art { width: 42px; height: 42px; }
@@ -2043,9 +2101,25 @@ body.phase-shop #overlayContent {
   #myCards { min-height: 78px; }
   #actionRow { min-height: 26px; margin-bottom: 2px; }
   #prompt { font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  body.phase-discard #prompt,
+  body.phase-pegging #prompt { display: none; }
   #hand { height: 56px; }
   #hand .card { width: 40px; height: 56px; font-size: 13px; margin: 0 -4px; }
   #hudRow, #myStuff, #log { display: none; }
+  body.phase-pegging #center {
+    top: 44%;
+    transform: translate(-50%, -50%) scale(.82);
+  }
+  body.phase-pegging #deckPile,
+  body.phase-pegging #cribPile {
+    opacity: 0;
+    transform: translateY(-22px) scale(.72);
+    pointer-events: none;
+  }
+  body.phase-pegging #starterPile {
+    transform: translateY(-14px) scale(.78);
+  }
+  body.phase-pegging #centerCards { gap: 6px; }
   body.phase-shop #overlay {
     left: calc(150px + env(safe-area-inset-left)); width: calc(100vw - 150px - env(safe-area-inset-left)); padding: 0; align-items: stretch; justify-content: stretch;
     background: transparent; backdrop-filter: none; -webkit-backdrop-filter: none;
@@ -2100,7 +2174,8 @@ body.phase-shop #overlayContent {
 
 @media (max-height: 720px) and (max-width: 700px) {
   #topbar { padding-top: 4px; padding-bottom: 4px; }
-  #center { top: 39%; transform: translate(-50%, -50%) scale(0.86); }
+  #center { top: 37%; transform: translate(-50%, -50%) scale(0.84); }
+  body.phase-pegging #center { top: 30%; transform: translate(-50%, -50%) scale(.78); }
   #bottombar { height: calc(292px + env(safe-area-inset-bottom)); }
   #myCards { min-height: 126px; }
   #hand { height: 80px; }
@@ -2165,6 +2240,8 @@ body.phase-shop #overlayContent {
   }
   #hand .card .suit { font-size: 20px; }
   #prompt { font-size: 15px; }
+  body.phase-discard #prompt,
+  body.phase-pegging #prompt { display: none; }
 }
 
 /* ===== joker editions + animation FX ===== */
@@ -2304,6 +2381,8 @@ body.phase-shop #overlayContent {
   cursor: pointer; padding: 4px; border-radius: 8px; flex: 0 0 auto;
 }
 .sell-cell:hover { background: #ffffff10; }
+.sell-cell.dragging { opacity: 0.45; }
+.sell-cell.drag-over { outline: 2px solid var(--gold); background: #e8c35a20; }
 
 /* finishing-place tag on the blind check */
 .br-place { color: var(--gold); font-weight: 900; }
