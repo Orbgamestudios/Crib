@@ -12,7 +12,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Crib">
-<link rel="stylesheet" href="style.css?v=101">
+<link rel="stylesheet" href="style.css?v=102">
 <script src="https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js" defer></script>
 <script src="https://unpkg.com/mqtt/dist/mqtt.min.js" defer></script>
 </head>
@@ -96,7 +96,6 @@
       <div><span>Hands</span><b id="sideHands">0/0</b></div>
       <div><span>Deal</span><b id="sideDeal">0</b></div>
     </div>
-    <button id="sideCardsBtn" class="side-btn" type="button">Cards</button>
   </aside>
   <div id="topbar">
     <span id="dealInfo"></span>
@@ -156,6 +155,7 @@
         <div id="scoreHud">
           <div id="myScore" class="hud-chip hand-chip"></div>
           <div id="myMult" class="hud-chip mult-chip"></div>
+          <div id="starterDock"></div>
         </div>
         <div id="utilityPanel">
           <div id="myCoins"></div>
@@ -218,6 +218,6 @@ window.__cribBootTimer = setTimeout(function () {
   document.body.appendChild(banner);
 }, 4000);
 </script>
-<script type="module" src="client.js?v=119"></script>
+<script type="module" src="client.js?v=120"></script>
 </body>
 </html>

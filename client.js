@@ -23,7 +23,7 @@ const SOLO_SAVE_KEY = 'crib_solo_house_save_v1';
 const PROFILE_KEY = 'crib_profiles_v1';
 const ACTIVE_PROFILE_KEY = 'crib_active_profile_pin';
 const DIAG_KEY = 'crib_last_diagnostic_v1';
-const APP_BUILD = 'client-v119';
+const APP_BUILD = 'client-v120';
 const MUSIC_VOLUME_KEY = 'crib_music_volume_v1';
 const SFX_VOLUME_KEY = 'crib_sfx_volume_v1';
 
@@ -1745,15 +1745,6 @@ function refreshSoloContinue() {
 $('syncBtn').onclick = () => { sendMsg({ t: 'sync' }); toast('Refreshed.'); };
 $('dictBtn').onclick = () => showDictionary();
 $('optionsBtn').onclick = () => showOptions();
-$('sideCardsBtn').onclick = () => {
-  if (lastState && lastState.phase === 'shop') {
-    const you = lastState.you || {};
-    const cost = you.rerollCost == null ? 2 : you.rerollCost;
-    if (!you.ready && you.coins >= cost) sendMsg({ t: 'reroll' });
-    return;
-  }
-  showDictionary();
-};
 $('sideOptionsBtn').onclick = () => showOptions();
 $('sideRunInfoBtn').onclick = () => {
   if (lastState && lastState.phase === 'shop') {
@@ -2220,9 +2211,13 @@ function renderSeats(st) {
     ((a.seat - st.mySeat + n) % n) - ((b.seat - st.mySeat + n) % n));
   opponents.forEach((p, i) => {
     const k = opponents.length;
-    const ang = (180 + (i + 1) * 180 / (k + 1)) * Math.PI / 180;
-    const x = 50 + 40 * Math.cos(ang);
-    const y = 54 + 38 * Math.sin(ang); // ring lowered so top seats clear the tip banner
+    let x = 50;
+    let y = 15;
+    if (k > 1) {
+      const ang = (180 + (i + 1) * 180 / (k + 1)) * Math.PI / 180;
+      x = 50 + 43 * Math.cos(ang);
+      y = 54 + 42 * Math.sin(ang);
+    }
     const seat = document.createElement('div');
     seat.className = 'seat' + (p.seat === st.turnSeat ? ' turn' : '')
       + (p.connected ? '' : ' off') + (p.active ? '' : ' out');
@@ -2331,8 +2326,6 @@ function renderRunSidebar(st) {
     ? you.ready ? 'Waiting...' : st.dealIndexInRound >= st.dealsInRound ? `Round ${st.round + 1}` : 'Next Deal'
     : 'Run Info';
   $('sideRunInfoBtn').disabled = !!(inShop && you.ready);
-  $('sideCardsBtn').innerHTML = inShop ? `Reroll ${chip(rerollCost)}` : 'Cards';
-  $('sideCardsBtn').disabled = !!(inShop && (you.ready || you.coins < rerollCost));
 }
 
 const BOARD_COLORS = ['#ffd76e', '#63b8ff', '#ff6262', '#7ee08b', '#dfc8ff', '#ff9f43'];
@@ -2570,10 +2563,19 @@ function renderMyArea(st) {
   $('deckBtn').innerHTML = icon('deck', you.deck.length);
 
   $('deckBtn').innerHTML = icon('deck', you.deck.length);
+  renderStarterDock(st);
   renderJokerSlots(st);
   renderTarotSlots(st);
   renderHand(st);
   if (deckOpen) renderDeckOverlay(st);
+}
+
+function renderStarterDock(st) {
+  const dock = $('starterDock');
+  if (!dock) return;
+  dock.innerHTML = '';
+  dock.classList.toggle('empty', !st.starter);
+  if (st.starter) dock.appendChild(cardEl(st.starter, { small: true }));
 }
 
 function renderHandScore(st) {

@@ -1046,6 +1046,23 @@ body.mode-board #hudRow { min-height: 0; margin-top: 0; }
   min-height: 58px; margin-top: 4px; min-width: 0;
 }
 #scoreHud { display: flex; gap: 8px; min-width: 0; flex: 0 1 230px; }
+#starterDock {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 40px;
+  margin-top: 2px;
+}
+#starterDock.empty { display: none; }
+#starterDock .card {
+  width: 34px;
+  height: 48px;
+  font-size: 11px;
+  padding: 2px 3px;
+  transform: none;
+}
+#starterDock .card .suit { font-size: 12px; }
 .hud-chip {
   flex: 1 1 0; min-width: 86px; border-radius: 8px; padding: 5px 10px;
   color: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -2242,6 +2259,106 @@ body.phase-shop #overlayContent {
   #prompt { font-size: 15px; }
   body.phase-discard #prompt,
   body.phase-pegging #prompt { display: none; }
+}
+
+@media (max-width: 700px) {
+  #center {
+    top: 38%;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  body.phase-pegging #center {
+    top: 54%;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  body.phase-pegging #deckPile,
+  body.phase-pegging #cribPile,
+  body.phase-pegging #starterPile {
+    opacity: 0;
+    transform: translateY(-44px) scale(.72);
+    pointer-events: none;
+  }
+  body.phase-pegging #pegArea {
+    min-height: 92px;
+    transform: none;
+  }
+  body.phase-pegging #pegStack { min-height: 76px; align-items: flex-end; }
+  .card,
+  #hand .card,
+  #centerCards .card,
+  #pegStack .card,
+  .seat .backs .card,
+  .card.flying {
+    width: 54px;
+    height: 76px;
+    font-size: 17px;
+    padding: 3px 4px;
+  }
+  .card .suit,
+  #hand .card .suit,
+  #centerCards .card .suit,
+  #pegStack .card .suit,
+  .seat .backs .card .suit,
+  .card.flying .suit { font-size: 19px; }
+  #hand { height: 92px; }
+  #myCards { min-height: 134px; }
+  .seat .backs { height: 80px; }
+  .seat .backs .card { margin: 0 -17px; }
+  #centerCards { gap: 14px; }
+  #pegStack .card { margin-right: -18px; }
+  #scoreHud {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+}
+
+@media (orientation: landscape) and (max-height: 560px) {
+  #center {
+    top: 42%;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  body.phase-pegging #center {
+    top: 52%;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  body.phase-pegging #deckPile,
+  body.phase-pegging #cribPile,
+  body.phase-pegging #starterPile {
+    opacity: 0;
+    transform: translateY(-34px) scale(.72);
+    pointer-events: none;
+  }
+  .card,
+  #hand .card,
+  #centerCards .card,
+  #pegStack .card,
+  .seat .backs .card,
+  .card.flying {
+    width: 56px;
+    height: 78px;
+    font-size: 18px;
+    padding: 3px 4px;
+  }
+  .card .suit,
+  #hand .card .suit,
+  #centerCards .card .suit,
+  #pegStack .card .suit,
+  .seat .backs .card .suit,
+  .card.flying .suit { font-size: 20px; }
+  #hand { height: 88px; }
+  #myCards { min-height: 116px; }
+  .seat .backs { height: 82px; }
+  .seat .backs .card { margin: 0 -18px; }
+  #pegArea { min-height: 92px; }
+  #pegStack { min-height: 78px; align-items: flex-end; }
+  #scoreHud {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+  #starterDock .card {
+    width: 32px;
+    height: 45px;
+    font-size: 10px;
+  }
 }
 
 /* ===== joker editions + animation FX ===== */
