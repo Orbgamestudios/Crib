@@ -23,7 +23,7 @@ const SOLO_SAVE_KEY = 'crib_solo_house_save_v1';
 const PROFILE_KEY = 'crib_profiles_v1';
 const ACTIVE_PROFILE_KEY = 'crib_active_profile_pin';
 const DIAG_KEY = 'crib_last_diagnostic_v1';
-const APP_BUILD = 'client-v120';
+const APP_BUILD = 'client-v121';
 const MUSIC_VOLUME_KEY = 'crib_music_volume_v1';
 const SFX_VOLUME_KEY = 'crib_sfx_volume_v1';
 
@@ -4287,7 +4287,7 @@ function showMultGainForSeat(prev, st, seat, gained, opts = {}) {
   floatRise(fromX, pc.top - 6, `+${gained} Mult`, 'fx-mult');
 
   const target = seat === st.mySeat
-    ? $('myMult')
+    ? visibleHudTarget('mult')
     : document.querySelector(`.seat[data-seat="${seat}"] .plaque`);
   if (!target) return;
   const tr = target.getBoundingClientRect();
@@ -4318,7 +4318,7 @@ function showHandPointGainForSeat(st, seat, gained) {
   const fromY = pc.top + pc.height / 2;
   floatRise(fromX, pc.top - 28, `+${gained} Hand`, 'fx-points-blue');
   const target = seat === st.mySeat
-    ? $('myScore')
+    ? visibleHudTarget('hand')
     : document.querySelector(`.seat[data-seat="${seat}"] .plaque`);
   if (!target) return;
   const tr = target.getBoundingClientRect();
@@ -4326,9 +4326,21 @@ function showHandPointGainForSeat(st, seat, gained) {
   const toY = tr.top + tr.height / 2;
   flingOrbs(fromX, fromY, toX, toY, 5, () => {
     flashEl(target);
-    if (seat === st.mySeat) pulse($('myScore'));
+    if (seat === st.mySeat) pulse(target);
   }, 'blue');
   floatRise(toX, tr.top - 8, `+${gained} Hand`, 'fx-points-blue');
+}
+
+function visibleHudTarget(kind) {
+  const primary = kind === 'mult' ? $('myMult') : $('myScore');
+  const side = kind === 'mult' ? $('sideMultScore') : $('sideHandScore');
+  const usable = el => {
+    if (!el) return false;
+    const r = el.getBoundingClientRect();
+    const cs = getComputedStyle(el);
+    return r.width > 1 && r.height > 1 && cs.display !== 'none' && cs.visibility !== 'hidden' && cs.opacity !== '0';
+  };
+  return usable(primary) ? primary : side || primary;
 }
 
 function showBoardPointGain(st, seat, gained) {
@@ -4420,10 +4432,18 @@ function bumpMult(toValue) {
   const m = $('myMult');
   const b = m.querySelector('b');
   if (b && toValue != null) b.textContent = 'x' + toValue;
+  const side = $('sideMultScore');
+  if (side && toValue != null) side.textContent = toValue;
   m.classList.remove('bump');
   void m.offsetWidth;
   m.classList.add('bump');
+  if (side) {
+    side.classList.remove('bump');
+    void side.offsetWidth;
+    side.classList.add('bump');
+  }
   setTimeout(() => m.classList.remove('bump'), 540);
+  if (side) setTimeout(() => side.classList.remove('bump'), 540);
 }
 
 function playPackOpen(pack) {

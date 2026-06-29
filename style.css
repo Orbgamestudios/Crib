@@ -905,7 +905,10 @@ body.mode-board .seat-blind-fill {
 @keyframes pulseAnim {
   0% { scale: 1; } 40% { scale: 1.35; color: #fff; } 100% { scale: 1; }
 }
-#pegCount.pulse { animation: pulseAnim 0.45s ease-out; }
+#pegCount.pulse,
+.hud-chip.pulse,
+#sideHandScore.pulse,
+#sideMultScore.pulse { animation: pulseAnim 0.45s ease-out; }
 
 /* ---- center ---- */
 #center {
@@ -2031,19 +2034,19 @@ body.phase-shop #overlayContent {
   .shop-mobile-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
   .shop-shelf {
     display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 12px; min-height: 0; padding: 16px 10px 12px; align-items: stretch;
-    overflow: hidden; border-radius: 8px; box-shadow: none;
+    gap: 12px; min-height: 0; height: auto; padding: 18px 10px 18px; align-items: stretch;
+    overflow: visible; border-radius: 8px; box-shadow: none;
   }
   .market-shelf .shop-item, .pack-shelf .shop-item {
-    width: 100%; min-width: 0; height: 156px; padding: 30px 8px 8px; gap: 3px;
+    width: 100%; min-width: 0; height: auto; min-height: 218px; padding: 32px 8px 12px; gap: 7px;
     justify-content: space-between;
   }
-  .shop-card-face { height: 52px; min-height: 52px; }
-  .shop-art { width: 42px; height: 42px; }
-  .shop-card-face.pack .shop-art { width: 52px; height: 66px; }
+  .shop-card-face { height: 76px; min-height: 76px; }
+  .shop-art { width: 58px; height: 58px; }
+  .shop-card-face.pack .shop-art { width: 60px; height: 78px; }
   .shop-card-face.card .card { width: 40px; height: 56px; font-size: 13px; }
-  .shop-item .si-name { height: 24px; font-size: 11.5px; }
-  .shop-item .si-desc { height: 36px; font-size: 9px; line-height: 1.08; }
+  .shop-item .si-name { height: auto; min-height: 32px; font-size: 13px; line-height: 1.05; }
+  .shop-item .si-desc { height: auto; min-height: 42px; font-size: 10px; line-height: 1.12; }
   .shop-price { font-size: 12px; }
   .balatro-card .shop-price { top: 6px; min-width: 46px; font-size: 13px; }
   .voucher-placeholder { display: none; }
@@ -2445,10 +2448,18 @@ body.phase-shop #overlayContent {
 
 /* Mult box bump when orbs land */
 #myMult.bump { animation: multBump 0.5s cubic-bezier(.3,1.4,.5,1); }
+#sideHandScore.bump,
+#sideMultScore.bump,
+.hud-chip.bump { animation: hudScorePop 0.55s cubic-bezier(.3,1.4,.5,1); }
 @keyframes multBump {
   0% { transform: scale(1); }
   40% { transform: scale(1.32); box-shadow: 0 0 20px #ff5b5bcc; }
   100% { transform: scale(1); }
+}
+@keyframes hudScorePop {
+  0% { transform: scale(1); filter: brightness(1); }
+  35% { transform: scale(1.18); filter: brightness(1.75); box-shadow: 0 0 24px #fff7; }
+  100% { transform: scale(1); filter: brightness(1); }
 }
 
 /* element flash (joker / tarot rows) */
