@@ -26,6 +26,22 @@ body {
   padding: env(safe-area-inset-top) env(safe-area-inset-right) 0 env(safe-area-inset-left);
 }
 
+body.phase-discard,
+body.phase-pegging,
+body.phase-scoring {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100dvh;
+  overscroll-behavior: none;
+}
+
+body.phase-discard #game,
+body.phase-pegging #game,
+body.phase-scoring #game {
+  overflow: hidden;
+}
+
 .panel,
 .btn,
 input,
@@ -1881,8 +1897,11 @@ body.phase-shop #overlayContent {
   #blindProgress { margin-bottom: 4px; }
   #blindBarOuter { height: 20px; }
   #blindBarLabel { font-size: 11px; }
-  #hand .card { width: 54px; height: 76px; font-size: 17px; margin: 0 -5px; }
-  #hand .card .suit { font-size: 19px; }
+  #hand .card,
+  .card.flying { width: 54px; height: 76px; font-size: 17px; padding: 3px 4px; }
+  #hand .card { margin: 0 -5px; }
+  #hand .card .suit,
+  .card.flying .suit { font-size: 19px; }
   #hand { gap: 0; height: 91px; padding-bottom: 6px; }
   #myCards { min-height: 142px; }
   #actionRow { min-height: 45px; margin-bottom: 6px; justify-content: space-between; padding: 0 4px; }
@@ -1930,25 +1949,26 @@ body.phase-shop #overlayContent {
   .shop-next, .shop-reroll { min-height: 46px; font-size: 14px; }
   .shop-stage {
     display: flex; flex-direction: column;
-    padding: 10px; gap: 10px; overflow-y: auto; -webkit-overflow-scrolling: touch;
+    padding: 10px; gap: 12px; overflow-y: auto; overflow-x: hidden;
+    -webkit-overflow-scrolling: touch; overscroll-behavior: contain;
   }
   .shop-slotline { position: sticky; top: 0; z-index: 3; padding: 4px 2px 8px; background: linear-gradient(180deg, #314348, #314348dd); }
   .shop-mobile-coins { display: inline-block; }
   .shop-mobile-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
   .shop-shelf {
     display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 10px; min-height: 0; padding: 10px 8px; align-items: stretch;
-    overflow: visible; border-radius: 8px; box-shadow: none;
+    gap: 12px; min-height: 0; padding: 16px 10px 12px; align-items: stretch;
+    overflow: hidden; border-radius: 8px; box-shadow: none;
   }
   .market-shelf .shop-item, .pack-shelf .shop-item {
-    width: 100%; height: 168px; padding: 32px 8px 8px; gap: 4px;
+    width: 100%; height: 156px; padding: 30px 8px 8px; gap: 3px;
   }
-  .shop-card-face { height: 58px; min-height: 58px; }
-  .shop-art { width: 46px; height: 46px; }
-  .shop-card-face.pack .shop-art { width: 58px; height: 74px; }
+  .shop-card-face { height: 52px; min-height: 52px; }
+  .shop-art { width: 42px; height: 42px; }
+  .shop-card-face.pack .shop-art { width: 52px; height: 66px; }
   .shop-card-face.card .card { width: 40px; height: 56px; font-size: 13px; }
-  .shop-item .si-name { height: 28px; font-size: 12px; }
-  .shop-item .si-desc { height: 38px; font-size: 9.5px; line-height: 1.12; }
+  .shop-item .si-name { height: 24px; font-size: 11.5px; }
+  .shop-item .si-desc { height: 36px; font-size: 9px; line-height: 1.08; }
   .shop-price { font-size: 12px; }
   .balatro-card .shop-price { top: 6px; min-width: 46px; font-size: 13px; }
   .voucher-placeholder { display: none; }
@@ -1960,13 +1980,13 @@ body.phase-shop #overlayContent {
   .pack-picks { display: block; min-height: 0; overflow: visible; }
   .pack-choice-row { flex-direction: column; flex-wrap: nowrap; gap: 10px; align-items: center; }
   .pack-choice-row .shop-item {
-    width: min(78vw, 300px); height: 186px; padding: 28px 12px 10px; gap: 5px;
+    width: min(78vw, 300px); height: 168px; padding: 26px 12px 10px; gap: 4px;
   }
   .pack-choice-row .shop-type { top: 8px; right: 10px; bottom: auto; }
-  .pack-choice-row .si-icon { width: 54px; height: 66px; }
+  .pack-choice-row .si-icon { width: 48px; height: 58px; }
   .pack-choice-row .si-bigcard .card { width: 46px; height: 64px; font-size: 14px; }
-  .pack-choice-row .shop-item .si-name { height: 30px; font-size: 16px; }
-  .pack-choice-row .shop-item .si-desc { height: 48px; font-size: 11px; line-height: 1.13; }
+  .pack-choice-row .shop-item .si-name { height: 27px; font-size: 14px; }
+  .pack-choice-row .shop-item .si-desc { height: 42px; font-size: 10px; line-height: 1.1; }
   .pack-open-footer { gap: 12px; flex-wrap: wrap; }
   .pack-title-card { min-width: 0; width: min(58vw, 260px); padding: 8px 12px; }
   .pack-title-card b { font-size: 18px; }
@@ -1992,6 +2012,8 @@ body.phase-shop #overlayContent {
     border-right: 2px solid #1b2c32;
     box-shadow: 8px 0 20px #0007;
     z-index: 260;
+    overflow: hidden;
+    overscroll-behavior: contain;
   }
   #topbar { display: none; }
   #table { grid-column: 2; grid-row: 1; min-height: 0; }
@@ -2028,20 +2050,36 @@ body.phase-shop #overlayContent {
     left: calc(150px + env(safe-area-inset-left)); width: calc(100vw - 150px - env(safe-area-inset-left)); padding: 0; align-items: stretch; justify-content: stretch;
     background: transparent; backdrop-filter: none; -webkit-backdrop-filter: none;
   }
+  body.phase-scoring #overlay,
+  body.phase-roundEnd #overlay,
+  body.phase-gameover #overlay {
+    left: calc(150px + env(safe-area-inset-left));
+    width: calc(100vw - 150px - env(safe-area-inset-left));
+    padding: 8px;
+    align-items: center;
+    justify-content: center;
+  }
+  body.phase-scoring #overlayContent,
+  body.phase-roundEnd #overlayContent,
+  body.phase-gameover #overlayContent {
+    width: min(720px, calc(100vw - 170px - env(safe-area-inset-left)));
+    max-height: calc(100dvh - 16px);
+  }
   body.phase-shop #overlayContent {
     width: 100%; height: 100dvh; max-height: none; padding: 10px;
     overflow-y: auto; overflow-x: hidden; -webkit-overflow-scrolling: touch;
   }
   .shop-stage {
     display: flex; flex-direction: column; padding: 8px; gap: 8px;
-    min-height: auto; height: auto; overflow: visible;
+    min-height: 0; height: auto; overflow: visible;
   }
   .shop-mobile-actions { display: none; }
   .shop-slotline { font-size: 12px; }
   .shop-mobile-coins { display: inline-block; }
   .shop-shelf {
     display: flex; justify-content: flex-start; padding: 10px; gap: 10px;
-    flex-wrap: nowrap; overflow-x: auto; overflow-y: visible; min-height: 192px;
+    flex-wrap: nowrap; overflow-x: auto; overflow-y: hidden; min-height: 188px;
+    overscroll-behavior-inline: contain;
   }
   .market-shelf .shop-item, .pack-shelf .shop-item {
     flex: 0 0 clamp(128px, 17vw, 172px); width: clamp(128px, 17vw, 172px); height: 188px; padding: 28px 8px 8px; gap: 5px;
@@ -2066,8 +2104,11 @@ body.phase-shop #overlayContent {
   #bottombar { height: calc(292px + env(safe-area-inset-bottom)); }
   #myCards { min-height: 126px; }
   #hand { height: 80px; }
-  #hand .card { width: 49px; height: 69px; font-size: 15px; margin: 0 -5px; }
-  #hand .card .suit { font-size: 17px; }
+  #hand .card,
+  .card.flying { width: 49px; height: 69px; font-size: 15px; padding: 3px 4px; }
+  #hand .card { margin: 0 -5px; }
+  #hand .card .suit,
+  .card.flying .suit { font-size: 17px; }
   #actionRow { min-height: 40px; }
   .jslot, .tslot { width: 37px; height: 51px; }
   .jtile { width: 37px; height: 51px; }
@@ -2075,16 +2116,42 @@ body.phase-shop #overlayContent {
   .hud-chip b { font-size: 20px; }
 }
 
+@media (max-width: 700px) {
+  #shopFocus { padding: 10px; align-items: center; }
+  .focus-card {
+    width: min(340px, 94vw);
+    max-height: calc(100dvh - 20px);
+    padding: 14px 14px 16px;
+    gap: 8px;
+  }
+  .focus-display-card {
+    width: 78px;
+    height: 110px;
+    animation: none;
+  }
+  .focus-display-card.pack { width: 90px; height: 116px; }
+  .focus-display-card.pack .focus-card-icon { width: 80px; height: 98px; }
+  .focus-card-icon { width: 52px; height: 52px; }
+  .focus-card-title { min-height: 24px; font-size: 7.5px; }
+  .focus-name { font-size: 18px; }
+  .focus-desc {
+    max-height: none;
+    font-size: 14px;
+    line-height: 1.26;
+  }
+  .focus-buy, .focus-btn { padding: 9px 22px; font-size: 15px; }
+}
+
 @media (orientation: landscape) and (max-height: 560px) {
   #center { top: 66%; transform: translate(-50%, -50%) scale(.86); }
   #centerCards { gap: 20px; }
-  #centerCards .card, #pegStack .card {
+  #centerCards .card, #pegStack .card, .card.flying {
     width: 56px;
     height: 78px;
     font-size: 18px;
     padding: 3px 4px;
   }
-  #centerCards .card .suit, #pegStack .card .suit { font-size: 20px; }
+  #centerCards .card .suit, #pegStack .card .suit, .card.flying .suit { font-size: 20px; }
   body:not(.mode-board) #blindProgress { display: none; }
   #bottombar { height: calc(152px + env(safe-area-inset-bottom)); }
   #myCards { min-height: 110px; }
@@ -2250,7 +2317,7 @@ body.phase-shop #overlayContent {
 }
 @keyframes focusFade { from { opacity: 0; } to { opacity: 1; } }
 .focus-card {
-  position: relative; overflow: hidden;
+  position: relative; overflow-y: auto; overflow-x: hidden;
   width: min(320px, 86vw); max-height: calc(100vh - 40px);
   display: flex; flex-direction: column; align-items: center; gap: 10px;
   padding: 22px 20px; border-radius: 16px;
@@ -2302,7 +2369,7 @@ body.phase-shop #overlayContent {
 .focus-card.stamp-polychrome .focus-card-title { color: #1c2730; }
 .focus-name { font-size: 20px; font-weight: 800; color: var(--cream); text-align: center; line-height: 1.12; overflow-wrap: anywhere; }
 .focus-desc {
-  line-height: 1.32; text-align: center; opacity: 0.92; max-height: 30vh;
+  line-height: 1.32; text-align: center; opacity: 0.92; max-height: min(34vh, 260px);
   overflow-y: auto; width: 100%; font-size: 15px; overflow-wrap: anywhere;
 }
 .focus-buy, .focus-btn { margin-top: 6px; font-size: 16px; padding: 10px 26px; }
