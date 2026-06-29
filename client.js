@@ -23,7 +23,7 @@ const SOLO_SAVE_KEY = 'crib_solo_house_save_v1';
 const PROFILE_KEY = 'crib_profiles_v1';
 const ACTIVE_PROFILE_KEY = 'crib_active_profile_pin';
 const DIAG_KEY = 'crib_last_diagnostic_v1';
-const APP_BUILD = 'client-v121';
+const APP_BUILD = 'client-v122';
 const MUSIC_VOLUME_KEY = 'crib_music_volume_v1';
 const SFX_VOLUME_KEY = 'crib_sfx_volume_v1';
 
@@ -935,6 +935,7 @@ function showView(v) {
   $('game').classList.toggle('hidden', v !== 'game');
   if (v !== 'game') {
     $('overlay').classList.add('hidden');
+    hideTableScoring();
     closeFocus();
     lastState = prevState = null;
     lastStateJson = '';
@@ -2212,7 +2213,7 @@ function renderSeats(st) {
   opponents.forEach((p, i) => {
     const k = opponents.length;
     let x = 50;
-    let y = 15;
+    let y = 20;
     if (k > 1) {
       const ang = (180 + (i + 1) * 180 / (k + 1)) * Math.PI / 180;
       x = 50 + 43 * Math.cos(ang);
@@ -3245,6 +3246,14 @@ function renderOverlay(st) {
   const key = st.phase + '-' + st.dealNumber;
   if (key !== revealKey) { revealShown = -1; revealKey = key; }
 
+  if (st.phase === 'scoring') {
+    renderScoring(oc, st);
+    ov.classList.add('hidden');
+    lastOverlayPhase = 'none';
+    return;
+  }
+  hideTableScoring();
+
   const phase = ['scoring', 'roundEnd', 'shop', 'gameover'].includes(st.phase) ? st.phase : 'none';
   if (st.phase !== 'shop' && focusMode === 'market') closeFocus(); // dismiss shop-buy zoom when the phase moves on
   const build = () => {
@@ -3328,137 +3337,188 @@ function slideOutOverlay() {
 }
 
 function renderScoring(oc, st) {
-  oc.innerHTML = `<h2>Counting - Deal ${st.dealIndexInRound}/${st.dealsInRound}</h2>` +
-    `<div class="starter-row">Starter: </div>`;
-  oc.lastChild.appendChild(cardEl(st.starter, { small: true }));
-
-  const done = st.revealIndex >= st.scoringResults.length - 1;
-  if (st.mode === 'board') {
-    const r = st.scoringResults[Math.min(st.revealIndex, st.scoringResults.length - 1)];
-    const fresh = st.revealIndex > revealShown;
-    oc.appendChild(scoreBlock(r, st, fresh));
-    const board = ensureBoardShell();
-    board.classList.remove('hidden');
-    oc.appendChild(board);
-    renderBoard2d(st);
-    revealShown = Math.max(revealShown, st.revealIndex);
-    oc.insertAdjacentHTML('beforeend',
-      `<div class="hint" style="margin-top:8px">${esc(r.name)} moves from ${Math.round(r.scoreBefore || 0)} to ${Math.round(r.scoreAfter || 0)} on the board.</div>`);
-    if (done) {
-      const winner = st.players.find(p => p.score >= (st.goalScore || 121));
-      if (st.you.active) appendReadyBtn(oc, st, winner ? 'Final Standings' : 'Next Deal');
-    } else {
-      oc.insertAdjacentHTML('beforeend', '<div class="counting-hint">Counting...</div>');
-    }
-    return;
-  }
-  for (let i = 0; i <= st.revealIndex && i < st.scoringResults.length; i++) {
-    const fresh = i > revealShown;
-    oc.appendChild(scoreBlock(st.scoringResults[i], st, fresh));
-  }
-  revealShown = Math.max(revealShown, st.revealIndex);
-
-  if (done) {
-    oc.insertAdjacentHTML('beforeend',
-      `<div style="margin:8px 0">You earned <b style="color:#ffd76e">${chip(st.you.coinGain)}</b> this deal.</div>`);
-    const last = st.dealIndexInRound >= st.dealsInRound;
-    if (st.you.active) appendReadyBtn(oc, st, last ? 'Blind Check' : 'To the Shop');
-  } else {
-    oc.insertAdjacentHTML('beforeend', '<div class="counting-hint">Counting...</div>');
-  }
-  oc.scrollTop = oc.scrollHeight;
+  renderTableScoring(st);
+  oc.innerHTML = '';
 }
 
-function scoreBlock(r, st, fresh) {
-  const div = document.createElement('div');
-  div.className = 'score-block' + (fresh ? ' reveal' : '');
-  const title = r.kind === 'crib'
-    ? `${icon('crown')} ${esc(r.name)} - Crib`
-    : esc(r.name) + (r.seat === st.mySeat ? ' (you)' : '');
-  const targetBadge = r.deckEffects !== false && r.deckArt === 'cosmic' && st.cosmicTarget ? `<span class="target-pill">Target ${st.cosmicTarget}</span>` : '';
-  div.innerHTML = `<div class="sb-head"><span>${title}</span>${targetBadge}</div>`;
+function scoringStage() {
+  let el = $('scoringStage');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'scoringStage';
+    $('table').appendChild(el);
+  }
+  return el;
+}
 
-  // hand cards + the shared starter (shows how the hand is scored)
-  const cards = document.createElement('div');
-  cards.className = 'sb-cards';
-  const gambitRemoveDelay = 720 + r.lines.length * 130;
-  r.cards.forEach((c, i) => {
-    const el = cardEl(c, { small: true });
-    if (fresh) { el.classList.add('deal-in'); el.style.animationDelay = (i * 80) + 'ms'; }
-    if (c.gambitCharged) {
-      el.title = 'Gambit charge: +2 Hand Points; removed from the deck after scoring';
-      if (fresh) {
-        setTimeout(() => {
-          if (!el.isConnected) return;
-          el.classList.add('gambit-removed');
-          const rect = el.getBoundingClientRect();
-          burstSparkles(rect.left + rect.width / 2, rect.top + rect.height / 2, 12, 320);
-          sfx('card');
-        }, gambitRemoveDelay + i * 70);
-      } else {
-        el.classList.add('gambit-removed');
-      }
-    }
-    cards.appendChild(el);
+function hideTableScoring() {
+  const el = $('scoringStage');
+  if (el) el.classList.add('hidden');
+}
+
+function renderTableScoring(st) {
+  const stage = scoringStage();
+  const results = st.scoringResults || [];
+  if (!results.length) {
+    stage.classList.add('hidden');
+    return;
+  }
+
+  const idx = Math.min(st.revealIndex || 0, results.length - 1);
+  const r = results[idx];
+  const fresh = idx > revealShown;
+  const done = idx >= results.length - 1;
+  stage.className = 'scoring-stage' + (fresh ? ' fresh' : '');
+  stage.innerHTML = '';
+
+  const panel = document.createElement('div');
+  panel.className = 'scoring-live-panel';
+  const title = r.kind === 'crib'
+    ? `${esc(r.name)}'s crib`
+    : `${esc(r.name)}${r.seat === st.mySeat ? ' (you)' : ''}`;
+  const targetBadge = r.deckEffects !== false && r.deckArt === 'cosmic' && st.cosmicTarget
+    ? `<span class="target-pill">Target ${st.cosmicTarget}</span>` : '';
+  panel.innerHTML = `<div class="scoring-live-head"><span>${title}</span>${targetBadge}</div>`;
+
+  const cardRow = document.createElement('div');
+  cardRow.className = 'scoring-live-cards';
+  (r.cards || []).forEach(c => {
+    const el = cardEl(c);
+    el.classList.add('score-live-card');
+    cardRow.appendChild(el);
   });
   if (r.starter) {
-    cards.insertAdjacentHTML('beforeend', '<span class="sb-plus">+</span>');
-    const sEl = cardEl(r.starter, { small: true });
-    sEl.classList.add('sb-starter');
-    sEl.title = 'Starter';
-    if (fresh) { sEl.classList.add('deal-in'); sEl.style.animationDelay = (r.cards.length * 80) + 'ms'; }
-    cards.appendChild(sEl);
+    cardRow.insertAdjacentHTML('beforeend', '<span class="scoring-plus">+</span>');
+    const starter = cardEl(r.starter);
+    starter.classList.add('score-live-card', 'score-live-starter');
+    starter.title = 'Starter';
+    cardRow.appendChild(starter);
   }
-  div.appendChild(cards);
+  panel.appendChild(cardRow);
 
-  // chip lines
-  r.lines.forEach((line, i) => {
+  const lineWrap = document.createElement('div');
+  lineWrap.className = 'scoring-live-lines';
+  const lines = (r.lines && r.lines.length) ? r.lines : [{ label: 'Nothing scored', pts: 0 }];
+  lines.forEach((line, i) => {
+    const clean = cleanLabel(line.label);
+    const kind = scoreLineKind(clean, line);
     const lineEl = document.createElement('div');
-    const lineLabel = cleanLabel(line.label);
-    const isJoker = lineLabel.includes('[Joker]');
-    lineEl.className = 'sb-line' + (fresh ? ' anim' : '') + (isJoker ? ' joker-line' : '');
-    if (fresh) lineEl.style.animationDelay = (250 + i * 130) + 'ms';
-    lineEl.innerHTML = `<span>${esc(lineLabel)}</span><span>${line.pts == null ? '' : '+' + line.pts}</span>`;
-    div.appendChild(lineEl);
-    if (fresh) setTimeout(() => sfx(scoreLineSfx(lineLabel, line)), 250 + i * 130);
+    lineEl.className = `scoring-live-line ${kind}` + (/joker/i.test(clean) ? ' joker-line' : '');
+    lineEl.dataset.index = i;
+    lineEl.innerHTML = `<span>${esc(clean)}</span><b>${line.pts == null ? '' : '+' + line.pts}</b>`;
+    lineWrap.appendChild(lineEl);
   });
-  if (!r.lines.length) {
-    div.insertAdjacentHTML('beforeend', '<div class="sb-line"><span>Nothing scored</span><span>+0</span></div>');
-    if (fresh) setTimeout(() => sfx('card'), 250);
-  }
+  panel.appendChild(lineWrap);
 
-  // Normal decks use Points x Mult. Neon rolls both values into their shared average first.
-  const eqDelay = 300 + r.lines.length * 130;
+  const eq = scoringEquation(r, fresh);
+  panel.appendChild(eq);
+  if (done) {
+    const footer = document.createElement('div');
+    footer.className = 'scoring-live-footer';
+    if (st.mode !== 'board') footer.innerHTML = `<span>Earned ${chip(st.you.coinGain || 0)} this deal</span>`;
+    const last = st.dealIndexInRound >= st.dealsInRound;
+    if (st.mode === 'board') {
+      const winner = st.players.find(p => p.score >= (st.goalScore || 121));
+      if (st.you.active) appendReadyBtn(footer, st, winner ? 'Final Standings' : 'Next Deal');
+    } else if (st.you.active) {
+      appendReadyBtn(footer, st, last ? 'Blind Check' : 'To the Shop');
+    }
+    panel.appendChild(footer);
+  } else {
+    panel.insertAdjacentHTML('beforeend', '<div class="counting-hint">Counting...</div>');
+  }
+  stage.appendChild(panel);
+  stage.classList.remove('hidden');
+  if (st.mode === 'board') {
+    const board = ensureBoardShell();
+    board.classList.remove('hidden');
+    stage.appendChild(board);
+    renderBoard2d(st);
+  }
+  if (fresh) animateScoringStage(stage, r, st);
+  revealShown = Math.max(revealShown, idx);
+}
+
+function scoringEquation(r, fresh) {
   const eq = document.createElement('div');
   const neon = r.deckEffects !== false && r.deckArt === 'neon' && !r.noMult;
   const neonAvg = neon ? Math.round(((r.points + r.mult) / 2) * 10) / 10 : 0;
-  eq.className = 'sb-equation' + (neon ? ' neon-eq' : '') + (fresh ? ' anim' : '');
-  if (fresh) eq.style.animationDelay = eqDelay + 'ms';
+  eq.className = 'sb-equation scoring-live-equation' + (neon ? ' neon-eq' : '');
   eq.innerHTML = r.noMult
-    ? `<span class="chips" title="Crib points">${r.points}</span>` +
-      `<span class="eq-op">=</span>` +
-      `<span class="eq-total">${r.total}</span>`
+    ? `<span class="chips">${r.points}</span><span class="eq-op">=</span><span class="eq-total">${r.total}</span>`
     : neon
-      ? `<span class="chips" title="Hand points">${fresh ? r.points : neonAvg.toFixed(1)}</span>` +
-        `<span class="eq-op">x</span>` +
-        `<span class="mult" title="Pegging Mult">${fresh ? r.mult : neonAvg.toFixed(1)}</span>` +
-        `<span class="eq-op">=</span>` +
-        `<span class="eq-total">${r.total}</span>`
-      : `<span class="chips" title="Hand points">${r.points}</span>` +
-      `<span class="eq-op">x</span>` +
-      `<span class="mult" title="Pegging multiplier">${r.mult}</span>` +
-      `<span class="eq-op">=</span>` +
-      `<span class="eq-total">${r.total}</span>`;
-  div.appendChild(eq);
+      ? `<span class="chips">${fresh ? r.points : neonAvg.toFixed(1)}</span><span class="eq-op">x</span><span class="mult">${fresh ? r.mult : neonAvg.toFixed(1)}</span><span class="eq-op">=</span><span class="eq-total">${r.total}</span>`
+      : `<span class="chips">${r.points}</span><span class="eq-op">x</span><span class="mult">${r.mult}</span><span class="eq-op">=</span><span class="eq-total">${r.total}</span>`;
   if (fresh) {
+    const delay = 420;
     if (neon) {
-      countBetween(eq.querySelector('.chips'), r.points, neonAvg, eqDelay + 180, 1);
-      countBetween(eq.querySelector('.mult'), r.mult, neonAvg, eqDelay + 180, 1);
+      countBetween(eq.querySelector('.chips'), r.points, neonAvg, delay, 1);
+      countBetween(eq.querySelector('.mult'), r.mult, neonAvg, delay, 1);
     }
-    countUp(eq.querySelector('.eq-total'), r.total, eqDelay + 250);
-    setTimeout(() => sfx('scoreTotal'), eqDelay + 120);
+    countUp(eq.querySelector('.eq-total'), r.total, delay + 160);
   }
-  return div;
+  return eq;
+}
+
+function scoreLineKind(label, line) {
+  if (line.pts == null || /mult|x\d|x\./i.test(label)) return 'red';
+  return 'blue';
+}
+
+function animateScoringStage(stage, r, st) {
+  const cards = [...stage.querySelectorAll('.score-live-card')];
+  const lines = [...stage.querySelectorAll('.scoring-live-line')];
+  const total = Math.max(1, lines.length);
+  lines.forEach((lineEl, i) => {
+    const line = (r.lines && r.lines[i]) || { label: 'Nothing scored', pts: 0 };
+    const label = cleanLabel(line.label);
+    const delay = 220 + i * Math.max(70, 210 - total * 10);
+    setTimeout(() => {
+      if (!lineEl.isConnected) return;
+      const kind = scoreLineKind(label, line);
+      lineEl.classList.add('active');
+      raiseScoringCards(cards, label);
+      sfx(scoreLineSfx(label, line));
+      const from = lineEl.getBoundingClientRect();
+      const target = visibleHudTarget(kind === 'red' ? 'mult' : 'hand');
+      if (target) {
+        const to = target.getBoundingClientRect();
+        const fromX = from.left + from.width / 2;
+        const fromY = from.top + from.height / 2;
+        const toX = to.left + to.width / 2;
+        const toY = to.top + to.height / 2;
+        const amount = Math.max(1, Number(line.pts) || 1);
+        flingOrbs(fromX, fromY, toX, toY, Math.min(10, 2 + amount), () => {
+          flashEl(target);
+          pulse(target);
+        }, kind === 'red' ? '' : 'blue');
+        floatRise(fromX, fromY - 8, kind === 'red' ? '+Mult' : `+${amount}`, kind === 'red' ? 'fx-mult' : 'fx-points-blue');
+      }
+      if (/joker/i.test(label)) flashScoringJoker(st);
+      setTimeout(() => lineEl.classList.remove('active'), 520);
+    }, delay * ANIM);
+  });
+  setTimeout(() => sfx('scoreTotal'), (420 + total * 100) * ANIM);
+}
+
+function raiseScoringCards(cards, label) {
+  const wave = /run|straight/i.test(label);
+  const selected = cards.length ? cards : [];
+  selected.forEach((card, i) => {
+    setTimeout(() => {
+      if (!card.isConnected) return;
+      card.classList.remove('score-raise');
+      void card.offsetWidth;
+      card.classList.add('score-raise');
+    }, wave ? i * 55 : 0);
+  });
+}
+
+function flashScoringJoker(st) {
+  const mine = st && st.you && st.scoringResults && st.scoringResults[st.revealIndex || 0] &&
+    st.scoringResults[st.revealIndex || 0].seat === st.mySeat;
+  const row = mine ? $('jokerRow') : document.querySelector('.seat.turn .plaque');
+  if (row) flashEl(row);
 }
 
 function scoreLineSfx(label, line) {
