@@ -23,7 +23,7 @@ const SOLO_SAVE_KEY = 'crib_solo_house_save_v1';
 const PROFILE_KEY = 'crib_profiles_v1';
 const ACTIVE_PROFILE_KEY = 'crib_active_profile_pin';
 const DIAG_KEY = 'crib_last_diagnostic_v1';
-const APP_BUILD = 'client-v122';
+const APP_BUILD = 'client-v123';
 const MUSIC_VOLUME_KEY = 'crib_music_volume_v1';
 const SFX_VOLUME_KEY = 'crib_sfx_volume_v1';
 
@@ -2213,7 +2213,7 @@ function renderSeats(st) {
   opponents.forEach((p, i) => {
     const k = opponents.length;
     let x = 50;
-    let y = 20;
+    let y = 28;
     if (k > 1) {
       const ang = (180 + (i + 1) * 180 / (k + 1)) * Math.PI / 180;
       x = 50 + 43 * Math.cos(ang);
@@ -3435,8 +3435,37 @@ function renderTableScoring(st) {
     stage.appendChild(board);
     renderBoard2d(st);
   }
+  seedScoringHud(r, fresh);
   if (fresh) animateScoringStage(stage, r, st);
   revealShown = Math.max(revealShown, idx);
+}
+
+function seedScoringHud(r, fresh) {
+  if (r.noMult) {
+    setScoringHudValues(fresh ? 0 : r.points, null);
+    return;
+  }
+  setScoringHudValues(fresh ? 0 : r.points, fresh ? 1 : r.mult);
+}
+
+function setScoringHudValues(points, mult) {
+  const scoreTargets = [$('myScore'), $('sideHandScore')].filter(Boolean);
+  const multTargets = [$('myMult'), $('sideMultScore')].filter(Boolean);
+  scoreTargets.forEach(el => {
+    const b = el.querySelector && el.querySelector('b');
+    if (b) b.textContent = Math.round(points);
+    else el.textContent = Math.round(points);
+  });
+  if (mult == null) return;
+  multTargets.forEach(el => {
+    const b = el.querySelector && el.querySelector('b');
+    if (b) b.textContent = 'x' + formatMultValue(mult);
+    else el.textContent = formatMultValue(mult);
+  });
+}
+
+function formatMultValue(value) {
+  return Number.isInteger(value) ? String(value) : String(Math.round(value * 10) / 10);
 }
 
 function scoringEquation(r, fresh) {
@@ -3469,6 +3498,8 @@ function animateScoringStage(stage, r, st) {
   const cards = [...stage.querySelectorAll('.score-live-card')];
   const lines = [...stage.querySelectorAll('.scoring-live-line')];
   const total = Math.max(1, lines.length);
+  let runningPoints = 0;
+  let runningMult = r.noMult ? null : 1;
   lines.forEach((lineEl, i) => {
     const line = (r.lines && r.lines[i]) || { label: 'Nothing scored', pts: 0 };
     const label = cleanLabel(line.label);
@@ -3489,6 +3520,9 @@ function animateScoringStage(stage, r, st) {
         const toY = to.top + to.height / 2;
         const amount = Math.max(1, Number(line.pts) || 1);
         flingOrbs(fromX, fromY, toX, toY, Math.min(10, 2 + amount), () => {
+          if (kind === 'red') runningMult = applyScoringMultLine(runningMult || 1, label, line);
+          else runningPoints += Number(line.pts) || 0;
+          setScoringHudValues(runningPoints, runningMult);
           flashEl(target);
           pulse(target);
         }, kind === 'red' ? '' : 'blue');
@@ -3498,7 +3532,19 @@ function animateScoringStage(stage, r, st) {
       setTimeout(() => lineEl.classList.remove('active'), 520);
     }, delay * ANIM);
   });
-  setTimeout(() => sfx('scoreTotal'), (420 + total * 100) * ANIM);
+  setTimeout(() => {
+    setScoringHudValues(r.points, r.noMult ? null : r.mult);
+    sfx('scoreTotal');
+  }, (520 + total * 100) * ANIM);
+}
+
+function applyScoringMultLine(current, label, line) {
+  if (line.pts != null) return current + Number(line.pts || 0);
+  const multMatch = String(label).match(/[xX]\s*(\d+(?:\.\d+)?)/);
+  if (multMatch) return current * Number(multMatch[1]);
+  const addMatch = String(label).match(/\+(\d+(?:\.\d+)?)\s*Mult/i);
+  if (addMatch) return current + Number(addMatch[1]);
+  return current;
 }
 
 function raiseScoringCards(cards, label) {

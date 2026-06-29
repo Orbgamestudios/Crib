@@ -2710,6 +2710,343 @@ body.phase-shop #overlayContent {
   transform: translateY(-8px) scale(1.04);
 }
 
+/* Hard mobile PWA layout guardrails */
+@media (max-width: 700px) {
+  #bottombar {
+    height: calc(322px + env(safe-area-inset-bottom));
+    padding: 6px 10px calc(8px + env(safe-area-inset-bottom));
+    overflow: hidden;
+  }
+  #myCenter {
+    display: grid;
+    grid-template-rows: 24px 108px 62px 78px;
+    gap: 7px;
+    min-height: 0;
+  }
+  #blindProgress { margin: 0; align-self: center; }
+  #myCards {
+    min-height: 0;
+    height: 108px;
+    justify-content: end;
+    overflow: visible;
+  }
+  #actionRow {
+    min-height: 0;
+    height: 22px;
+    margin: 0;
+  }
+  #hand {
+    height: 86px;
+    transform: none !important;
+    overflow: visible;
+  }
+  #hand .card,
+  .card.flying {
+    width: 52px;
+    height: 73px;
+    font-size: 16px;
+  }
+  #hudRow {
+    min-height: 0;
+    height: 62px;
+    margin: 0;
+    align-items: stretch;
+  }
+  #scoreHud {
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    flex: 1 1 auto;
+    max-width: 250px;
+  }
+  #starterDock {
+    display: none !important;
+  }
+  .hud-chip {
+    min-width: 0;
+    padding: 5px 6px;
+  }
+  .hud-chip b { font-size: 22px; }
+  #tarotPanel {
+    flex: 0 0 116px;
+    min-width: 0;
+  }
+  #utilityPanel {
+    flex: 0 0 62px;
+  }
+  #myStuff {
+    height: 78px;
+    margin: 0;
+    overflow: hidden;
+  }
+  #jokerRow {
+    justify-content: flex-start;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding-bottom: 2px;
+  }
+  .jslot,
+  .tslot,
+  .jtile {
+    width: 39px;
+    height: 54px;
+  }
+  .jtile .jt-icon {
+    width: 24px;
+    height: 24px;
+  }
+  .jtile .jt-name { display: none; }
+  .seat {
+    width: 132px;
+    z-index: 24;
+  }
+  .seat .plaque {
+    min-width: 118px;
+    max-width: 150px;
+    font-size: 12px;
+    padding: 4px 8px;
+    background: #07151de8;
+  }
+  .seat .backs {
+    height: 56px;
+    margin-top: 7px;
+  }
+  .seat .backs .card {
+    width: 37px;
+    height: 52px;
+    font-size: 12px;
+    margin: 0 -10px;
+  }
+
+  body.phase-scoring #bottombar {
+    height: calc(88px + env(safe-area-inset-bottom));
+    padding: 8px 12px calc(10px + env(safe-area-inset-bottom));
+  }
+  body.phase-scoring #myCenter {
+    display: block;
+  }
+  body.phase-scoring #blindProgress,
+  body.phase-scoring #myCards,
+  body.phase-scoring #myStuff,
+  body.phase-scoring #tarotPanel,
+  body.phase-scoring #utilityPanel {
+    display: none !important;
+  }
+  body.phase-scoring #hudRow {
+    display: flex;
+    height: 100%;
+    margin: 0;
+    justify-content: center;
+  }
+  body.phase-scoring #scoreHud {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    width: min(320px, 92vw);
+    max-width: none;
+    flex: 0 1 auto;
+  }
+  body.phase-scoring .scoring-stage {
+    inset: calc(108px + env(safe-area-inset-top)) 10px calc(96px + env(safe-area-inset-bottom)) 10px;
+    align-items: center;
+  }
+  body.phase-scoring .scoring-live-panel {
+    width: 100%;
+    max-height: 100%;
+    padding: 12px;
+  }
+  body.phase-scoring .scoring-live-head {
+    font-size: 16px;
+  }
+  body.phase-scoring .scoring-live-cards {
+    min-height: 104px;
+    gap: 6px;
+  }
+  body.phase-scoring .scoring-live-cards .card {
+    width: 52px;
+    height: 73px;
+    font-size: 16px;
+  }
+  body.phase-scoring .scoring-live-cards .card .suit { font-size: 18px; }
+  body.phase-scoring .scoring-live-lines {
+    max-height: 150px;
+    overflow-y: auto;
+  }
+  body.phase-scoring .scoring-live-line {
+    min-height: 28px;
+    font-size: 13px;
+  }
+  body.phase-scoring .scoring-live-equation {
+    font-size: 18px;
+  }
+
+  body.phase-shop .shop-stage {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
+    padding: 12px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    min-height: 0;
+  }
+  body.phase-shop .shop-shelf {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-auto-rows: 198px;
+    gap: 14px;
+    padding: 20px 12px;
+    height: auto;
+    overflow: hidden;
+    align-items: stretch;
+    flex: 0 0 auto;
+  }
+  body.phase-shop .market-shelf {
+    min-height: 450px;
+  }
+  body.phase-shop .pack-shelf {
+    min-height: 238px;
+  }
+  body.phase-shop .balatro-card,
+  body.phase-shop .shop-item {
+    overflow: hidden !important;
+    contain: paint;
+  }
+  body.phase-shop .market-shelf .shop-item,
+  body.phase-shop .pack-shelf .shop-item {
+    width: 100%;
+    height: 198px;
+    min-height: 198px;
+    padding: 32px 8px 10px;
+    gap: 5px;
+  }
+  body.phase-shop .shop-card-face {
+    height: 72px;
+    min-height: 72px;
+    transform: none;
+  }
+  body.phase-shop .shop-art {
+    width: 52px;
+    height: 52px;
+  }
+  body.phase-shop .shop-card-face.pack .shop-art {
+    width: 54px;
+    height: 70px;
+  }
+  body.phase-shop .shop-item .si-name {
+    min-height: 30px;
+    max-height: 36px;
+    font-size: 12px;
+    line-height: 1.05;
+  }
+  body.phase-shop .shop-item .si-desc {
+    display: none !important;
+  }
+  body.phase-shop .rar-pill {
+    font-size: 8px;
+    padding: 1px 6px;
+    margin: 0;
+  }
+  body.phase-shop .shop-type {
+    right: 7px;
+    bottom: 7px;
+    font-size: 8px;
+    padding: 1px 6px;
+  }
+  body.phase-shop .shop-sell {
+    overflow: visible;
+    flex: 0 0 auto;
+  }
+}
+
+@media (orientation: landscape) and (max-height: 560px) {
+  .seat {
+    width: 142px;
+  }
+  .seat .plaque {
+    min-width: 124px;
+    font-size: 12px;
+    padding: 4px 8px;
+  }
+  .seat .backs {
+    height: 56px;
+    margin-top: 5px;
+  }
+  .seat .backs .card {
+    width: 38px;
+    height: 54px;
+    font-size: 12px;
+    margin: 0 -10px;
+  }
+  body.phase-pegging #center {
+    top: 34%;
+    transform: translate(-50%, -50%) scale(.86);
+  }
+  #bottombar {
+    height: calc(136px + env(safe-area-inset-bottom));
+  }
+  #myCards {
+    height: 104px;
+    min-height: 104px;
+  }
+  #hand {
+    height: 82px;
+    transform: none !important;
+  }
+  #hand .card,
+  .card.flying {
+    width: 54px;
+    height: 76px;
+    font-size: 17px;
+  }
+  #hudRow {
+    display: flex;
+    position: fixed;
+    right: calc(8px + env(safe-area-inset-right));
+    bottom: calc(8px + env(safe-area-inset-bottom));
+    z-index: 110;
+    width: 126px;
+    min-height: 62px;
+    pointer-events: auto;
+  }
+  #hudRow #scoreHud,
+  #hudRow #utilityPanel { display: none !important; }
+  #tarotPanel {
+    display: block !important;
+    width: 100%;
+    padding: 5px;
+  }
+  #myStuff {
+    display: block !important;
+    position: fixed;
+    left: calc(160px + env(safe-area-inset-left));
+    bottom: calc(8px + env(safe-area-inset-bottom));
+    z-index: 110;
+    width: 260px;
+    height: 68px;
+    margin: 0;
+    padding: 5px 7px;
+    overflow: hidden;
+    pointer-events: auto;
+  }
+  #jokerRow {
+    justify-content: flex-start;
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+  .jslot,
+  .tslot,
+  .jtile {
+    width: 36px;
+    height: 50px;
+  }
+  body.phase-scoring #bottombar {
+    height: calc(72px + env(safe-area-inset-bottom));
+  }
+  body.phase-scoring .scoring-stage {
+    inset: 10px 10px calc(80px + env(safe-area-inset-bottom)) calc(160px + env(safe-area-inset-left));
+  }
+}
+
 /* Final responsive layout fixes */
 @media (max-width: 700px) {
   .seat { z-index: 24; }
@@ -2959,5 +3296,271 @@ body.phase-shop #overlayContent {
   }
   body.phase-shop .pack-title-card {
     display: none;
+  }
+}
+
+/* Absolute last mobile/PWA overrides. Keep these after all older mobile rules. */
+@media (max-width: 700px) {
+  #bottombar {
+    height: calc(322px + env(safe-area-inset-bottom)) !important;
+    padding: 6px 10px calc(8px + env(safe-area-inset-bottom)) !important;
+    overflow: hidden !important;
+  }
+  #myCenter {
+    display: grid !important;
+    grid-template-rows: 24px 108px 62px 78px !important;
+    gap: 7px !important;
+    min-height: 0 !important;
+  }
+  #blindProgress { margin: 0 !important; align-self: center !important; }
+  #myCards {
+    height: 108px !important;
+    min-height: 0 !important;
+    justify-content: end !important;
+    overflow: visible !important;
+  }
+  #actionRow { min-height: 0 !important; height: 22px !important; margin: 0 !important; }
+  #hand {
+    height: 86px !important;
+    transform: none !important;
+    overflow: visible !important;
+  }
+  #hand .card,
+  .card.flying {
+    width: 52px !important;
+    height: 73px !important;
+    font-size: 16px !important;
+  }
+  #hudRow {
+    height: 62px !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    align-items: stretch !important;
+  }
+  #scoreHud {
+    position: relative !important;
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+    max-width: 250px !important;
+  }
+  #starterDock { display: none !important; }
+  #tarotPanel { flex: 0 0 116px !important; min-width: 0 !important; }
+  #utilityPanel { flex: 0 0 62px !important; }
+  #myStuff {
+    height: 78px !important;
+    margin: 0 !important;
+    overflow: hidden !important;
+  }
+  #jokerRow {
+    justify-content: flex-start !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+  }
+  .jslot,
+  .tslot,
+  .jtile {
+    width: 39px !important;
+    height: 54px !important;
+  }
+  .jtile .jt-icon { width: 24px !important; height: 24px !important; }
+  .jtile .jt-name { display: none !important; }
+  .seat {
+    width: 132px !important;
+    z-index: 24 !important;
+  }
+  .seat .plaque {
+    min-width: 118px !important;
+    max-width: 150px !important;
+    font-size: 12px !important;
+    padding: 4px 8px !important;
+    background: #07151de8 !important;
+  }
+  .seat .backs {
+    height: 56px !important;
+    margin-top: 7px !important;
+  }
+  .seat .backs .card {
+    width: 37px !important;
+    height: 52px !important;
+    font-size: 12px !important;
+    margin: 0 -10px !important;
+  }
+
+  body.phase-scoring #bottombar {
+    height: calc(88px + env(safe-area-inset-bottom)) !important;
+    padding: 8px 12px calc(10px + env(safe-area-inset-bottom)) !important;
+  }
+  body.phase-scoring #myCenter { display: block !important; }
+  body.phase-scoring #blindProgress,
+  body.phase-scoring #myCards,
+  body.phase-scoring #myStuff,
+  body.phase-scoring #tarotPanel,
+  body.phase-scoring #utilityPanel {
+    display: none !important;
+  }
+  body.phase-scoring #hudRow {
+    display: flex !important;
+    height: 100% !important;
+    justify-content: center !important;
+  }
+  body.phase-scoring #scoreHud {
+    display: grid !important;
+    width: min(320px, 92vw) !important;
+    max-width: none !important;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+  }
+  body.phase-scoring .scoring-stage {
+    inset: calc(108px + env(safe-area-inset-top)) 10px calc(96px + env(safe-area-inset-bottom)) 10px !important;
+  }
+  body.phase-scoring .scoring-live-panel {
+    width: 100% !important;
+    max-height: 100% !important;
+    padding: 12px !important;
+  }
+  body.phase-scoring .scoring-live-cards {
+    min-height: 104px !important;
+  }
+  body.phase-scoring .scoring-live-cards .card {
+    width: 52px !important;
+    height: 73px !important;
+    font-size: 16px !important;
+  }
+  body.phase-scoring .scoring-live-lines {
+    max-height: 150px !important;
+    overflow-y: auto !important;
+  }
+  body.phase-scoring .scoring-live-line {
+    min-height: 28px !important;
+    font-size: 13px !important;
+  }
+
+  body.phase-shop .shop-stage {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 16px !important;
+    padding: 12px !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+  }
+  body.phase-shop .shop-shelf {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    grid-auto-rows: 198px !important;
+    gap: 14px !important;
+    padding: 20px 12px !important;
+    height: auto !important;
+    overflow: hidden !important;
+    flex: 0 0 auto !important;
+  }
+  body.phase-shop .market-shelf { min-height: 450px !important; }
+  body.phase-shop .pack-shelf { min-height: 238px !important; }
+  body.phase-shop .balatro-card,
+  body.phase-shop .shop-item {
+    overflow: hidden !important;
+    contain: paint !important;
+  }
+  body.phase-shop .market-shelf .shop-item,
+  body.phase-shop .pack-shelf .shop-item {
+    width: 100% !important;
+    height: 198px !important;
+    min-height: 198px !important;
+    padding: 32px 8px 10px !important;
+    gap: 5px !important;
+  }
+  body.phase-shop .shop-card-face {
+    height: 72px !important;
+    min-height: 72px !important;
+    transform: none !important;
+  }
+  body.phase-shop .shop-art {
+    width: 52px !important;
+    height: 52px !important;
+  }
+  body.phase-shop .shop-card-face.pack .shop-art {
+    width: 54px !important;
+    height: 70px !important;
+  }
+  body.phase-shop .shop-item .si-name {
+    min-height: 30px !important;
+    max-height: 36px !important;
+    font-size: 12px !important;
+    line-height: 1.05 !important;
+  }
+  body.phase-shop .shop-item .si-desc { display: none !important; }
+  body.phase-shop .shop-sell {
+    overflow: visible !important;
+    flex: 0 0 auto !important;
+  }
+}
+
+@media (orientation: landscape) and (max-height: 560px) {
+  .seat { width: 142px !important; }
+  .seat .plaque {
+    min-width: 124px !important;
+    font-size: 12px !important;
+    padding: 4px 8px !important;
+  }
+  .seat .backs {
+    height: 56px !important;
+    margin-top: 5px !important;
+  }
+  .seat .backs .card {
+    width: 38px !important;
+    height: 54px !important;
+    font-size: 12px !important;
+    margin: 0 -10px !important;
+  }
+  body.phase-pegging #center {
+    top: 34% !important;
+    transform: translate(-50%, -50%) scale(.86) !important;
+  }
+  #bottombar { height: calc(136px + env(safe-area-inset-bottom)) !important; }
+  #myCards {
+    height: 104px !important;
+    min-height: 104px !important;
+  }
+  #hand {
+    height: 82px !important;
+    transform: none !important;
+  }
+  #hand .card,
+  .card.flying {
+    width: 54px !important;
+    height: 76px !important;
+    font-size: 17px !important;
+  }
+  #hudRow {
+    display: flex !important;
+    position: fixed !important;
+    right: calc(8px + env(safe-area-inset-right)) !important;
+    bottom: calc(8px + env(safe-area-inset-bottom)) !important;
+    z-index: 110 !important;
+    width: 126px !important;
+    min-height: 62px !important;
+  }
+  #hudRow #scoreHud,
+  #hudRow #utilityPanel { display: none !important; }
+  #tarotPanel {
+    display: block !important;
+    width: 100% !important;
+    padding: 5px !important;
+  }
+  #myStuff {
+    display: block !important;
+    position: fixed !important;
+    left: calc(160px + env(safe-area-inset-left)) !important;
+    bottom: calc(8px + env(safe-area-inset-bottom)) !important;
+    z-index: 110 !important;
+    width: 260px !important;
+    height: 68px !important;
+    margin: 0 !important;
+    padding: 5px 7px !important;
+    overflow: hidden !important;
+  }
+  body.phase-scoring #bottombar {
+    height: calc(72px + env(safe-area-inset-bottom)) !important;
+  }
+  body.phase-scoring .scoring-stage {
+    inset: 10px 10px calc(80px + env(safe-area-inset-bottom)) calc(160px + env(safe-area-inset-left)) !important;
   }
 }
