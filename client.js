@@ -23,7 +23,7 @@ const SOLO_SAVE_KEY = 'crib_solo_house_save_v1';
 const PROFILE_KEY = 'crib_profiles_v1';
 const ACTIVE_PROFILE_KEY = 'crib_active_profile_pin';
 const DIAG_KEY = 'crib_last_diagnostic_v1';
-const APP_BUILD = 'client-v123';
+const APP_BUILD = 'client-v124';
 const MUSIC_VOLUME_KEY = 'crib_music_volume_v1';
 const SFX_VOLUME_KEY = 'crib_sfx_volume_v1';
 
@@ -2099,6 +2099,7 @@ function cardEl(card, opts = {}) {
   const div = document.createElement('div');
   div.className = 'card' + (card.suit < 2 && card.enhancement !== 'wild' ? ' red' : '') + (opts.small ? ' small' : '') +
     (card.enhancement ? ` enhancement-${card.enhancement}` : '');
+  applyCardDistance(div, opts.distance == null ? (opts.small ? 3 : 1) : opts.distance);
   if (card.gambitCharged) div.classList.add('gambit-charged');
   if (card.enhancement === 'stone') {
     div.innerHTML = '<span class="stone-mark">STONE</span>';
@@ -2114,7 +2115,15 @@ function cardEl(card, opts = {}) {
 function backEl(small, deckArt = activeDeckArt()) {
   const div = document.createElement('div');
   div.className = `card back deck-${normalizeDeckArtId(deckArt)}` + (small ? ' small' : '');
+  applyCardDistance(div, small ? 3 : 1);
   return div;
+}
+
+function applyCardDistance(el, distance = 1) {
+  const d = Math.max(0, Math.min(3, Number(distance) || 0));
+  el.dataset.cardDistance = String(d);
+  el.classList.remove('card-distance-0', 'card-distance-1', 'card-distance-2', 'card-distance-3');
+  el.classList.add(`card-distance-${d}`);
 }
 
 // ---- game rendering ----
@@ -2255,9 +2264,13 @@ function renderSeats(st) {
     const backs = document.createElement('div');
     backs.className = 'backs' + (p.handCards && p.handCards.length ? ' cosmic-reveal' : '');
     if (p.handCards && p.handCards.length) {
-      p.handCards.forEach(c => backs.appendChild(cardEl(c, { small: true })));
+      p.handCards.forEach(c => backs.appendChild(cardEl(c, { distance: 2 })));
     } else {
-      for (let c = 0; c < p.handCount; c++) backs.appendChild(backEl(true, p.deckArt));
+      for (let c = 0; c < p.handCount; c++) {
+        const card = backEl(false, p.deckArt);
+        applyCardDistance(card, 2);
+        backs.appendChild(card);
+      }
     }
     seat.appendChild(backs);
     el.appendChild(seat);
@@ -2267,12 +2280,12 @@ function renderSeats(st) {
 function renderCenter(st) {
   const deck = $('deckPile');
   deck.innerHTML = '';
-  deck.appendChild(backEl());
+  deck.appendChild(backEl(false));
   deck.insertAdjacentHTML('beforeend', '<div class="lbl">Deck</div>');
 
   const starter = $('starterPile');
   starter.innerHTML = '';
-  starter.appendChild(st.starter ? cardEl(st.starter) : backEl());
+  starter.appendChild(st.starter ? cardEl(st.starter, { distance: 1 }) : backEl(false));
   starter.insertAdjacentHTML('beforeend', '<div class="lbl">Starter</div>');
 
   const crib = $('cribPile');
@@ -2280,7 +2293,7 @@ function renderCenter(st) {
   const cribStack = document.createElement('div');
   cribStack.className = 'crib-card-stack';
   if (st.cribCards && st.cribCards.length) {
-    st.cribCards.forEach(c => cribStack.appendChild(cardEl(c, { small: true })));
+    st.cribCards.forEach(c => cribStack.appendChild(cardEl(c, { distance: 1 })));
   } else if (st.cribDeckArts && st.cribDeckArts.length) {
     st.cribDeckArts.forEach(art => cribStack.appendChild(backEl(false, art)));
   } else {
@@ -2578,7 +2591,7 @@ function renderStarterDock(st) {
   if (!dock) return;
   dock.innerHTML = '';
   dock.classList.toggle('empty', !st.starter);
-  if (st.starter) dock.appendChild(cardEl(st.starter, { small: true }));
+  if (st.starter) dock.appendChild(cardEl(st.starter, { distance: 3 }));
 }
 
 function renderHandScore(st) {
@@ -2778,7 +2791,7 @@ function renderHand(st) {
 
   const mid = (you.hand.length - 1) / 2;
   you.hand.forEach((c, idx) => {
-    const el = cardEl(c);
+    const el = cardEl(c, { distance: 0 });
     const preview = myTurn ? peggingPreview(c, st) : null;
     el.dataset.cardId = c.id;
     el.style.setProperty('--fan-rot', `${(idx - mid) * 5}deg`);
@@ -3398,13 +3411,13 @@ function renderTableScoring(st) {
   const cardRow = document.createElement('div');
   cardRow.className = 'scoring-live-cards';
   (r.cards || []).forEach(c => {
-    const el = cardEl(c);
+    const el = cardEl(c, { distance: 0 });
     el.classList.add('score-live-card');
     cardRow.appendChild(el);
   });
   if (r.starter) {
     cardRow.insertAdjacentHTML('beforeend', '<span class="scoring-plus">+</span>');
-    const starter = cardEl(r.starter);
+    const starter = cardEl(r.starter, { distance: 0 });
     starter.classList.add('score-live-card', 'score-live-starter');
     starter.title = 'Starter';
     cardRow.appendChild(starter);
@@ -3956,7 +3969,7 @@ function addTarotTargetPicker(card, def, idx, st) {
     if (tarotArt) tarotArt.setAttribute('role', ready ? 'button' : 'img');
   };
   st.you.hand.forEach(c => {
-    const el = cardEl(c);
+    const el = cardEl(c, { distance: 0 });
     el.classList.add('clickable');
     el.dataset.cardId = c.id;
     el.onclick = e => {
@@ -4196,7 +4209,11 @@ function runAnimations(prev, st, refs = {}) {
       for (let i = 0; i < (p.cribDiscardCount || st.baseDiscardCount || st.discardCount); i++) {
         setTimeout(() => {
           const tgt = document.querySelector('#cribPile .card:last-child');
-          if (tgt) flyClone(backEl(false, p.deckArt), fromRect, tgt.getBoundingClientRect(), 460, { rot: p.seat === st.mySeat ? -8 : 8 });
+          if (tgt) flyClone(backEl(false, p.deckArt), fromRect, tgt.getBoundingClientRect(), 460, {
+            rot: p.seat === st.mySeat ? -8 : 8,
+            fromDistance: p.seat === st.mySeat ? 0 : 2,
+            toDistance: cardDistanceOfElement(tgt),
+          });
         }, i * 110);
       }
     }
@@ -4226,10 +4243,10 @@ function runAnimations(prev, st, refs = {}) {
       if (target) flyCard(playAnim, fromRect, target);
       else {
         const area = $('pegArea').getBoundingClientRect();
-        flyClone(cardEl(playAnim), fromRect, {
+        flyClone(cardEl(playAnim, { distance: cardDistanceFromRect(fromRect) }), fromRect, {
           left: area.left + area.width / 2 - 34,
           top: area.top + area.height / 2 - 46,
-        }, 440, { rot: 5, holdMs: 1200 });
+        }, 440, { rot: 5, holdMs: 1200, fromDistance: cardDistanceFromRect(fromRect), toDistance: 1 });
       }
     }
     pulse($('pegCount'));
@@ -4363,6 +4380,12 @@ function shuffleAnim(deckRect) {
 // teleporting when a rAF/transition gets pre-empted.
 function flyClone(el, fromRect, toRect, ms = 440, opts = {}) {
   el.classList.add('flying');
+  const fromDistance = opts.fromDistance == null ? 1 : opts.fromDistance;
+  const toDistance = opts.toDistance == null ? fromDistance : opts.toDistance;
+  const fromScale = cardScaleForDistance(fromDistance);
+  const toScale = cardScaleForDistance(toDistance);
+  const midScale = ((fromScale + toScale) / 2) * 1.07;
+  applyCardDistance(el, fromDistance);
   el.style.left = fromRect.left + 'px';
   el.style.top = fromRect.top + 'px';
   $('fx').appendChild(el);
@@ -4372,9 +4395,9 @@ function flyClone(el, fromRect, toRect, ms = 440, opts = {}) {
   const arc = opts.arc != null ? opts.arc : -Math.min(150, dist * 0.3);
   const rot = opts.rot || 0;
   const anim = el.animate([
-    { transform: 'translate(0px,0px) rotate(0deg) scale(1)' },
-    { transform: `translate(${dx * 0.5}px, ${dy * 0.5 + arc}px) rotate(${rot * 0.6}deg) scale(1.07)`, offset: 0.55 },
-    { transform: `translate(${dx}px, ${dy}px) rotate(${rot}deg) scale(1)` },
+    { transform: `translate(0px,0px) rotate(0deg) scale(${fromScale})` },
+    { transform: `translate(${dx * 0.5}px, ${dy * 0.5 + arc}px) rotate(${rot * 0.6}deg) scale(${midScale})`, offset: 0.55 },
+    { transform: `translate(${dx}px, ${dy}px) rotate(${rot}deg) scale(${toScale})` },
   ], { duration: ms * ANIM, easing: 'cubic-bezier(.3,.85,.25,1)', fill: 'forwards' });
   const done = () => {
     const finish = () => { el.remove(); if (opts.onfinish) opts.onfinish(); };
@@ -4389,10 +4412,37 @@ function flyClone(el, fromRect, toRect, ms = 440, opts = {}) {
 function flyCard(card, fromRect, target, opts = {}) {
   const toRect = target.getBoundingClientRect();
   target.style.visibility = 'hidden';
-  flyClone(cardEl(card), fromRect, toRect, opts.ms || 440, {
+  flyClone(cardEl(card, { distance: opts.fromDistance == null ? cardDistanceFromRect(fromRect) : opts.fromDistance }), fromRect, toRect, opts.ms || 440, {
     rot: opts.rot || 0,
+    fromDistance: opts.fromDistance == null ? cardDistanceFromRect(fromRect) : opts.fromDistance,
+    toDistance: opts.toDistance == null ? cardDistanceOfElement(target) : opts.toDistance,
     onfinish: () => { target.style.visibility = ''; if (opts.onfinish) opts.onfinish(); },
   });
+}
+
+function cardDistanceOfElement(el) {
+  const card = el && (el.classList && el.classList.contains('card') ? el : el.querySelector && el.querySelector('.card'));
+  if (!card) return 1;
+  return Number(card.dataset.cardDistance || 1);
+}
+
+function cardDistanceFromRect(rect) {
+  if (!rect) return 1;
+  const cx = rect.left + rect.width / 2;
+  const cy = rect.top + rect.height / 2;
+  let best = { d: 1, dist: Infinity };
+  document.querySelectorAll('#hand .card, #pegStack .card, #centerCards .card, .seat .backs .card').forEach(el => {
+    const r = el.getBoundingClientRect();
+    const dx = cx - (r.left + r.width / 2);
+    const dy = cy - (r.top + r.height / 2);
+    const dist = dx * dx + dy * dy;
+    if (dist < best.dist) best = { d: cardDistanceOfElement(el), dist };
+  });
+  return best.d;
+}
+
+function cardScaleForDistance(distance) {
+  return [1, 0.78, 0.58, 0.42][Math.max(0, Math.min(3, Number(distance) || 0))];
 }
 
 // ---- particle / burst helpers ----

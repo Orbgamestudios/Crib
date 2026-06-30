@@ -2314,6 +2314,210 @@ body.phase-shop #overlayContent {
   }
 }
 
+/* Absolute final card scale layer: hand distance 0, table distance 1, opponents 2, docked UI 3. */
+:root {
+  --card-base-w: 68px;
+  --card-base-h: 95px;
+  --card-base-font: 21px;
+  --card-base-suit: 24px;
+}
+.card {
+  --card-scale: .78;
+  width: calc(var(--card-base-w) * var(--card-scale)) !important;
+  height: calc(var(--card-base-h) * var(--card-scale)) !important;
+  font-size: calc(var(--card-base-font) * var(--card-scale)) !important;
+}
+.card .suit { font-size: calc(var(--card-base-suit) * var(--card-scale)) !important; }
+.card-distance-0 { --card-scale: 1; }
+.card-distance-1 { --card-scale: .78; }
+.card-distance-2 { --card-scale: .58; }
+.card-distance-3,
+.card.small { --card-scale: .42; }
+.card.flying {
+  width: var(--card-base-w) !important;
+  height: var(--card-base-h) !important;
+  font-size: var(--card-base-font) !important;
+  transform-origin: top left !important;
+}
+.card.flying .suit { font-size: var(--card-base-suit) !important; }
+#hand .card { margin: 0 calc(-4px * var(--card-scale)) !important; }
+.seat .backs .card { margin: 0 calc(-14px * var(--card-scale)) !important; }
+#pegStack .card { margin-right: calc(-18px * var(--card-scale)) !important; }
+
+@media (max-width: 700px) {
+  :root {
+    --card-base-w: 56px;
+    --card-base-h: 79px;
+    --card-base-font: 18px;
+    --card-base-suit: 20px;
+  }
+}
+
+@media (orientation: landscape) and (max-height: 560px) {
+  :root {
+    --card-base-w: 54px;
+    --card-base-h: 76px;
+    --card-base-font: 17px;
+    --card-base-suit: 19px;
+  }
+}
+
+/* Safari-safe final card scale values. */
+.card {
+  width: var(--card-w, 53px) !important;
+  height: var(--card-h, 74px) !important;
+  font-size: var(--card-font, 16px) !important;
+}
+.card .suit { font-size: var(--card-suit, 18px) !important; }
+.card-distance-0 {
+  --card-w: 68px;
+  --card-h: 95px;
+  --card-font: 21px;
+  --card-suit: 24px;
+}
+.card-distance-1 {
+  --card-w: 53px;
+  --card-h: 74px;
+  --card-font: 16px;
+  --card-suit: 18px;
+}
+.card-distance-2 {
+  --card-w: 39px;
+  --card-h: 55px;
+  --card-font: 12px;
+  --card-suit: 14px;
+}
+.card-distance-3,
+.card.small {
+  --card-w: 29px;
+  --card-h: 40px;
+  --card-font: 9px;
+  --card-suit: 10px;
+}
+.card.flying {
+  width: 68px !important;
+  height: 95px !important;
+  font-size: 21px !important;
+  transform-origin: top left !important;
+}
+.card.flying .suit { font-size: 24px !important; }
+
+@media (max-width: 700px) {
+  .card-distance-0 {
+    --card-w: 56px;
+    --card-h: 79px;
+    --card-font: 18px;
+    --card-suit: 20px;
+  }
+  .card-distance-1 {
+    --card-w: 44px;
+    --card-h: 62px;
+    --card-font: 14px;
+    --card-suit: 16px;
+  }
+  .card-distance-2 {
+    --card-w: 32px;
+    --card-h: 46px;
+    --card-font: 10px;
+    --card-suit: 12px;
+  }
+  .card-distance-3,
+  .card.small {
+    --card-w: 24px;
+    --card-h: 33px;
+    --card-font: 8px;
+    --card-suit: 9px;
+  }
+  .card.flying {
+    width: 56px !important;
+    height: 79px !important;
+    font-size: 18px !important;
+  }
+  .card.flying .suit { font-size: 20px !important; }
+}
+
+@media (orientation: landscape) and (max-height: 560px) {
+  .card-distance-0 {
+    --card-w: 54px;
+    --card-h: 76px;
+    --card-font: 17px;
+    --card-suit: 19px;
+  }
+  .card-distance-1 {
+    --card-w: 42px;
+    --card-h: 59px;
+    --card-font: 13px;
+    --card-suit: 15px;
+  }
+  .card-distance-2 {
+    --card-w: 31px;
+    --card-h: 44px;
+    --card-font: 10px;
+    --card-suit: 11px;
+  }
+  .card-distance-3,
+  .card.small {
+    --card-w: 23px;
+    --card-h: 32px;
+    --card-font: 8px;
+    --card-suit: 9px;
+  }
+  .card.flying {
+    width: 54px !important;
+    height: 76px !important;
+    font-size: 17px !important;
+  }
+  .card.flying .suit { font-size: 19px !important; }
+}
+
+/* Card size function: distance from the player's hand controls all rendered card sizes. */
+:root {
+  --card-base-w: 68px;
+  --card-base-h: 95px;
+  --card-base-font: 21px;
+  --card-base-suit: 24px;
+}
+.card {
+  --card-scale: .78;
+  width: calc(var(--card-base-w) * var(--card-scale)) !important;
+  height: calc(var(--card-base-h) * var(--card-scale)) !important;
+  font-size: calc(var(--card-base-font) * var(--card-scale)) !important;
+}
+.card .suit { font-size: calc(var(--card-base-suit) * var(--card-scale)) !important; }
+.card-distance-0 { --card-scale: 1; }
+.card-distance-1 { --card-scale: .78; }
+.card-distance-2 { --card-scale: .58; }
+.card-distance-3,
+.card.small { --card-scale: .42; }
+.card.flying {
+  width: var(--card-base-w) !important;
+  height: var(--card-base-h) !important;
+  font-size: var(--card-base-font) !important;
+  transform-origin: top left !important;
+}
+.card.flying .suit { font-size: var(--card-base-suit) !important; }
+#hand .card { margin: 0 calc(-4px * var(--card-scale)) !important; }
+.seat .backs .card { margin: 0 calc(-14px * var(--card-scale)) !important; }
+#pegStack .card { margin-right: calc(-18px * var(--card-scale)) !important; }
+
+@media (max-width: 700px) {
+  :root {
+    --card-base-w: 56px;
+    --card-base-h: 79px;
+    --card-base-font: 18px;
+    --card-base-suit: 20px;
+  }
+}
+
+@media (orientation: landscape) and (max-height: 560px) {
+  :root {
+    --card-base-w: 54px;
+    --card-base-h: 76px;
+    --card-base-font: 17px;
+    --card-base-suit: 19px;
+  }
+}
+
 @media (orientation: landscape) and (max-height: 560px) {
   #center {
     top: 42%;
@@ -3829,5 +4033,53 @@ body.phase-shop .pack-shelf .shop-item {
   body.phase-shop .pack-shelf .shop-item {
     height: 216px !important;
     min-height: 216px !important;
+  }
+}
+
+/* Absolute final card scale layer: hand distance 0, table distance 1, opponents 2, docked UI 3. */
+:root {
+  --card-base-w: 68px;
+  --card-base-h: 95px;
+  --card-base-font: 21px;
+  --card-base-suit: 24px;
+}
+.card {
+  --card-scale: .78;
+  width: calc(var(--card-base-w) * var(--card-scale)) !important;
+  height: calc(var(--card-base-h) * var(--card-scale)) !important;
+  font-size: calc(var(--card-base-font) * var(--card-scale)) !important;
+}
+.card .suit { font-size: calc(var(--card-base-suit) * var(--card-scale)) !important; }
+.card-distance-0 { --card-scale: 1; }
+.card-distance-1 { --card-scale: .78; }
+.card-distance-2 { --card-scale: .58; }
+.card-distance-3,
+.card.small { --card-scale: .42; }
+.card.flying {
+  width: var(--card-base-w) !important;
+  height: var(--card-base-h) !important;
+  font-size: var(--card-base-font) !important;
+  transform-origin: top left !important;
+}
+.card.flying .suit { font-size: var(--card-base-suit) !important; }
+#hand .card { margin: 0 calc(-4px * var(--card-scale)) !important; }
+.seat .backs .card { margin: 0 calc(-14px * var(--card-scale)) !important; }
+#pegStack .card { margin-right: calc(-18px * var(--card-scale)) !important; }
+
+@media (max-width: 700px) {
+  :root {
+    --card-base-w: 56px;
+    --card-base-h: 79px;
+    --card-base-font: 18px;
+    --card-base-suit: 20px;
+  }
+}
+
+@media (orientation: landscape) and (max-height: 560px) {
+  :root {
+    --card-base-w: 54px;
+    --card-base-h: 76px;
+    --card-base-font: 17px;
+    --card-base-suit: 19px;
   }
 }
